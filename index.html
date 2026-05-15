@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم سودان فري</title>
+  <meta name="description" content="لوحة تحكم إدارية لتطبيق سودان فري">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-screen">
+    <div class="login-card">
+      <div class="login-logo">
+        <span class="material-icons-outlined logo-icon">admin_panel_settings</span>
+        <h1>سودان فري</h1>
+        <p>لوحة تحكم المشرفين</p>
+      </div>
+      <div class="login-form">
+        <div class="input-group">
+          <span class="material-icons-outlined">email</span>
+          <input type="email" id="login-email" placeholder="البريد الإلكتروني" autocomplete="email">
+        </div>
+        <div class="input-group">
+          <span class="material-icons-outlined">lock</span>
+          <input type="password" id="login-password" placeholder="كلمة المرور" autocomplete="current-password">
+        </div>
+        <button id="login-btn" class="btn btn-primary btn-full" onclick="AdminApp.login()">
+          <span class="material-icons-outlined">login</span>
+          تسجيل الدخول
+        </button>
+        <p id="login-error" class="error-text" style="display:none;"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard -->
+  <div id="main-app" class="main-app" style="display:none;">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="material-icons-outlined logo-icon-sm">admin_panel_settings</span>
+        <h2>سودان فري</h2>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="dashboard" onclick="AdminApp.navigateTo('dashboard')">
+          <span class="material-icons-outlined">dashboard</span><span class="nav-text">الرئيسية</span>
+        </a>
+        <div class="nav-section-title">إدارة المحتوى</div>
+        <a href="#" class="nav-item" data-page="users" onclick="AdminApp.navigateTo('users')">
+          <span class="material-icons-outlined">people</span><span class="nav-text">المستخدمون</span>
+        </a>
+        <a href="#" class="nav-item" data-page="posts" onclick="AdminApp.navigateTo('posts')">
+          <span class="material-icons-outlined">article</span><span class="nav-text">المنشورات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="requests" onclick="AdminApp.navigateTo('requests')">
+          <span class="material-icons-outlined">assignment</span><span class="nav-text">الطلبات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="ads" onclick="AdminApp.navigateTo('ads')">
+          <span class="material-icons-outlined">campaign</span><span class="nav-text">الإعلانات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="promotions" onclick="AdminApp.navigateTo('promotions')">
+          <span class="material-icons-outlined">star</span><span class="nav-text">الترويجات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="contracts" onclick="AdminApp.navigateTo('contracts')">
+          <span class="material-icons-outlined">handshake</span><span class="nav-text">العقود</span>
+        </a>
+        <div class="nav-section-title">المراجعة والأمان</div>
+        <a href="#" class="nav-item" data-page="verification" onclick="AdminApp.navigateTo('verification')">
+          <span class="material-icons-outlined">verified_user</span><span class="nav-text">طلبات التوثيق</span>
+          <span class="badge" id="verification-badge" style="display:none;">0</span>
+        </a>
+        <a href="#" class="nav-item" data-page="reports" onclick="AdminApp.navigateTo('reports')">
+          <span class="material-icons-outlined">flag</span><span class="nav-text">البلاغات</span>
+          <span class="badge" id="reports-badge" style="display:none;">0</span>
+        </a>
+        <a href="#" class="nav-item" data-page="deletions" onclick="AdminApp.navigateTo('deletions')">
+          <span class="material-icons-outlined">person_remove</span><span class="nav-text">طلبات الحذف</span>
+          <span class="badge" id="deletions-badge" style="display:none;">0</span>
+        </a>
+        <div class="nav-section-title">النظام</div>
+        <a href="#" class="nav-item" data-page="settings" onclick="AdminApp.navigateTo('settings')">
+          <span class="material-icons-outlined">settings</span><span class="nav-text">إعدادات التطبيق</span>
+        </a>
+        <a href="#" class="nav-item" data-page="notifications" onclick="AdminApp.navigateTo('notifications')">
+          <span class="material-icons-outlined">notifications</span><span class="nav-text">الإشعارات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="admins" onclick="AdminApp.navigateTo('admins')">
+          <span class="material-icons-outlined">admin_panel_settings</span><span class="nav-text">المشرفون</span>
+        </a>
+        <a href="#" class="nav-item" data-page="statistics" onclick="AdminApp.navigateTo('statistics')">
+          <span class="material-icons-outlined">analytics</span><span class="nav-text">الإحصائيات</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="btn btn-ghost btn-full" onclick="AdminApp.logout()">
+          <span class="material-icons-outlined">logout</span>تسجيل الخروج
+        </button>
+      </div>
+    </aside>
+
+    <!-- Content Area -->
+    <main class="content-area">
+      <header class="top-bar">
+        <button class="menu-toggle" onclick="AdminApp.toggleSidebar()">
+          <span class="material-icons-outlined">menu</span>
+        </button>
+        <h1 id="page-title">الرئيسية</h1>
+        <div class="top-bar-actions">
+          <button class="btn btn-sm btn-ghost" onclick="AdminApp.refreshCurrentPage()" title="تحديث">
+            <span class="material-icons-outlined">refresh</span>
+          </button>
+          <div class="admin-info">
+            <span id="admin-name">المشرف</span>
+            <span class="material-icons-outlined">account_circle</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="pages-container">
+        <!-- Dashboard Page -->
+        <section id="page-dashboard" class="page active">
+          <div class="stats-grid" id="stats-grid"></div>
+          <div class="dashboard-row">
+            <div class="card">
+              <div class="card-header"><h3><span class="material-icons-outlined">verified_user</span> طلبات التوثيق المعلقة</h3><a href="#" onclick="AdminApp.navigateTo('verification')" class="card-link">عرض الكل</a></div>
+              <div id="dashboard-pending-verifications" class="card-body"><div class="loading-spinner"><div class="spinner"></div></div></div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3><span class="material-icons-outlined">flag</span> آخر البلاغات</h3><a href="#" onclick="AdminApp.navigateTo('reports')" class="card-link">عرض الكل</a></div>
+              <div id="dashboard-recent-reports" class="card-body"><div class="loading-spinner"><div class="spinner"></div></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Users Page -->
+        <section id="page-users" class="page">
+          <div class="filters-bar">
+            <div class="input-group search-input"><span class="material-icons-outlined">search</span><input type="text" id="users-search" placeholder="بحث بالاسم أو البريد..." oninput="AdminApp.filterUsers()"></div>
+            <select id="users-role-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">كل الأنواع</option><option value="freelancer">خدمات فنية</option><option value="techService">خدمات تقنية</option><option value="privateService">خدمات خاصة</option><option value="shop">متجر</option><option value="client">عميل</option></select>
+            <select id="users-state-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">كل المناطق</option><option value="الخرطوم">الخرطوم</option><option value="الجزيرة">الجزيرة</option><option value="نهر النيل">نهر النيل</option><option value="الشمالية">الشمالية</option><option value="كسلا">كسلا</option><option value="القضارف">القضارف</option><option value="البحر الأحمر">البحر الأحمر</option><option value="سنار">سنار</option><option value="النيل الأزرق">النيل الأزرق</option><option value="النيل الأبيض">النيل الأبيض</option><option value="شمال كردفان">شمال كردفان</option><option value="جنوب كردفان">جنوب كردفان</option><option value="غرب كردفان">غرب كردفان</option><option value="شمال دارفور">شمال دارفور</option><option value="جنوب دارفور">جنوب دارفور</option><option value="غرب دارفور">غرب دارفور</option><option value="وسط دارفور">وسط دارفور</option><option value="شرق دارفور">شرق دارفور</option></select>
+            <select id="users-verified-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">الكل</option><option value="true">موثق</option><option value="false">غير موثق</option></select>
+          </div>
+          <div class="users-count" id="users-count"></div>
+          <div class="table-container"><table class="data-table" id="users-table"><thead><tr><th>الصورة</th><th>الاسم</th><th>النوع</th><th>المنطقة</th><th>التقييم</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="users-tbody"><tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody></table></div>
+        </section>
+
+        <!-- Posts Page (NEW) -->
+        <section id="page-posts" class="page">
+          <div class="filters-bar">
+            <div class="input-group search-input"><span class="material-icons-outlined">search</span><input type="text" id="posts-search" placeholder="بحث في المنشورات..." oninput="AdminApp.filterPosts()"></div>
+            <select id="posts-filter" class="filter-select" onchange="AdminApp.filterPosts()"><option value="">كل المنشورات</option><option value="pinned">المثبتة</option><option value="reported">المبلّغ عنها</option></select>
+          </div>
+          <div class="posts-count" id="posts-count"></div>
+          <div id="posts-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Requests Page (NEW) -->
+        <section id="page-requests" class="page">
+          <div class="filters-bar">
+            <select id="requests-filter" class="filter-select" onchange="AdminApp.filterRequests()"><option value="">كل الطلبات</option><option value="active">نشطة</option><option value="fulfilled">مكتملة</option></select>
+          </div>
+          <div id="requests-count" class="users-count"></div>
+          <div id="requests-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Ads Page (Enhanced with placement types) -->
+        <section id="page-ads" class="page">
+          <div class="dashboard-row">
+            <div class="card" style="flex:1;">
+              <div class="card-header"><h3><span class="material-icons-outlined">add_circle</span> إنشاء إعلان جديد</h3></div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group full-width"><label>عنوان الإعلان</label><input type="text" id="ad-title" class="text-input" placeholder="عنوان واضح وجذاب"></div>
+                  <div class="form-group full-width"><label>وصف الإعلان</label><textarea id="ad-description" class="text-input textarea" rows="2" placeholder="وصف مختصر..."></textarea></div>
+                  <div class="form-group full-width"><label>اسم المعلن</label><input type="text" id="ad-advertiser" class="text-input" placeholder="اسم الشركة أو المعلن (اختياري)"></div>
+                  <div class="form-group full-width">
+                    <label>صور الإعلان (يمكن رفع عدة صور)</label>
+                    <div style="display:flex;gap:10px;">
+                      <input type="file" id="ad-file-upload" accept="image/*,video/*" multiple class="text-input" style="flex:1">
+                      <span style="align-self:center;color:var(--text-muted)">أو</span>
+                      <input type="url" id="ad-image" class="text-input" placeholder="أدخل رابط مباشر https://..." style="flex:2">
+                    </div>
+                    <small style="color:var(--text-muted);font-size:12px;">يمكنك رفع عدة صور لعرضها كمعرض متحرك</small>
+                  </div>
+                  <div class="form-group full-width"><label>رابط الإعلان (عند الضغط)</label><input type="url" id="ad-link" class="text-input" placeholder="https://..."></div>
+                  <div class="form-group"><label>موضع الإعلان</label>
+                    <select id="ad-placement" class="filter-select">
+                      <option value="homeBanner">🏠 بانر الرئيسية</option>
+                      <option value="communityFeed">👥 تغذية المجتمع</option>
+                      <option value="both">الرئيسية والمجتمع معاً</option>
+                      <option value="featuredService">💼 خدمة مميزة</option>
+                      <option value="featuredShop">🏪 متجر مميز</option>
+                      <option value="strip">📢 شريط إعلاني</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label>نوع الوسائط</label>
+                    <select id="ad-media-type" class="filter-select">
+                      <option value="image">صورة</option>
+                      <option value="video">فيديو</option>
+                      <option value="gif">GIF</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label>المنطقة المستهدفة</label><select id="ad-region" class="filter-select"><option value="all">الكل</option><option value="الخرطوم">الخرطوم</option><option value="الجزيرة">الجزيرة</option><option value="نهر النيل">نهر النيل</option><option value="كسلا">كسلا</option><option value="القضارف">القضارف</option><option value="البحر الأحمر">البحر الأحمر</option><option value="سنار">سنار</option></select></div>
+                  <div class="form-group"><label>الفئة المستهدفة</label><select id="ad-profession" class="filter-select"><option value="all">الكل</option><option value="freelancer">خدمات فنية</option><option value="techService">خدمات تقنية</option><option value="shop">متاجر</option><option value="client">عملاء</option></select></div>
+                  <div class="form-group">
+                    <label>فئة المجتمع المستهدفة</label>
+                    <select id="ad-category" class="filter-select">
+                      <option value="all">الكل (يظهر في جميع الأقسام)</option>
+                      <option value="PostCategoryGroup.general">عام</option>
+                      <option value="PostCategoryGroup.clothing">ملبوسات وأزياء</option>
+                      <option value="PostCategoryGroup.beauty">صحة وجمال</option>
+                      <option value="PostCategoryGroup.electronics">إلكترونيات</option>
+                      <option value="PostCategoryGroup.building">مواد بناء</option>
+                      <option value="PostCategoryGroup.grocery">مأكولات وبقالة</option>
+                      <option value="PostCategoryGroup.homeFurniture">أثاث ومنزليات</option>
+                      <option value="PostCategoryGroup.automotive">سوق العربات</option>
+                      <option value="PostCategoryGroup.realEstate">عقارات وسمسرة</option>
+                      <option value="PostCategoryGroup.craftsmen">صنايعية وحرفيين</option>
+                      <option value="PostCategoryGroup.specialServices">خدمات خاصة</option>
+                      <option value="PostCategoryGroup.techCommunity">مبرمجين ومصممين</option>
+                      <option value="PostCategoryGroup.education">تعليم وتدريب</option>
+                      <option value="PostCategoryGroup.jobs">وظائف وفرص</option>
+                    </select>
+                  </div>
+                  <div class="form-group"><label>الأولوية (1-10)</label><input type="number" id="ad-priority" class="text-input" value="5" min="1" max="10"></div>
+                  <div class="form-group"><label>تاريخ الانتهاء</label><input type="date" id="ad-expiry" class="text-input"></div>
+                </div>
+                <div class="form-actions"><span></span><button class="btn btn-primary" onclick="AdminExtras.createAd()"><span class="material-icons-outlined">campaign</span>نشر الإعلان</button></div>
+              </div>
+            </div>
+            <div class="card" style="flex:2;">
+              <div class="card-header">
+                <h3><span class="material-icons-outlined">list</span> الإعلانات الحالية</h3>
+                <select id="ads-placement-filter" class="filter-select" onchange="AdminExtras.filterAds()" style="margin-right:auto;margin-left:8px;min-width:140px;">
+                  <option value="">كل المواضع</option>
+                  <option value="homeBanner">🏠 بانر الرئيسية</option>
+                  <option value="communityFeed">👥 تغذية المجتمع</option>
+                  <option value="both">الرئيسية والمجتمع معاً</option>
+                  <option value="featuredService">💼 خدمة مميزة</option>
+                  <option value="featuredShop">🏪 متجر مميز</option>
+                  <option value="strip">📢 شريط إعلاني</option>
+                </select>
+              </div>
+              <div class="card-body" id="ads-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Verification Page -->
+        <section id="page-verification" class="page">
+          <div class="page-subtitle">طلبات التوثيق المعلقة من مقدمي الخدمات</div>
+          <div id="verification-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Reports Page -->
+        <section id="page-reports" class="page">
+          <div class="filters-bar"><select id="reports-status-filter" class="filter-select" onchange="AdminApp.filterReports()"><option value="">كل البلاغات</option><option value="pending">معلق</option><option value="reviewed">تمت المراجعة</option><option value="dismissed">مرفوض</option></select></div>
+          <div id="reports-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Deletions Page -->
+        <section id="page-deletions" class="page">
+          <div class="page-subtitle">طلبات حذف الحسابات المعلقة</div>
+          <div id="deletions-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Admins Page -->
+        <section id="page-admins" class="page">
+          <div class="dashboard-row">
+            <div class="card" style="flex:1;"><div class="card-header"><h3><span class="material-icons-outlined">person_add</span> إضافة مشرف</h3></div><div class="card-body"><div class="form-group full-width"><label>البريد الإلكتروني</label><input type="email" id="new-admin-email" class="text-input" placeholder="admin@sudanfree.com"></div><div class="form-group full-width"><label>كلمة المرور</label><input type="text" id="new-admin-pass" class="text-input" placeholder="6 أحرف على الأقل"></div><div class="form-group full-width"><label>اسم المشرف</label><input type="text" id="new-admin-name" class="text-input" placeholder="مشرف الدعم"></div><button class="btn btn-primary" onclick="AdminApp.createAdmin()"><span class="material-icons-outlined">add_circle</span>إنشاء</button></div></div>
+            <div class="card" style="flex:2;"><div class="card-header"><h3><span class="material-icons-outlined">shield</span> المشرفون الحاليون</h3></div><div class="card-body"><div class="table-container"><table class="data-table"><thead><tr><th>الاسم</th><th>البريد</th><th>الإجراءات</th></tr></thead><tbody id="admins-tbody"><tr><td colspan="3"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody></table></div></div></div>
+          </div>
+        </section>
+
+        <!-- Notifications Page -->
+        <section id="page-notifications" class="page">
+          <div class="notifications-composer">
+            <div class="card">
+              <div class="card-header"><h3><span class="material-icons-outlined">send</span> إرسال إشعار</h3></div>
+              <div class="card-body">
+                <div class="form-grid">
+                  <div class="form-group"><label>نوع الإشعار</label><select id="notif-type" class="filter-select" onchange="AdminApp.toggleNotifFilters()"><option value="all">عام (لجميع المستخدمين)</option><option value="role">حسب نوع الحساب</option><option value="state">حسب المنطقة</option><option value="role_state">حسب النوع والمنطقة</option></select></div>
+                  <div class="form-group" id="notif-role-group" style="display:none;"><label>نوع الحساب</label><select id="notif-role" class="filter-select"><option value="freelancer">خدمات فنية</option><option value="techService">خدمات تقنية</option><option value="privateService">خدمات خاصة</option><option value="shop">متجر</option><option value="client">عميل</option></select></div>
+                  <div class="form-group" id="notif-state-group" style="display:none;"><label>المنطقة</label><select id="notif-state" class="filter-select"><option value="الخرطوم">الخرطوم</option><option value="الجزيرة">الجزيرة</option><option value="نهر النيل">نهر النيل</option><option value="كسلا">كسلا</option><option value="القضارف">القضارف</option></select></div>
+                  <div class="form-group full-width"><label>عنوان الإشعار</label><input type="text" id="notif-title" class="text-input" placeholder="تحديث جديد في سودان فري!"></div>
+                  <div class="form-group full-width"><label>محتوى الإشعار</label><textarea id="notif-body" class="text-input textarea" rows="3" placeholder="اكتب نص الإشعار..."></textarea></div>
+                </div>
+                <div class="form-actions"><span id="notif-target-count" class="target-count"></span><button class="btn btn-primary" onclick="AdminApp.sendNotification()"><span class="material-icons-outlined">send</span>إرسال</button></div>
+              </div>
+            </div>
+            <div class="card"><div class="card-header"><h3><span class="material-icons-outlined">history</span> سجل الإشعارات</h3></div><div class="card-body" id="notif-history"><p class="empty-state">لم يتم إرسال إشعارات بعد</p></div></div>
+          </div>
+        </section>
+
+        <!-- Statistics Page -->
+        <section id="page-statistics" class="page">
+          <div class="stats-grid stats-grid-large" id="stats-grid-detailed"></div>
+          <div class="dashboard-row">
+            <div class="card"><div class="card-header"><h3>توزيع المستخدمين حسب المنطقة</h3></div><div class="card-body" id="stats-by-region"></div></div>
+            <div class="card"><div class="card-header"><h3>توزيع المستخدمين حسب نوع الحساب</h3></div><div class="card-body" id="stats-by-role"></div></div>
+          </div>
+        </section>
+        <!-- Promotions Page -->
+        <section id="page-promotions" class="page">
+          <div class="page-subtitle">إدارة الحسابات المُروَّج لها حالياً</div>
+          <div id="promotions-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Contracts Page -->
+        <section id="page-contracts" class="page">
+          <div class="page-subtitle">سجل العقود والمشاورات بين المستخدمين</div>
+          <div id="contracts-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+        </section>
+
+        <!-- Settings Page -->
+        <section id="page-settings" class="page">
+          <div class="page-subtitle">إعدادات وروابط التطبيق</div>
+          <div class="dashboard-row">
+            <div class="card">
+              <div class="card-header"><h3><span class="material-icons-outlined">link</span> روابط التطبيق</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>رابط متجر بلاي (Play Store)</label>
+                  <input type="text" id="setting-playstore" class="text-input" placeholder="https://play.google.com/store/apps/details?id=...">
+                </div>
+                <div class="form-group full-width" style="margin-top: 12px;">
+                  <label>رابط متجر آبل (App Store)</label>
+                  <input type="text" id="setting-appstore" class="text-input" placeholder="https://apps.apple.com/app/...">
+                </div>
+                <div class="form-group full-width" style="margin-top: 12px;">
+                  <label>رابط تحميل APK المباشر</label>
+                  <input type="text" id="setting-apk" class="text-input" placeholder="https://example.com/sudanfree.apk">
+                </div>
+                <button class="btn btn-primary" style="margin-top: 16px;" onclick="AdminApp.saveSettings('links')">
+                  <span class="material-icons-outlined">save</span> حفظ الروابط
+                </button>
+              </div>
+            </div>
+            
+            <div class="card">
+              <div class="card-header"><h3><span class="material-icons-outlined">policy</span> السياسات والشروط</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>سياسة الخصوصية (Privacy Policy)</label>
+                  <input type="text" id="setting-privacy" class="text-input" placeholder="رابط سياسة الخصوصية...">
+                </div>
+                <div class="form-group full-width" style="margin-top: 12px;">
+                  <label>شروط الاستخدام (Terms of Service)</label>
+                  <input type="text" id="setting-terms" class="text-input" placeholder="رابط شروط الاستخدام...">
+                </div>
+                <div class="form-group full-width" style="margin-top: 12px;">
+                  <label>رابط الدعم الفني / واتساب</label>
+                  <input type="text" id="setting-support" class="text-input" placeholder="رابط التواصل مع الدعم...">
+                </div>
+                <button class="btn btn-primary" style="margin-top: 16px;" onclick="AdminApp.saveSettings('policies')">
+                  <span class="material-icons-outlined">save</span> حفظ السياسات
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modals -->
+  <div id="user-modal" class="modal" style="display:none;"><div class="modal-overlay" onclick="AdminApp.closeModal('user-modal')"></div><div class="modal-content"><div class="modal-header"><h3 id="modal-user-name">تفاصيل المستخدم</h3><button class="modal-close" onclick="AdminApp.closeModal('user-modal')"><span class="material-icons-outlined">close</span></button></div><div class="modal-body" id="modal-user-body"></div></div></div>
+  <div id="verify-modal" class="modal" style="display:none;"><div class="modal-overlay" onclick="AdminApp.closeModal('verify-modal')"></div><div class="modal-content modal-lg"><div class="modal-header"><h3>مراجعة طلب التوثيق</h3><button class="modal-close" onclick="AdminApp.closeModal('verify-modal')"><span class="material-icons-outlined">close</span></button></div><div class="modal-body" id="modal-verify-body"></div><div class="modal-footer" id="modal-verify-footer"></div></div></div>
+  <div id="image-modal" class="modal" style="display:none;" onclick="AdminApp.closeModal('image-modal')"><div class="modal-overlay"></div><div class="image-preview-container"><img id="image-preview-img" src="" alt="معاينة"><button class="modal-close image-close" onclick="AdminApp.closeModal('image-modal')"><span class="material-icons-outlined">close</span></button></div></div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+  <script src="js/firebase-config.js"></script>
+  <script src="js/extras.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
