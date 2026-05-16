@@ -696,34 +696,51 @@ const AdminApp = {
         container.innerHTML = '<p class="empty-state">لا توجد ترويجات حالياً</p>';
         return;
       }
-      container.innerHTML = snap.docs.map(doc => {
-        const d = doc.data();
-        const endDate = d.endDate?.toDate ? d.endDate.toDate() : new Date(d.endDate);
+      const promos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const htmls = [];
+      for (const p of promos) {
+        let user = {};
+        try {
+          if (p.userId) {
+            const userDoc = await db.collection('users').doc(p.userId).get();
+            if (userDoc.exists) user = userDoc.data();
+          }
+        } catch (err) {}
+        
+        const endDate = p.expiryDate?.toDate ? p.expiryDate.toDate() : new Date(p.expiryDate || p.createdAt);
         const isActive = endDate > now;
         const statusClass = isActive ? 'active' : 'dismissed';
         const statusText = isActive ? 'نشط' : 'منتهي';
         const endStr = endDate.toLocaleDateString('ar-EG');
-        return `<div class="promo-card">
+        
+        const userName = user.name || user.username || p.userName || 'مستخدم';
+        const userImage = user.profileImageUrl || p.userImage || '';
+        const userProf = user.jobTitle || user.role || p.userProfession || '';
+        const userLoc = user.state || p.userLocation || '';
+        const rating = typeof user.rating === 'number' ? user.rating : (p.userRating || 0);
+        
+        htmls.push(`<div class="promo-card">
           <div class="promo-card-header">
-            <img src="${d.userImage || ''}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%236c5ce7%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2240%22>${(d.userName||'?')[0]}</text></svg>'">
+            <img src="${userImage}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%236c5ce7%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2240%22>${userName.charAt(0)}</text></svg>'">
             <div class="promo-card-info">
-              <h4>${d.userName || 'مستخدم'}</h4>
-              <p>${d.userProfession || d.userRole || ''} — ${d.userLocation || ''}</p>
+              <h4>${userName}</h4>
+              <p>${userProf} — ${userLoc}</p>
             </div>
             <span class="report-status ${statusClass}" style="margin-right:auto;">${statusText}</span>
           </div>
           <div class="promo-card-body">
-            <div class="promo-text">"${d.promotionText || ''}"</div>
+            <div class="promo-text">"${p.promoText || p.promotionText || ''}"</div>
             <div class="promo-meta">
               <span><span class="material-icons-outlined" style="font-size:14px;">calendar_today</span> ينتهي: ${endStr}</span>
-              <span><span class="material-icons-outlined" style="font-size:14px;">star</span> التقييم: ${d.userRating ? d.userRating.toFixed(1) : 'N/A'}</span>
+              <span><span class="material-icons-outlined" style="font-size:14px;">star</span> التقييم: ${rating.toFixed(1)}</span>
             </div>
           </div>
           <div class="promo-card-actions">
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.deletePromotion('${doc.id}')"><span class="material-icons-outlined">delete</span> حذف</button>
+            <button class="btn btn-sm btn-danger" onclick="AdminApp.deletePromotion('${p.id}')"><span class="material-icons-outlined">delete</span> حذف</button>
           </div>
-        </div>`;
-      }).join('');
+        </div>`);
+      }
+      container.innerHTML = htmls.join('');
     } catch (e) {
       container.innerHTML = '<p class="empty-state">خطأ في تحميل الترويجات: ' + e.message + '</p>';
     }
