@@ -762,7 +762,7 @@ const AdminApp = {
     const container = document.getElementById('contracts-list');
     container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
     try {
-      const snap = await db.collectionGroup('contracts').orderBy('createdAt', 'desc').limit(50).get();
+      const snap = await db.collectionGroup('messages').where('type', '==', 'contract').orderBy('createdAt', 'desc').limit(50).get();
       if (snap.empty) {
         container.innerHTML = '<p class="empty-state">لا توجد عقود حتى الآن</p>';
         return;
@@ -770,20 +770,23 @@ const AdminApp = {
       const STATUS_NAMES = { pending: 'معلق', accepted: 'مقبول', active: 'نشط', completed: 'مكتمل', cancelled: 'ملغي', rejected: 'مرفوض' };
       container.innerHTML = snap.docs.map(doc => {
         const d = doc.data();
-        const status = d.status || 'pending';
+        const status = d.contractStatus || d.status || 'pending';
         const statusClass = ['active','accepted'].includes(status) ? 'active' : status === 'completed' ? 'completed' : 'cancelled';
         const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+        const details = d.contractDetails || d.title || d.serviceType || 'عقد خدمة';
+        const displayTitle = details.length > 50 ? details.substring(0, 50) + '...' : details;
+        const price = d.contractPrice || d.agreedPrice || d.price || 'غير محدد';
         return `<div class="contract-item">
           <div class="contract-header">
             <div style="display:flex;align-items:center;gap:8px;">
               <span class="material-icons-outlined" style="color:var(--primary-light)">description</span>
-              <strong>${d.title || d.serviceType || 'عقد خدمة'}</strong>
+              <strong title="${details.replace(/"/g, '&quot;')}">${displayTitle}</strong>
             </div>
             <span class="contract-status ${statusClass}">${STATUS_NAMES[status] || status}</span>
           </div>
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div style="color:var(--text-secondary);font-size:13px;">
-              <span>💰 ${d.agreedPrice || d.price || 'غير محدد'}</span>
+              <span>💰 ${price} SDG</span>
               <span style="margin-right:16px;">📅 ${date}</span>
             </div>
           </div>
