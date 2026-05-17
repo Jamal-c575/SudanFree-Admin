@@ -131,8 +131,18 @@ const AdminExtras = {
       const impressions = a.impressions || 0;
       const clicks = a.clicks || 0;
       const ctr = impressions > 0 ? ((clicks / impressions) * 100).toFixed(1) : '0.0';
+      
+      let mediaPreview = '<div style="width:90px;height:65px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center"><span class="material-icons-outlined" style="color:var(--text-muted);font-size:28px">image</span></div>';
+      if (imgUrl) {
+        if (a.mediaType === 'video') {
+          mediaPreview = `<div style="width:90px;height:65px;background:#333;border-radius:10px;display:flex;align-items:center;justify-content:center"><span class="material-icons-outlined" style="color:#fff;font-size:28px">play_circle</span></div>`;
+        } else {
+          mediaPreview = `<img src="${imgUrl}" onclick="AdminApp.previewImage('${imgUrl}')" style="width:90px;height:65px;border-radius:10px;object-fit:cover;cursor:pointer;">`;
+        }
+      }
+
       return `<div class="ad-item">
-        ${imgUrl?`<img src="${imgUrl}" onclick="AdminApp.previewImage('${imgUrl}')" style="width:90px;height:65px;border-radius:10px;object-fit:cover;cursor:pointer;">`:'<div style="width:90px;height:65px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center"><span class="material-icons-outlined" style="color:var(--text-muted);font-size:28px">image</span></div>'}
+        ${mediaPreview}
         <div class="ad-info">
           <h4>${a.title||'إعلان'} ${expired?'<span style="color:var(--danger);font-size:11px">(منتهي)</span>':''}</h4>
           <p>${a.description||''}</p>
