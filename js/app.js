@@ -10,24 +10,8 @@ const AdminApp = {
     const errEl = document.getElementById('login-error');
     errEl.style.display = 'none';
 
-    // Auto-create primary admin if requested and doesn't exist
-    if (email === 'ja5009006@gmail.com' && pass === 'Jamal@www20') {
-      try {
-        const methods = await auth.fetchSignInMethodsForEmail(email);
-        if (methods.length === 0) {
-          const cred = await auth.createUserWithEmailAndPassword(email, pass);
-          await db.collection('users').doc(cred.user.uid).set({
-            email: email,
-            name: 'جمال (المدير العام)',
-            role: 'admin',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-        }
-      } catch (e) {
-        console.log('Setup error or already exists:', e);
-      }
-    }
-
+    // Primary admin accounts must be provisioned securely through a trusted backend or Firebase Console.
+    // Removing hard-coded credentials from the client improves security.
     try {
       const cred = await auth.signInWithEmailAndPassword(email, pass);
       const doc = await db.collection('users').doc(cred.user.uid).get();
