@@ -50,50 +50,51 @@
         <a href="#" class="nav-item active" data-page="dashboard" onclick="AdminApp.navigateTo('dashboard')">
           <span class="material-icons-outlined">dashboard</span><span class="nav-text">الرئيسية</span>
         </a>
-        <div class="nav-section-title">إدارة المحتوى</div>
+        
+        <div class="nav-section-title">الأقسام الأساسية</div>
+        <a href="#" class="nav-item" data-page="statistics" onclick="AdminApp.navigateTo('statistics')">
+          <span class="material-icons-outlined">analytics</span><span class="nav-text">الإحصائيات</span>
+        </a>
         <a href="#" class="nav-item" data-page="users" onclick="AdminApp.navigateTo('users')">
           <span class="material-icons-outlined">people</span><span class="nav-text">المستخدمون</span>
         </a>
+        <a href="#" class="nav-item" data-page="notifications" onclick="AdminApp.navigateTo('notifications')">
+          <span class="material-icons-outlined">notifications</span><span class="nav-text">التنبيهات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="ads" onclick="AdminApp.navigateTo('ads')">
+          <span class="material-icons-outlined">campaign</span><span class="nav-text">الإعلانات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="verification" onclick="AdminApp.navigateTo('verification')">
+          <span class="material-icons-outlined">verified_user</span><span class="nav-text">التوثيق</span>
+          <span class="badge" id="verification-badge" style="display:none;">0</span>
+        </a>
+        <a href="#" class="nav-item" data-page="contracts" onclick="AdminApp.navigateTo('contracts')">
+          <span class="material-icons-outlined">handshake</span><span class="nav-text">العقود</span>
+        </a>
+        <a href="#" class="nav-item" data-page="deletions" onclick="AdminApp.navigateTo('deletions')">
+          <span class="material-icons-outlined">person_remove</span><span class="nav-text">طلبات الحذف</span>
+          <span class="badge" id="deletions-badge" style="display:none;">0</span>
+        </a>
+        <a href="#" class="nav-item" data-page="reports" onclick="AdminApp.navigateTo('reports')">
+          <span class="material-icons-outlined">flag</span><span class="nav-text">البلاغات</span>
+          <span class="badge" id="reports-badge" style="display:none;">0</span>
+        </a>
+
+        <div class="nav-section-title">المزيد والنظام</div>
         <a href="#" class="nav-item" data-page="posts" onclick="AdminApp.navigateTo('posts')">
           <span class="material-icons-outlined">article</span><span class="nav-text">المنشورات</span>
         </a>
         <a href="#" class="nav-item" data-page="requests" onclick="AdminApp.navigateTo('requests')">
           <span class="material-icons-outlined">assignment</span><span class="nav-text">الطلبات</span>
         </a>
-        <a href="#" class="nav-item" data-page="ads" onclick="AdminApp.navigateTo('ads')">
-          <span class="material-icons-outlined">campaign</span><span class="nav-text">الإعلانات</span>
-        </a>
         <a href="#" class="nav-item" data-page="promotions" onclick="AdminApp.navigateTo('promotions')">
           <span class="material-icons-outlined">star</span><span class="nav-text">الترويجات</span>
-        </a>
-        <a href="#" class="nav-item" data-page="contracts" onclick="AdminApp.navigateTo('contracts')">
-          <span class="material-icons-outlined">handshake</span><span class="nav-text">العقود</span>
-        </a>
-        <div class="nav-section-title">المراجعة والأمان</div>
-        <a href="#" class="nav-item" data-page="verification" onclick="AdminApp.navigateTo('verification')">
-          <span class="material-icons-outlined">verified_user</span><span class="nav-text">طلبات التوثيق</span>
-          <span class="badge" id="verification-badge" style="display:none;">0</span>
-        </a>
-        <a href="#" class="nav-item" data-page="reports" onclick="AdminApp.navigateTo('reports')">
-          <span class="material-icons-outlined">flag</span><span class="nav-text">البلاغات</span>
-          <span class="badge" id="reports-badge" style="display:none;">0</span>
-        </a>
-        <a href="#" class="nav-item" data-page="deletions" onclick="AdminApp.navigateTo('deletions')">
-          <span class="material-icons-outlined">person_remove</span><span class="nav-text">طلبات الحذف</span>
-          <span class="badge" id="deletions-badge" style="display:none;">0</span>
-        </a>
-        <div class="nav-section-title">النظام</div>
-        <a href="#" class="nav-item" data-page="settings" onclick="AdminApp.navigateTo('settings')">
-          <span class="material-icons-outlined">settings</span><span class="nav-text">إعدادات التطبيق</span>
-        </a>
-        <a href="#" class="nav-item" data-page="notifications" onclick="AdminApp.navigateTo('notifications')">
-          <span class="material-icons-outlined">notifications</span><span class="nav-text">الإشعارات</span>
         </a>
         <a href="#" class="nav-item" data-page="admins" onclick="AdminApp.navigateTo('admins')">
           <span class="material-icons-outlined">admin_panel_settings</span><span class="nav-text">المشرفون</span>
         </a>
-        <a href="#" class="nav-item" data-page="statistics" onclick="AdminApp.navigateTo('statistics')">
-          <span class="material-icons-outlined">analytics</span><span class="nav-text">الإحصائيات</span>
+        <a href="#" class="nav-item" data-page="settings" onclick="AdminApp.navigateTo('settings')">
+          <span class="material-icons-outlined">settings</span><span class="nav-text">الإعدادات</span>
         </a>
       </nav>
       <div class="sidebar-footer">
