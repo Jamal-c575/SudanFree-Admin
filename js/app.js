@@ -179,6 +179,12 @@ const AdminApp = {
         <div class="detail-item"><div class="label">المهارات</div><div class="value">${(u.skills||[]).join(', ')||'—'}</div></div>
         <div class="detail-item"><div class="label">حالة التوثيق</div><div class="value">${u.verificationStatus||'none'}</div></div>
         <div class="detail-item"><div class="label">الرصيد</div><div class="value">${u.walletBalance||0} SDG</div></div>
+        <div class="detail-item"><div class="label">حالة الحظر</div><div class="value">${u.isBanned ? '<span style="color:red;font-weight:bold;">محظور</span>' : '<span style="color:green;">نشط</span>'}</div></div>
+      </div>
+      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;">
+        <button class="btn ${u.isBanned ? 'btn-success' : 'btn-danger'}" onclick="AdminApp.toggleUserBan('${u.id}', ${!!u.isBanned})" style="flex:1;">
+          <span class="material-icons-outlined">${u.isBanned ? 'check_circle' : 'block'}</span> ${u.isBanned ? 'فك الحظر' : 'حظر المستخدم'}
+        </button>
       </div>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
         <h4 style="margin-bottom:10px;font-size:14px;">⭐ ترويج هذا المستخدم في الصفحة الرئيسية</h4>
@@ -218,6 +224,20 @@ const AdminApp = {
     } catch (e) {
       console.error('Error creating promotion:', e);
       alert('❌ حدث خطأ: ' + e.message);
+    }
+  },
+
+  async toggleUserBan(userId, isCurrentlyBanned) {
+    if (!confirm(isCurrentlyBanned ? 'هل أنت متأكد من فك الحظر عن هذا المستخدم؟' : 'هل أنت متأكد من حظر هذا المستخدم؟')) return;
+    try {
+      await db.collection('users').doc(userId).update({
+        isBanned: !isCurrentlyBanned
+      });
+      showToast(isCurrentlyBanned ? 'تم فك الحظر بنجاح' : 'تم حظر المستخدم بنجاح');
+      document.getElementById('user-modal').style.display = 'none';
+      this.loadUsers();
+    } catch (e) {
+      showToast('خطأ: ' + e.message, 'error');
     }
   },
 
@@ -576,55 +596,73 @@ const AdminApp = {
     if (!title || !body) { showToast('يرجى ملء العنوان والمحتوى','error'); return; }
 
     const type = document.getElementById('notif-type').value;
-    let query = db.collection('users');
+    let targetRole = 'all';
+    let targetState = 'all';
+    
     if (type === 'role' || type === 'role_state') {
-      query = query.where('role','==', document.getElementById('notif-role').value);
+      targetRole = document.getElementById('notif-role').value;
     }
     if (type === 'state' || type === 'role_state') {
-      query = query.where('state','==', document.getElementById('notif-state').value);
+      targetState = document.getElementById('notif-state').value;
     }
 
-    const snap = await query.get();
-    if (snap.empty) { showToast('لا يوجد مستخدمون مطابقون','error'); return; }
+    if (!confirm('هل أنت متأكد من إرسال هذا التنبيه المستهدف؟')) return;
 
-    if (!confirm(`سيتم إرسال الإشعار لـ ${snap.size} مستخدم. متابعة؟`)) return;
+    const btn = document.querySelector('button[onclick="AdminApp.sendNotification()"]');
+    const oldText = btn.innerHTML;
+    btn.innerHTML = '<div class="spinner"></div> جاري الإرسال...';
+    btn.disabled = true;
 
-    const batch = db.batch();
-    snap.docs.forEach(doc => {
-      const ref = db.collection('notifications').doc();
-      batch.set(ref, {
-        userId: doc.id, type: 'system',
-        title: title, message: body, isRead: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    try {
+      const sendBulkNotif = firebase.functions().httpsCallable('sendBulkNotification');
+      const result = await sendBulkNotif({
+        title: title,
+        message: body,
+        targetRole: targetRole,
+        targetState: targetState,
+        targetLocality: 'all'
       });
-    });
-    await batch.commit();
-
-    // Save to log
-    await db.collection('admin_notifications_log').add({
-      title, body, type, targetCount: snap.size,
-      sentBy: auth.currentUser.uid,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    showToast(`تم الإرسال لـ ${snap.size} مستخدم`);
-    document.getElementById('notif-title').value = '';
-    document.getElementById('notif-body').value = '';
-    this.loadNotifHistory();
+      
+      const data = result.data;
+      showToast(data.message || `تم الإرسال لـ ${data.matchedUsers} مستخدم بنجاح`);
+      
+      document.getElementById('notif-title').value = '';
+      document.getElementById('notif-body').value = '';
+      this.loadNotifHistory();
+    } catch (e) {
+      showToast('خطأ: ' + e.message, 'error');
+    } finally {
+      btn.innerHTML = oldText;
+      btn.disabled = false;
+    }
   },
 
   async loadNotifHistory() {
-    const snap = await db.collection('admin_notifications_log').orderBy('createdAt','desc').limit(20).get();
+    const snap = await db.collection('bulk_notifications').orderBy('createdAt','desc').limit(20).get();
     const el = document.getElementById('notif-history');
     if (snap.empty) { el.innerHTML = '<p class="empty-state">لم يتم إرسال إشعارات بعد</p>'; return; }
     el.innerHTML = snap.docs.map(d => {
       const n = d.data();
       return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-        <strong>${n.title}</strong><br>
-        <span style="color:var(--text-muted);font-size:13px">${n.body}</span><br>
-        <small style="color:var(--text-muted)">${timeAgo(n.createdAt)} — أُرسل لـ ${n.targetCount} مستخدم</small>
+        <div style="display:flex; justify-content:space-between;">
+          <strong>${n.title}</strong>
+          <button class="btn btn-sm btn-ghost" onclick="AdminApp.deleteNotificationLog('${d.id}')" style="color:red;"><span class="material-icons-outlined" style="font-size:16px;">delete</span></button>
+        </div>
+        <span style="color:var(--text-muted);font-size:13px">${n.message}</span><br>
+        <small style="color:var(--text-muted)">${timeAgo(n.createdAt)} — أُرسل لـ ${n.fcmSent || n.matchedUsers || 0} مستخدم</small>
       </div>`;
     }).join('');
+  },
+
+  async deleteNotificationLog(id) {
+    if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
+    try {
+      await db.collection('bulk_notifications').doc(id).delete();
+      this.loadNotifHistory();
+      showToast('تم حذف السجل');
+    } catch (e) {
+      showToast('خطأ في الحذف: ' + e.message, 'error');
+    }
   },
 
   // ── Statistics ──
