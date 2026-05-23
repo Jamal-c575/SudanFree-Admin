@@ -588,6 +588,7 @@ const AdminApp = {
     const type = document.getElementById('notif-type').value;
     document.getElementById('notif-role-group').style.display = (type==='role'||type==='role_state') ? 'block' : 'none';
     document.getElementById('notif-state-group').style.display = (type==='state'||type==='role_state') ? 'block' : 'none';
+    document.getElementById('notif-locality-group').style.display = (type==='state'||type==='role_state') ? 'block' : 'none';
   },
 
   async sendNotification() {
@@ -598,12 +599,14 @@ const AdminApp = {
     const type = document.getElementById('notif-type').value;
     let targetRole = 'all';
     let targetState = 'all';
+    let targetLocality = 'all';
     
     if (type === 'role' || type === 'role_state') {
       targetRole = document.getElementById('notif-role').value;
     }
     if (type === 'state' || type === 'role_state') {
       targetState = document.getElementById('notif-state').value;
+      targetLocality = document.getElementById('notif-locality').value.trim() || 'all';
     }
 
     if (!confirm('هل أنت متأكد من إرسال هذا التنبيه المستهدف؟')) return;
@@ -620,7 +623,7 @@ const AdminApp = {
         message: body,
         targetRole: targetRole,
         targetState: targetState,
-        targetLocality: 'all'
+        targetLocality: targetLocality
       });
       
       const data = result.data;
