@@ -208,6 +208,7 @@ const AdminApp = {
   async promoteUser(userId) {
     const promoText = document.getElementById('promo-text-input').value.trim();
     if (!promoText) { alert('يرجى كتابة نص ترويجي'); return; }
+    if (!confirm('هل تريد نشر هذا الترويج في الصفحة الرئيسية؟')) return;
     const days = parseInt(document.getElementById('promo-duration').value) || 30;
     const now = new Date();
     const expiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
@@ -230,9 +231,20 @@ const AdminApp = {
   async toggleUserBan(userId, isCurrentlyBanned) {
     if (!confirm(isCurrentlyBanned ? 'هل أنت متأكد من فك الحظر عن هذا المستخدم؟' : 'هل أنت متأكد من حظر هذا المستخدم؟')) return;
     try {
-      await db.collection('users').doc(userId).update({
-        isBanned: !isCurrentlyBanned
-      });
+      const updateData = { isBanned: !isCurrentlyBanned };
+      if (!isCurrentlyBanned) {
+        // Asking for optional reason when banning
+        const reason = prompt('أدخل سبب الحظر (اختياري):', '') || null;
+        updateData.bannedAt = firebase.firestore.FieldValue.serverTimestamp();
+        updateData.bannedBy = auth.currentUser ? auth.currentUser.uid : null;
+        updateData.banReason = reason;
+      } else {
+        // Clearing ban metadata when unbanning
+        updateData.bannedAt = null;
+        updateData.bannedBy = null;
+        updateData.banReason = null;
+      }
+      await db.collection('users').doc(userId).update(updateData);
       showToast(isCurrentlyBanned ? 'تم فك الحظر بنجاح' : 'تم حظر المستخدم بنجاح');
       document.getElementById('user-modal').style.display = 'none';
       this.loadUsers();
@@ -398,10 +410,11 @@ const AdminApp = {
     const dashEl = document.getElementById('dashboard-recent-reports');
     if (!this.allReports.length) { dashEl.innerHTML = '<p class="empty-state">لا توجد بلاغات</p>'; return; }
     dashEl.innerHTML = this.allReports.slice(0,3).map(r => `
-      <div style="padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex;justify-content:space-between"><strong>${r.reason||'بلاغ'}</strong><span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
-        <small style="color:var(--text-muted)">${timeAgo(r.createdAt)}</small>
-      </div>`).join('');
+      <div class="dashboard-list-item">
+        <div style="display:flex;justify-content:space-between"><strong>بلاغ ضد: ${r.reportedUserName||'مستخدم'}</strong><span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
+        <div class="item-meta">${timeAgo(r.createdAt)}</div>
+      </div>
+    `).join('');
   },
 
   renderReports(reports) {
@@ -410,10 +423,14 @@ const AdminApp = {
     el.innerHTML = reports.map(r => `
       <div class="report-item">
         <div class="report-header">
-          <div><span class="report-reason">${r.reason||'بلاغ'}</span> <span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
+          <div><span class="report-reason">بلاغ ضد: ${r.reportedUserName||'مستخدم'} ${r.reportedUserPhone ? '('+r.reportedUserPhone+')' : ''}</span> <span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
           <span class="report-meta">${timeAgo(r.createdAt)}</span>
         </div>
-        <div class="report-body">${r.reason||'لا توجد تفاصيل'}</div>
+        <div class="report-body">
+          <p style="margin: 0 0 8px; color: var(--text-muted);"><strong>مُقدم البلاغ:</strong> ${r.reporterName||'غير معروف'}</p>
+          <p style="margin: 0 0 8px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
+          ${r.imageUrl ? `<div style="margin-top:10px;"><a href="${r.imageUrl}" target="_blank"><img src="${r.imageUrl}" style="max-width:200px; border-radius:8px; border:1px solid var(--border); cursor:pointer;" alt="مرفق البلاغ"/></a></div>` : ''}
+        </div>
         <div style="display:flex;gap:8px">
           ${(r.status||'pending')==='pending' ? `
             <button class="btn btn-sm btn-success" onclick="AdminApp.updateReport('${r.id}','reviewed')">تمت المراجعة</button>
