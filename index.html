@@ -157,7 +157,7 @@
             <select id="posts-filter" class="filter-select" onchange="AdminApp.filterPosts()"><option value="">كل المنشورات</option><option value="pinned">المثبتة</option><option value="reported">المبلّغ عنها</option></select>
           </div>
           <div class="posts-count" id="posts-count"></div>
-          <div id="posts-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+          <div id="posts-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Requests Page (NEW) -->
@@ -166,7 +166,7 @@
             <select id="requests-filter" class="filter-select" onchange="AdminApp.filterRequests()"><option value="">كل الطلبات</option><option value="active">نشطة</option><option value="fulfilled">مكتملة</option></select>
           </div>
           <div id="requests-count" class="users-count"></div>
-          <div id="requests-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+          <div id="requests-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Ads Page (Enhanced with placement types) -->
@@ -262,13 +262,13 @@
         <!-- Reports Page -->
         <section id="page-reports" class="page">
           <div class="filters-bar"><select id="reports-status-filter" class="filter-select" onchange="AdminApp.filterReports()"><option value="">كل البلاغات</option><option value="pending">معلق</option><option value="reviewed">تمت المراجعة</option><option value="dismissed">مرفوض</option></select></div>
-          <div id="reports-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+          <div id="reports-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Deletions Page -->
         <section id="page-deletions" class="page">
           <div class="page-subtitle">طلبات حذف الحسابات المعلقة</div>
-          <div id="deletions-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+          <div id="deletions-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Admins Page -->
@@ -317,7 +317,7 @@
         <!-- Contracts Page -->
         <section id="page-contracts" class="page">
           <div class="page-subtitle">سجل العقود والمشاورات بين المستخدمين</div>
-          <div id="contracts-list" class="cards-list"><div class="loading-spinner"><div class="spinner"></div></div></div>
+          <div id="contracts-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Settings Page -->
