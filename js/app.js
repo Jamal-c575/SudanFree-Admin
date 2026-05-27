@@ -634,17 +634,35 @@ const AdminApp = {
     btn.disabled = true;
 
     try {
-      const sendBulkNotif = firebase.functions().httpsCallable('sendBulkNotification');
-      const result = await sendBulkNotif({
-        title: title,
-        message: body,
-        targetRole: targetRole,
-        targetState: targetState,
-        targetLocality: targetLocality
-      });
-      
-      const data = result.data;
-      showToast(data.message || `تم الإرسال لـ ${data.matchedUsers} مستخدم بنجاح`);
+      let usersQuery = db.collection('users');
+      if (targetRole && targetRole !== 'all') usersQuery = usersQuery.where('role', '==', targetRole);
+      if (targetState && targetState !== 'all') usersQuery = usersQuery.where('state', '==', targetState);
+      if (targetLocality && targetLocality !== 'all') usersQuery = usersQuery.where('locality', '==', targetLocality);
+
+      const snap = await usersQuery.get();
+      if (snap.empty) {
+        showToast('لم يتم العثور على مستخدمين مطابقين لهذه المعايير', 'error');
+      } else {
+        const docs = snap.docs;
+        for (let i = 0; i < docs.length; i += 400) {
+          const batch = db.batch();
+          const chunk = docs.slice(i, i + 400);
+          chunk.forEach(doc => {
+            const notifRef = db.collection('notifications').doc();
+            batch.set(notifRef, {
+              userId: doc.id,
+              title: title,
+              message: body,
+              type: 'system',
+              isRead: false,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              relatedId: 'bulk_notification'
+            });
+          });
+          await batch.commit();
+        }
+        showToast(`تم إرسال التنبيه إلى ${docs.length} مستخدم بنجاح`);
+      }
       
       document.getElementById('notif-title').value = '';
       document.getElementById('notif-body').value = '';
