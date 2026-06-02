@@ -85,7 +85,7 @@ const AdminApp = {
     document.getElementById('page-' + page).classList.add('active');
     const navEl = document.querySelector(`[data-page="${page}"]`);
     if (navEl) navEl.classList.add('active');
-    const titles = { dashboard:'الرئيسية', users:'المستخدمون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات' };
+    const titles = { dashboard:'الرئيسية', users:'المستخدمون', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
     if (page === 'deletions') this.loadDeletions();
@@ -97,6 +97,7 @@ const AdminApp = {
     if (page === 'promotions') this.loadPromotions();
     if (page === 'contracts') this.loadContracts();
     if (page === 'settings') this.loadSettings();
+    if (page === 'banned') this.loadBannedUsers();
     document.getElementById('sidebar').classList.remove('open');
   },
   refreshCurrentPage() {
@@ -170,6 +171,33 @@ const AdminApp = {
         <td><span class="status-dot ${this.isOnline(u) ? 'status-online' : 'status-offline'}"></span>${this.isOnline(u) ? 'متصل' : 'غير متصل'}</td>
         <td><button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')">عرض</button></td>
       </tr>`).join('');
+  },
+
+  async loadBannedUsers() {
+    const snap = await db.collection('users').where('isBanned', '==', true).get();
+    const banned = snap.docs.map(d => ({ id:d.id, ...d.data() }));
+    this.renderBannedUsers(banned);
+  },
+
+  renderBannedUsers(banned) {
+    const tbody = document.getElementById('banned-tbody');
+    if (!tbody) return;
+    if (!banned.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد مستخدمون محظورون حالياً</td></tr>'; return; }
+    tbody.innerHTML = banned.map(u => {
+      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=ff4757&color=fff`;
+      const bannedAt = u.bannedAt ? (u.bannedAt.toDate ? u.bannedAt.toDate().toLocaleDateString('ar-EG') : new Date(u.bannedAt).toLocaleDateString('ar-EG')) : (u.updatedAt && u.updatedAt.toDate ? u.updatedAt.toDate().toLocaleDateString('ar-EG') : '—');
+      return `
+        <tr>
+          <td><img class="user-avatar" src="${avatar}" alt=""></td>
+          <td><strong>${u.name}</strong><br><small style="color:var(--text-muted)">${u.email || u.phoneNumber || 'لا يوجد بريد'}</small></td>
+          <td style="color:var(--danger)">${u.banReason || 'مخالفة الشروط والأحكام'}</td>
+          <td>${bannedAt}</td>
+          <td>
+            <button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')">عرض الملف</button>
+            <button class="btn btn-sm btn-success" onclick="AdminApp.toggleUserBan('${u.id}', true)">فك الحظر</button>
+          </td>
+        </tr>`;
+    }).join('');
   },
 
   isOnline(u) {
@@ -319,6 +347,7 @@ const AdminApp = {
       showToast(isCurrentlyBanned ? 'تم فك الحظر بنجاح' : 'تم حظر المستخدم بنجاح');
       document.getElementById('user-modal').style.display = 'none';
       this.loadUsers();
+      if (this.currentPage === 'banned') this.loadBannedUsers();
     } catch (e) {
       showToast('خطأ: ' + e.message, 'error');
     }

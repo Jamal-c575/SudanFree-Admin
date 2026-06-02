@@ -58,6 +58,9 @@
         <a href="#" class="nav-item" data-page="users" onclick="AdminApp.navigateTo('users')">
           <span class="material-icons-outlined">people</span><span class="nav-text">المستخدمون</span>
         </a>
+        <a href="#" class="nav-item" data-page="banned" onclick="AdminApp.navigateTo('banned')">
+          <span class="material-icons-outlined">block</span><span class="nav-text">المحظورون</span>
+        </a>
         <a href="#" class="nav-item" data-page="notifications" onclick="AdminApp.navigateTo('notifications')">
           <span class="material-icons-outlined">notifications</span><span class="nav-text">التنبيهات</span>
         </a>
@@ -148,6 +151,29 @@
           </div>
           <div class="users-count" id="users-count"></div>
           <div class="table-container"><table class="data-table" id="users-table"><thead><tr><th>الصورة</th><th>الاسم</th><th>النوع</th><th>المنطقة</th><th>التقييم</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="users-tbody"><tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody></table></div>
+        </section>
+
+        <!-- Banned Users Page -->
+        <section id="page-banned" class="page">
+          <div class="filters-bar">
+            <h2>المستخدمون المحظورون</h2>
+          </div>
+          <div class="table-container">
+            <table class="data-table" id="banned-table">
+              <thead>
+                <tr>
+                  <th>الصورة</th>
+                  <th>الاسم</th>
+                  <th>سبب الحظر</th>
+                  <th>تاريخ الحظر</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="banned-tbody">
+                <tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <!-- Posts Page (NEW) -->
