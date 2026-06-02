@@ -43,6 +43,37 @@ const AdminApp = {
     this.listenVerifications();
     this.loadReports();
     this.loadDeletions();
+    this.loadLocalities();
+  },
+
+  // ── Dynamic Localities ──
+  registeredLocalities: [],
+  async loadLocalities() {
+    try {
+      const snap = await db.collection('users').get();
+      const localitySet = new Set();
+      snap.docs.forEach(d => {
+        const loc = d.data().locality;
+        if (loc && loc.trim()) localitySet.add(loc.trim());
+      });
+      this.registeredLocalities = Array.from(localitySet).sort();
+      this.populateLocalityDropdowns();
+    } catch (e) {
+      console.error('Error loading localities:', e);
+    }
+  },
+  populateLocalityDropdowns() {
+    const ids = ['ad-locality', 'notif-locality'];
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const currentVal = el.value;
+      el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>';
+      this.registeredLocalities.forEach(loc => {
+        el.innerHTML += `<option value="${loc}">${loc}</option>`;
+      });
+      if (currentVal) el.value = currentVal;
+    });
   },
 
   // ── Navigation ──
@@ -185,6 +216,17 @@ const AdminApp = {
         <button class="btn ${u.isBanned ? 'btn-success' : 'btn-danger'}" onclick="AdminApp.toggleUserBan('${u.id}', ${!!u.isBanned})" style="flex:1;">
           <span class="material-icons-outlined">${u.isBanned ? 'check_circle' : 'block'}</span> ${u.isBanned ? 'فك الحظر' : 'حظر المستخدم'}
         </button>
+        <button class="btn btn-primary" onclick="AdminApp.showPersonalNotifForm('${u.id}', '${(u.name||"").replace(/'/g,"\\'")}')" style="flex:1;">
+          <span class="material-icons-outlined">send</span> إرسال تنبيه شخصي
+        </button>
+      </div>
+      <div id="personal-notif-form-${u.id}" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+        <h4 style="margin-bottom:10px;font-size:14px;">📩 إرسال تنبيه شخصي</h4>
+        <input type="text" id="personal-notif-title-${u.id}" class="text-input" placeholder="عنوان التنبيه" style="width:100%;margin-bottom:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;font-family:inherit;">
+        <textarea id="personal-notif-body-${u.id}" placeholder="نص التنبيه..." style="width:100%;min-height:70px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;resize:vertical;font-family:inherit;"></textarea>
+        <button class="btn btn-primary" onclick="AdminApp.sendPersonalNotification('${u.id}')" style="margin-top:8px;">
+          <span class="material-icons-outlined" style="font-size:16px;">send</span> إرسال
+        </button>
       </div>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
         <h4 style="margin-bottom:10px;font-size:14px;">⭐ ترويج هذا المستخدم في الصفحة الرئيسية</h4>
@@ -225,6 +267,35 @@ const AdminApp = {
     } catch (e) {
       console.error('Error creating promotion:', e);
       alert('❌ حدث خطأ: ' + e.message);
+    }
+  },
+
+  showPersonalNotifForm(userId, userName) {
+    const form = document.getElementById('personal-notif-form-' + userId);
+    if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
+  },
+
+  async sendPersonalNotification(userId) {
+    const title = document.getElementById('personal-notif-title-' + userId)?.value.trim();
+    const body = document.getElementById('personal-notif-body-' + userId)?.value.trim();
+    if (!title || !body) { showToast('يرجى ملء العنوان والمحتوى', 'error'); return; }
+    if (!confirm('إرسال هذا التنبيه الشخصي؟')) return;
+    try {
+      await db.collection('notifications').add({
+        userId: userId,
+        title: title,
+        message: body,
+        type: 'system',
+        isRead: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        relatedId: 'personal_admin_notification'
+      });
+      showToast('تم إرسال التنبيه الشخصي بنجاح ✅');
+      document.getElementById('personal-notif-title-' + userId).value = '';
+      document.getElementById('personal-notif-body-' + userId).value = '';
+      document.getElementById('personal-notif-form-' + userId).style.display = 'none';
+    } catch (e) {
+      showToast('خطأ: ' + e.message, 'error');
     }
   },
 
@@ -417,27 +488,49 @@ const AdminApp = {
     `).join('');
   },
 
-  renderReports(reports) {
+  async renderReports(reports) {
     const el = document.getElementById('reports-list');
     if (!reports.length) { el.innerHTML = '<p class="empty-state">لا توجد بلاغات</p>'; return; }
-    el.innerHTML = reports.map(r => `
-      <div class="report-item">
-        <div class="report-header">
-          <div><span class="report-reason">بلاغ ضد: ${r.reportedUserName||'مستخدم'} ${r.reportedUserPhone ? '('+r.reportedUserPhone+')' : ''}</span> <span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
-          <span class="report-meta">${timeAgo(r.createdAt)}</span>
+    // Fetch user data for richer cards
+    const enriched = await Promise.all(reports.map(async r => {
+      let reportedUser = {};
+      try {
+        if (r.reportedUserId) {
+          const uDoc = await db.collection('users').doc(r.reportedUserId).get();
+          if (uDoc.exists) reportedUser = uDoc.data();
+        }
+      } catch(e) {}
+      return { ...r, _user: reportedUser };
+    }));
+    el.innerHTML = enriched.map(r => {
+      const u = r._user;
+      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.reportedUserName||'U')}&background=d63031&color=fff`;
+      const jobTitle = u.jobTitle || u.skills?.join(', ') || ROLE_NAMES[u.role] || '';
+      const location = [u.locality, u.state].filter(Boolean).join(' — ') || '';
+      return `
+      <div class="verify-card">
+        <div class="verify-card-header">
+          <img src="${avatar}" alt="" style="border-color:var(--danger);">
+          <div class="verify-card-info">
+            <h4>${r.reportedUserName||'مستخدم'} ${r.reportedUserPhone ? '<small>('+r.reportedUserPhone+')</small>' : ''}</h4>
+            <p>${jobTitle}${location ? ' — '+location : ''}</p>
+          </div>
+          <span class="report-status ${r.status||'pending'}" style="margin-right:auto;">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span>
         </div>
-        <div class="report-body">
-          <p style="margin: 0 0 8px; color: var(--text-muted);"><strong>مُقدم البلاغ:</strong> ${r.reporterName||'غير معروف'}</p>
-          <p style="margin: 0 0 8px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
-          ${r.imageUrl ? `<div style="margin-top:10px;"><a href="${r.imageUrl}" target="_blank"><img src="${r.imageUrl}" style="max-width:200px; border-radius:8px; border:1px solid var(--border); cursor:pointer;" alt="مرفق البلاغ"/></a></div>` : ''}
+        <div class="verify-card-body">
+          <p style="margin:0 0 6px;color:var(--text-muted);font-size:13px;"><strong>مُقدم البلاغ:</strong> ${r.reporterName||'غير معروف'}</p>
+          <p style="margin:0 0 6px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
+          <p style="margin:0;color:var(--text-muted);font-size:12px;">${timeAgo(r.createdAt)}</p>
+          ${r.imageUrl ? `<div style="margin-top:8px;"><img src="${r.imageUrl}" onclick="AdminApp.previewImage('${r.imageUrl}')" style="max-width:100%; max-height:180px; border-radius:8px; border:1px solid var(--border-glass); cursor:pointer; object-fit:cover;" alt=""/></div>` : ''}
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="verify-card-actions">
           ${(r.status||'pending')==='pending' ? `
-            <button class="btn btn-sm btn-success" onclick="AdminApp.updateReport('${r.id}','reviewed')">تمت المراجعة</button>
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateReport('${r.id}','dismissed')">رفض</button>
+            <button class="btn btn-sm btn-success" onclick="AdminApp.updateReport('${r.id}','reviewed')"><span class="material-icons-outlined">check</span>تمت المراجعة</button>
+            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateReport('${r.id}','dismissed')"><span class="material-icons-outlined">close</span>رفض</button>
           ` : ''}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   },
 
   filterReports() {
@@ -466,23 +559,48 @@ const AdminApp = {
     badge.style.display = pending > 0 ? 'inline' : 'none';
   },
 
-  renderDeletions(requests) {
+  async renderDeletions(requests) {
     const el = document.getElementById('deletions-list');
     if (!requests.length) { el.innerHTML = '<p class="empty-state">لا توجد طلبات حذف معلقة 🎉</p>'; return; }
-    el.innerHTML = requests.map(r => `
-      <div class="report-item">
-        <div class="report-header">
-          <div><span class="report-reason">${r.name||'مستخدم'} (${r.email||'بدون بريد'})</span> <span class="report-status ${r.status||'pending'}">${r.status==='approved'?'تم الحذف':r.status==='rejected'?'مرفوض':'معلق'}</span></div>
-          <span class="report-meta">${timeAgo(r.createdAt)}</span>
+    // Enrich with user profile data
+    const enriched = await Promise.all(requests.map(async r => {
+      let user = {};
+      try {
+        if (r.userId) {
+          const uDoc = await db.collection('users').doc(r.userId).get();
+          if (uDoc.exists) user = uDoc.data();
+        }
+      } catch(e) {}
+      return { ...r, _user: user };
+    }));
+    el.innerHTML = enriched.map(r => {
+      const u = r._user;
+      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name||'U')}&background=e17055&color=fff`;
+      const jobTitle = u.jobTitle || u.skills?.join(', ') || ROLE_NAMES[u.role] || '';
+      const location = [u.locality, u.state].filter(Boolean).join(' — ') || '';
+      return `
+      <div class="verify-card">
+        <div class="verify-card-header">
+          <img src="${avatar}" alt="" style="border-color:var(--desert-orange);">
+          <div class="verify-card-info">
+            <h4>${r.name||'مستخدم'}</h4>
+            <p>${r.email||'بدون بريد'}${jobTitle ? ' — '+jobTitle : ''}</p>
+            ${location ? '<p>📍 '+location+'</p>' : ''}
+          </div>
+          <span class="report-status ${r.status||'pending'}" style="margin-right:auto;">${r.status==='approved'?'تم الحذف':r.status==='rejected'?'مرفوض':'معلق'}</span>
         </div>
-        <div class="report-body"><strong>السبب:</strong> ${r.reason||'لم يذكر'}</div>
-        <div style="display:flex;gap:8px;margin-top:10px;">
+        <div class="verify-card-body">
+          <p style="margin:0 0 6px;"><strong>السبب:</strong> ${r.reason||'لم يذكر'}</p>
+          <p style="margin:0;color:var(--text-muted);font-size:12px;">${timeAgo(r.createdAt)}</p>
+        </div>
+        <div class="verify-card-actions">
           ${(r.status||'pending')==='pending' ? `
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.approveDeletion('${r.id}', '${r.userId}')">موافقة وحذف</button>
-            <button class="btn btn-sm btn-ghost" onclick="AdminApp.rejectDeletion('${r.id}')">رفض الطلب</button>
+            <button class="btn btn-sm btn-danger" onclick="AdminApp.approveDeletion('${r.id}', '${r.userId}')"><span class="material-icons-outlined">delete</span>موافقة وحذف</button>
+            <button class="btn btn-sm btn-ghost" onclick="AdminApp.rejectDeletion('${r.id}')"><span class="material-icons-outlined">close</span>رفض الطلب</button>
           ` : ''}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   },
 
   async approveDeletion(reqId, userId) {
@@ -623,7 +741,7 @@ const AdminApp = {
     }
     if (type === 'state' || type === 'role_state') {
       targetState = document.getElementById('notif-state').value;
-      targetLocality = document.getElementById('notif-locality').value.trim() || 'all';
+      targetLocality = document.getElementById('notif-locality').value || 'all';
     }
 
     if (!confirm('هل أنت متأكد من إرسال هذا التنبيه المستهدف؟')) return;
@@ -730,11 +848,17 @@ const AdminApp = {
     // Detailed stats
     const verified = users.filter(u => u.isVerified).length;
     const online = users.filter(u => this.isOnline(u)).length;
+    const clients = byRole.client || 0;
+    const craftsmen = byRole.freelancer || 0;
     document.getElementById('stats-grid-detailed').innerHTML = [
       { icon:'people', label:'إجمالي المستخدمين', value:total, color:'#6c5ce7' },
       { icon:'verified', label:'موثقون', value:verified, color:'#00cec9' },
       { icon:'circle', label:'متصلون الآن', value:online, color:'#00b894' },
+      { icon:'person', label:'عملاء', value:clients, color:'#74b9ff' },
+      { icon:'construction', label:'حرفيين (صنايعية)', value:craftsmen, color:'#e17055' },
       { icon:'store', label:'متاجر', value:byRole.shop||0, color:'#fdcb6e' },
+      { icon:'code', label:'تقنيين', value:byRole.techService||0, color:'#a29bfe' },
+      { icon:'room_service', label:'خدمات خاصة', value:byRole.privateService||0, color:'#fd79a8' },
     ].map(s => `<div class="stat-card"><div class="stat-icon" style="background:${s.color}22;color:${s.color}"><span class="material-icons-outlined">${s.icon}</span></div><div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div></div>`).join('');
   },
 
