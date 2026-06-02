@@ -100,8 +100,12 @@ const AdminExtras = {
     }).join('');
   },
   filterRequests() {
+    const search = document.getElementById('requests-search').value.toLowerCase();
     const f = document.getElementById('requests-filter').value;
     let list = this.allRequests;
+    if (search) {
+      list = list.filter(r => (r.text||'').toLowerCase().includes(search) || (r.authorName||'').toLowerCase().includes(search));
+    }
     if (f === 'active') list = list.filter(r => !r.isFulfilled);
     if (f === 'fulfilled') list = list.filter(r => r.isFulfilled);
     this.renderRequests(list);

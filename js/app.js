@@ -180,6 +180,11 @@ const AdminApp = {
   },
 
   renderBannedUsers(banned) {
+    this.bannedUsersData = banned; // Store for filtering
+    this.displayBannedUsers(banned);
+  },
+
+  displayBannedUsers(banned) {
     const tbody = document.getElementById('banned-tbody');
     if (!tbody) return;
     if (!banned.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد مستخدمون محظورون حالياً</td></tr>'; return; }
@@ -198,6 +203,16 @@ const AdminApp = {
           </td>
         </tr>`;
     }).join('');
+  },
+
+  filterBannedUsers() {
+    const search = document.getElementById('banned-search').value.toLowerCase();
+    if (!this.bannedUsersData) return;
+    let filtered = this.bannedUsersData;
+    if (search) {
+      filtered = filtered.filter(u => u.name.toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search) || (u.phoneNumber||'').toLowerCase().includes(search));
+    }
+    this.displayBannedUsers(filtered);
   },
 
   isOnline(u) {
@@ -373,7 +388,8 @@ const AdminApp = {
         }
       }));
 
-      this.renderVerifications(requestsWithUsers);
+      this.verificationsData = requestsWithUsers;
+      this.displayVerifications(requestsWithUsers);
 
       // Dashboard mini-list
       const dashEl = document.getElementById('dashboard-pending-verifications');
@@ -389,7 +405,7 @@ const AdminApp = {
     });
   },
 
-  renderVerifications(requests) {
+  displayVerifications(requests) {
     const el = document.getElementById('verification-list');
     if (!requests.length) { el.innerHTML = '<p class="empty-state">لا توجد طلبات توثيق معلقة 🎉</p>'; return; }
     el.innerHTML = requests.map(req => {
@@ -410,6 +426,22 @@ const AdminApp = {
         </div>
       </div>`;
     }).join('');
+  },
+
+  filterVerificationsList() {
+    const search = document.getElementById('verification-search').value.toLowerCase();
+    if (!this.verificationsData) return;
+    let filtered = this.verificationsData;
+    if (search) {
+      filtered = filtered.filter(req => {
+        const u = req.user || {};
+        return (u.name || '').toLowerCase().includes(search) || 
+               (u.email || '').toLowerCase().includes(search) || 
+               (u.state || '').toLowerCase().includes(search) || 
+               (u.locality || '').toLowerCase().includes(search);
+      });
+    }
+    this.displayVerifications(filtered);
   },
 
   async approveVerification(requestId) {

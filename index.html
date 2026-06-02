@@ -157,6 +157,7 @@
         <section id="page-banned" class="page">
           <div class="filters-bar">
             <h2>المستخدمون المحظورون</h2>
+            <div class="input-group search-input" style="margin-right:auto; max-width:300px;"><span class="material-icons-outlined">search</span><input type="text" id="banned-search" placeholder="بحث بالاسم أو البريد..." oninput="AdminApp.filterBannedUsers()"></div>
           </div>
           <div class="table-container">
             <table class="data-table" id="banned-table">
@@ -189,7 +190,8 @@
         <!-- Requests Page (NEW) -->
         <section id="page-requests" class="page">
           <div class="filters-bar">
-            <select id="requests-filter" class="filter-select" onchange="AdminApp.filterRequests()"><option value="">كل الطلبات</option><option value="active">نشطة</option><option value="fulfilled">مكتملة</option></select>
+            <div class="input-group search-input"><span class="material-icons-outlined">search</span><input type="text" id="requests-search" placeholder="بحث بعنوان الطلب..." oninput="AdminExtras.filterRequests()"></div>
+            <select id="requests-filter" class="filter-select" onchange="AdminExtras.filterRequests()"><option value="">كل الطلبات</option><option value="active">نشطة</option><option value="fulfilled">مكتملة</option></select>
           </div>
           <div id="requests-count" class="users-count"></div>
           <div id="requests-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
@@ -282,13 +284,19 @@
 
         <!-- Verification Page -->
         <section id="page-verification" class="page">
-          <div class="page-subtitle">طلبات التوثيق المعلقة من مقدمي الخدمات</div>
+          <div class="filters-bar">
+            <h2>طلبات التوثيق المعلقة</h2>
+            <div class="input-group search-input" style="margin-right:auto; max-width:300px;"><span class="material-icons-outlined">search</span><input type="text" id="verification-search" placeholder="بحث بالاسم..." oninput="AdminApp.filterVerificationsList()"></div>
+          </div>
           <div id="verification-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
         <!-- Reports Page -->
         <section id="page-reports" class="page">
-          <div class="filters-bar"><select id="reports-status-filter" class="filter-select" onchange="AdminApp.filterReports()"><option value="">كل البلاغات</option><option value="pending">معلق</option><option value="reviewed">تمت المراجعة</option><option value="dismissed">مرفوض</option></select></div>
+          <div class="filters-bar">
+            <div class="input-group search-input"><span class="material-icons-outlined">search</span><input type="text" id="reports-search" placeholder="بحث باسم المبلغ أو المشتكى عليه..." oninput="AdminApp.filterReports()"></div>
+            <select id="reports-status-filter" class="filter-select" onchange="AdminApp.filterReports()"><option value="">كل البلاغات</option><option value="pending">معلق</option><option value="reviewed">تمت المراجعة</option><option value="dismissed">مرفوض</option></select>
+          </div>
           <div id="reports-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
