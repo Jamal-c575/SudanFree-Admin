@@ -1,6 +1,6 @@
 // Firebase Configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCGdUP0ZJhFlXfmTSP4S-AvM5WMCOdih4A",
+  apiKey: "AIzaSyD8y9NJNVycJLQZ0bVyRViygAIJ8uTcNIo",
   authDomain: "sudanfree-d04fc.firebaseapp.com",
   projectId: "sudanfree-d04fc",
   storageBucket: "sudanfree-d04fc.firebasestorage.app",
