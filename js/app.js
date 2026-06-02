@@ -491,39 +491,84 @@ const AdminApp = {
   async renderReports(reports) {
     const el = document.getElementById('reports-list');
     if (!reports.length) { el.innerHTML = '<p class="empty-state">لا توجد بلاغات</p>'; return; }
-    // Fetch user data for richer cards
+    
+    // Fetch user data for both reporter and reported
     const enriched = await Promise.all(reports.map(async r => {
       let reportedUser = {};
+      let reporterUser = {};
       try {
         if (r.reportedUserId) {
           const uDoc = await db.collection('users').doc(r.reportedUserId).get();
           if (uDoc.exists) reportedUser = uDoc.data();
         }
+        if (r.reporterId) {
+          const uDoc = await db.collection('users').doc(r.reporterId).get();
+          if (uDoc.exists) reporterUser = uDoc.data();
+        }
       } catch(e) {}
-      return { ...r, _user: reportedUser };
+      return { ...r, _reported: reportedUser, _reporter: reporterUser };
     }));
+
     el.innerHTML = enriched.map(r => {
-      const u = r._user;
-      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.reportedUserName||'U')}&background=d63031&color=fff`;
-      const jobTitle = u.jobTitle || u.skills?.join(', ') || ROLE_NAMES[u.role] || '';
-      const location = [u.locality, u.state].filter(Boolean).join(' — ') || '';
-      return `
-      <div class="verify-card">
-        <div class="verify-card-header">
-          <img src="${avatar}" alt="" style="border-color:var(--danger);">
-          <div class="verify-card-info">
-            <h4>${r.reportedUserName||'مستخدم'} ${r.reportedUserPhone ? '<small>('+r.reportedUserPhone+')</small>' : ''}</h4>
-            <p>${jobTitle}${location ? ' — '+location : ''}</p>
+      let partiesHtml = `
+        <div style="display:flex; flex-direction:column; gap:8px; margin:16px 0; border-top:1px solid var(--border-glass); border-bottom:1px solid var(--border-glass); padding:16px 0;">
+      `;
+
+      // Reporter
+      if (r.reporterId) {
+        const u = r._reporter;
+        const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name||r.reporterName||'U')}&background=00b894&color=fff`;
+        partiesHtml += `
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(0,184,148,0.1); padding:10px; border-radius:8px; border:1px solid rgba(0,184,148,0.3);">
+            <div style="font-size:11px; font-weight:bold; color:#00b894; width:50px; flex-shrink:0;">المُبلِّغ:</div>
+            <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #00b894; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reporterId}')">
+            <div style="flex:1; min-width:0; overflow:hidden;">
+              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reporterId}')">${u.name||r.reporterName||'مستخدم'}</div>
+              <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
+            </div>
+            <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#00b894;" onclick="AdminApp.showUserDetail('${r.reporterId}')">ملف</button>
           </div>
-          <span class="report-status ${r.status||'pending'}" style="margin-right:auto;">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span>
+        `;
+      }
+
+      // Reported
+      if (r.reportedUserId) {
+        const u = r._reported;
+        const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name||r.reportedUserName||'U')}&background=d63031&color=fff`;
+        partiesHtml += `
+          <div style="display:flex; align-items:center; gap:12px; background:rgba(214,48,49,0.1); padding:10px; border-radius:8px; border:1px solid rgba(214,48,49,0.3);">
+            <div style="font-size:11px; font-weight:bold; color:#d63031; width:50px; flex-shrink:0;">المُشتكى<br>ضده:</div>
+            <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #d63031; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">
+            <div style="flex:1; min-width:0; overflow:hidden;">
+              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">${u.name||r.reportedUserName||'مستخدم'}</div>
+              <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
+            </div>
+            <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#d63031;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">ملف</button>
+          </div>
+        `;
+      }
+
+      partiesHtml += `</div>`;
+
+      return `
+      <div class="verify-card" style="padding:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
+            <span class="material-icons-outlined" style="color:var(--danger)">gavel</span>
+            تفاصيل البلاغ
+          </h4>
+          <span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span>
         </div>
-        <div class="verify-card-body">
-          <p style="margin:0 0 6px;color:var(--text-muted);font-size:13px;"><strong>مُقدم البلاغ:</strong> ${r.reporterName||'غير معروف'}</p>
-          <p style="margin:0 0 6px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
-          <p style="margin:0;color:var(--text-muted);font-size:12px;">${timeAgo(r.createdAt)}</p>
-          ${r.imageUrl ? `<div style="margin-top:8px;"><img src="${r.imageUrl}" onclick="AdminApp.previewImage('${r.imageUrl}')" style="max-width:100%; max-height:180px; border-radius:8px; border:1px solid var(--border-glass); cursor:pointer; object-fit:cover;" alt=""/></div>` : ''}
+        
+        <div class="verify-card-body" style="padding:0; gap:8px;">
+          <p style="margin:0; font-size:14px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
+          <p style="margin:0; color:var(--text-muted); font-size:12px;">${timeAgo(r.createdAt)}</p>
+          ${r.imageUrl ? `<div style="margin-top:12px;"><img src="${r.imageUrl}" onclick="AdminApp.previewImage('${r.imageUrl}')" style="max-width:100%; max-height:200px; border-radius:8px; border:1px solid var(--border-glass); cursor:pointer; object-fit:cover;" alt=""/></div>` : ''}
         </div>
-        <div class="verify-card-actions">
+
+        ${partiesHtml}
+
+        <div class="verify-card-actions" style="margin-top:0;">
           ${(r.status||'pending')==='pending' ? `
             <button class="btn btn-sm btn-success" onclick="AdminApp.updateReport('${r.id}','reviewed')"><span class="material-icons-outlined">check</span>تمت المراجعة</button>
             <button class="btn btn-sm btn-danger" onclick="AdminApp.updateReport('${r.id}','dismissed')"><span class="material-icons-outlined">close</span>رفض</button>
