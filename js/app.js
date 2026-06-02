@@ -992,22 +992,22 @@ const AdminApp = {
 
       let partiesHtml = '';
       if (d._parties && d._parties.length > 0) {
-        partiesHtml = `<div style="display:flex; flex-wrap:wrap; gap:12px; margin-top:16px; border-top:1px solid var(--border-glass); padding-top:16px; justify-content:center;">` + 
+        partiesHtml = `<div style="display:flex; flex-direction:column; gap:8px; margin-top:16px; border-top:1px solid var(--border-glass); padding-top:16px;">` + 
           d._parties.map(p => {
             const avatar = p.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name||'U')}&background=6c5ce7&color=fff`;
             const roleName = ROLE_NAMES[p.role] || p.role || '';
             return `
-              <div style="flex:1; min-width:240px; max-width:100%; display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid var(--border-glass);">
-                <img src="${avatar}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${p.id}')">
+              <div style="display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid var(--border-glass);">
+                <img src="${avatar}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${p.id}')">
                 <div style="flex:1; min-width:0; overflow:hidden;">
-                  <div style="font-size:14px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${p.id}')">${p.name||'مستخدم'} ${p.isVerified ? '<span class="material-icons-outlined verified-badge" style="font-size:16px; vertical-align:middle;">verified</span>' : ''}</div>
-                  <div style="font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${roleName}</div>
-                  <div style="font-size:12px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${p.phoneNumber||p.email||''}</div>
+                  <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${p.id}')">${p.name||'مستخدم'} ${p.isVerified ? '<span class="material-icons-outlined verified-badge" style="font-size:14px; vertical-align:middle;">verified</span>' : ''}</div>
+                  <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${roleName}</div>
+                  <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${p.phoneNumber||p.email||''}</div>
                 </div>
                 <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0;" onclick="AdminApp.showUserDetail('${p.id}')"><span class="material-icons-outlined" style="font-size:14px;">person</span> ملف</button>
               </div>
             `;
-          }).join('<div style="display:flex; align-items:center; color:var(--primary); justify-content:center;"><span class="material-icons-outlined" style="font-size:20px;">handshake</span></div>') + 
+          }).join('') + 
         `</div>`;
       }
 
