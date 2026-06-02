@@ -952,14 +952,51 @@ const AdminApp = {
         return;
       }
       const STATUS_NAMES = { pending: 'معلق', accepted: 'مقبول', active: 'نشط', completed: 'مكتمل', cancelled: 'ملغي', rejected: 'مرفوض' };
-      container.innerHTML = snap.docs.map(doc => {
+      const enriched = await Promise.all(snap.docs.map(async doc => {
         const d = doc.data();
+        let parties = [];
+        try {
+          const chatDoc = await doc.ref.parent.parent.get();
+          if (chatDoc.exists) {
+            const participants = chatDoc.data().participants || [];
+            for (const uid of participants) {
+              const uDoc = await db.collection('users').doc(uid).get();
+              if (uDoc.exists) parties.push({ id: uid, ...uDoc.data() });
+            }
+          }
+        } catch(e) {}
+        return { id: doc.id, ...d, _parties: parties };
+      }));
+
+      container.innerHTML = enriched.map(d => {
         const status = d.contractStatus || d.status || 'pending';
         const statusClass = ['active','accepted'].includes(status) ? 'active' : status === 'completed' ? 'completed' : 'cancelled';
         const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString('ar-EG') : '';
         const details = d.contractDetails || d.title || d.serviceType || 'عقد خدمة';
         const displayTitle = details.length > 50 ? details.substring(0, 50) + '...' : details;
         const price = d.contractPrice || d.agreedPrice || d.price || 'غير محدد';
+
+        let partiesHtml = '';
+        if (d._parties && d._parties.length > 0) {
+          partiesHtml = `<div style="display:flex; gap:16px; margin-top:16px; border-top:1px solid var(--border-glass); padding-top:16px;">` + 
+            d._parties.map(p => {
+              const avatar = p.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name||'U')}&background=6c5ce7&color=fff`;
+              const roleName = ROLE_NAMES[p.role] || p.role || '';
+              return `
+                <div style="flex:1; display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid var(--border-glass);">
+                  <img src="${avatar}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer;" onclick="AdminApp.showUserDetail('${p.id}')">
+                  <div style="flex:1;">
+                    <div style="font-size:14px; font-weight:700; color:#fff; cursor:pointer;" onclick="AdminApp.showUserDetail('${p.id}')">${p.name||'مستخدم'} ${p.isVerified ? '<span class="material-icons-outlined verified-badge" style="font-size:16px;">verified</span>' : ''}</div>
+                    <div style="font-size:12px; color:var(--text-secondary);">${roleName}</div>
+                    <div style="font-size:12px; color:var(--text-secondary);">${p.phoneNumber||p.email||''}</div>
+                  </div>
+                  <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px;" onclick="AdminApp.showUserDetail('${p.id}')"><span class="material-icons-outlined" style="font-size:14px;">person</span> ملف</button>
+                </div>
+              `;
+            }).join('<div style="display:flex; align-items:center; color:var(--primary);"><span class="material-icons-outlined">handshake</span></div>') + 
+          `</div>`;
+        }
+
         return `<div class="contract-item">
           <div class="contract-header">
             <div style="display:flex;align-items:center;gap:8px;">
@@ -974,6 +1011,7 @@ const AdminApp = {
               <span style="margin-right:16px;">📅 ${date}</span>
             </div>
           </div>
+          ${partiesHtml}
         </div>`;
       }).join('');
     } catch (e) {
