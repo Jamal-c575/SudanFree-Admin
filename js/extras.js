@@ -259,7 +259,7 @@ const AdminExtras = {
       if (confirm('هل تود إرسال إشعار (Notification) للمستخدمين المستهدفين بهذا الإعلان؟')) {
          showToast('جاري تحضير الإشعارات...');
          try {
-           const sendBulkNotif = firebase.functions().httpsCallable('sendBulkNotification');
+           const sendBulkNotif = firebase.functions().httpsCallable('adminSendNotification');
            const result = await sendBulkNotif({
              title: 'إعلان جديد يهمك! 📢',
              message: title,
