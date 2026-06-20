@@ -133,10 +133,68 @@
       <div class="pages-container">
         <!-- Jhome Management Page -->
         <section id="page-jhome" class="page">
-          <div class="card" style="text-align: center; padding: 40px;">
-            <span class="material-icons-outlined" style="font-size: 64px; color: var(--primary); margin-bottom: 20px;">construction</span>
-            <h2>مرحباً بك في لوحة إدارة Jhome</h2>
-            <p style="color: var(--text-muted); margin-top: 10px;">هذه المساحة مخصصة لإدارة الموقع الإلكتروني للمؤسسة.<br>أنا في انتظار المعلومات والبيانات الخاصة بها لنقوم ببنائها معاً!</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h2 style="margin:0; display:flex; align-items:center; gap:8px;">
+              <span class="material-icons-outlined" style="color:var(--primary);">domain</span>
+              إدارة مؤسسة Jhome
+            </h2>
+            <div class="jhome-nav" style="display:flex; gap:10px; background:var(--bg-card); padding:5px; border-radius:12px; border:1px solid var(--border);">
+              <button class="btn btn-sm btn-primary jhome-tab-btn active" onclick="JhomeApp.showTab('blog')">المقالات</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('stories')">قصص النجاح</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('messages')">الرسائل</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">النشرة البريدية</button>
+            </div>
+          </div>
+
+          <!-- Jhome: Blog Tab -->
+          <div id="jhome-tab-blog" class="jhome-tab">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>المقالات والأخبار</h3>
+                <button class="btn btn-primary" onclick="JhomeApp.showPostModal()"><span class="material-icons-outlined">add</span> مقال جديد</button>
+              </div>
+              <table class="table">
+                <thead><tr><th>الصورة</th><th>العنوان</th><th>التصنيف</th><th>الحالة</th><th>تاريخ النشر</th><th>إجراءات</th></tr></thead>
+                <tbody id="jhome-posts-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Jhome: Stories Tab -->
+          <div id="jhome-tab-stories" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>قصص النجاح المعتمدة</h3>
+                <button class="btn btn-primary" onclick="JhomeApp.showStoryModal()"><span class="material-icons-outlined">add</span> إضافة قصة</button>
+              </div>
+              <table class="table">
+                <thead><tr><th>الصورة</th><th>الاسم</th><th>المهنة</th><th>الإنجاز</th><th>إجراءات</th></tr></thead>
+                <tbody id="jhome-stories-tbody"></tbody>
+              </table>
+            </div>
+            <div class="card" style="margin-top:20px;">
+              <h3>تقديمات الزوار (بانتظار المراجعة)</h3>
+              <div id="jhome-story-submissions-list"></div>
+            </div>
+          </div>
+
+          <!-- Jhome: Messages Tab -->
+          <div id="jhome-tab-messages" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <h3>رسائل التواصل</h3>
+              <div id="jhome-messages-list"></div>
+            </div>
+          </div>
+
+          <!-- Jhome: Newsletter Tab -->
+          <div id="jhome-tab-newsletter" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <h3>المشتركون بالنشرة البريدية</h3>
+              <table class="table">
+                <thead><tr><th>البريد الإلكتروني</th><th>الاسم</th><th>الحالة</th></tr></thead>
+                <tbody id="jhome-newsletter-tbody"></tbody>
+              </table>
+            </div>
           </div>
         </section>
 
@@ -439,5 +497,6 @@
   <script src="js/firebase-config.js?v=3"></script>
   <script src="js/extras.js?v=3"></script>
   <script src="js/app.js?v=3"></script>
+  <script src="js/jhome-app.js?v=1"></script>
 </body>
 </html>

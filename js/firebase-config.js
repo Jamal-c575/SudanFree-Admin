@@ -12,6 +12,20 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
+
+// Jhome Firebase Configuration (Secondary App)
+const jhomeFirebaseConfig = {
+  apiKey: "AIzaSyCJ8I06UGVBOJdnU4Upp_EekS7txwX-fBg",
+  authDomain: "jhomeweb-9ee56.firebaseapp.com",
+  projectId: "jhomeweb-9ee56",
+  storageBucket: "jhomeweb-9ee56.firebasestorage.app",
+  messagingSenderId: "572713499787",
+  appId: "1:572713499787:web:0cda5edea203991139288e",
+  measurementId: "G-ZFPKRZBMFJ"
+};
+
+firebase.initializeApp(jhomeFirebaseConfig, "jhome");
+const jhomeDb = firebase.app("jhome").firestore();
 const storage = firebase.storage();
 const functions = firebase.functions();
 const deleteUserAccount = functions.httpsCallable('deleteUserAccount');
