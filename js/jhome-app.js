@@ -109,6 +109,7 @@ const JhomeApp = {
             <div class="verify-card" style="padding:15px; margin-bottom:15px;">
               <h4>${sub.title || 'قصة نجاح'}</h4>
               <p><strong>من:</strong> ${sub.submitterName} - ${sub.submitterEmail} (${sub.submitterPhone})</p>
+              ${sub.profileLink ? `<p><strong>رابط الحرفي:</strong> <a href="${encodeURI(sub.profileLink)}" target="_blank" style="color:var(--primary);text-decoration:underline;">${sub.profileLink}</a></p>` : ''}
               <p style="margin-top:10px; background:var(--bg-body); padding:10px; border-radius:8px;">${sub.story}</p>
               <div style="margin-top:10px; display:flex; gap:10px;">
                 <button class="btn btn-sm btn-success" onclick="JhomeApp.approveStorySubmission('${doc.id}')">اعتماد ونشر</button>
