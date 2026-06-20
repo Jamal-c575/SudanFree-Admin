@@ -42,9 +42,14 @@
   <div id="main-app" class="main-app" style="display:none;">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
+      <div class="sidebar-header" onclick="AdminApp.navigateTo('jhome')" style="cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="الانتقال إلى إدارة Jhome">
         <span class="material-icons-outlined logo-icon-sm">admin_panel_settings</span>
-        <h2>سودان فري</h2>
+        <div style="display: flex; flex-direction: column;">
+          <h2 style="margin: 0;">سودان فري</h2>
+          <span style="font-size: 11px; color: var(--primary-light); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+            لوحة إدارة Jhome <span class="material-icons-outlined" style="font-size: 12px;">open_in_new</span>
+          </span>
+        </div>
       </div>
       <nav class="sidebar-nav">
         <a href="#" class="nav-item active" data-page="dashboard" onclick="AdminApp.navigateTo('dashboard')">
@@ -126,6 +131,15 @@
       </header>
 
       <div class="pages-container">
+        <!-- Jhome Management Page -->
+        <section id="page-jhome" class="page">
+          <div class="card" style="text-align: center; padding: 40px;">
+            <span class="material-icons-outlined" style="font-size: 64px; color: var(--primary); margin-bottom: 20px;">construction</span>
+            <h2>مرحباً بك في لوحة إدارة Jhome</h2>
+            <p style="color: var(--text-muted); margin-top: 10px;">هذه المساحة مخصصة لإدارة الموقع الإلكتروني للمؤسسة.<br>أنا في انتظار المعلومات والبيانات الخاصة بها لنقوم ببنائها معاً!</p>
+          </div>
+        </section>
+
         <!-- Dashboard Page -->
         <section id="page-dashboard" class="page active">
           <div class="stats-grid" id="stats-grid"></div>
