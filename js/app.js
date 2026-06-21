@@ -256,11 +256,14 @@ const AdminApp = {
         <div class="detail-item"><div class="label">حالة الحظر</div><div class="value">${u.isBanned ? '<span style="color:red;font-weight:bold;">محظور</span>' : '<span style="color:green;">نشط</span>'}</div></div>
       </div>
       <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;">
+        <button class="btn ${u.isVerified ? 'btn-danger' : 'btn-success'}" onclick="AdminApp.toggleUserVerification('${u.id}', ${!!u.isVerified})" style="flex:1;">
+          <span class="material-icons-outlined">${u.isVerified ? 'verified_user' : 'verified'}</span> ${u.isVerified ? 'نزع شارة التوثيق' : 'توثيق الحساب'}
+        </button>
         <button class="btn ${u.isBanned ? 'btn-success' : 'btn-danger'}" onclick="AdminApp.toggleUserBan('${u.id}', ${!!u.isBanned})" style="flex:1;">
           <span class="material-icons-outlined">${u.isBanned ? 'check_circle' : 'block'}</span> ${u.isBanned ? 'فك الحظر' : 'حظر المستخدم'}
         </button>
         <button class="btn btn-primary" onclick="AdminApp.showPersonalNotifForm('${u.id}', '${(u.name||"").replace(/'/g,"\\'")}')" style="flex:1;">
-          <span class="material-icons-outlined">send</span> إرسال تنبيه شخصي
+          <span class="material-icons-outlined">send</span> تنبيه
         </button>
       </div>
       <div id="personal-notif-form-${u.id}" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
@@ -337,6 +340,41 @@ const AdminApp = {
       document.getElementById('personal-notif-title-' + userId).value = '';
       document.getElementById('personal-notif-body-' + userId).value = '';
       document.getElementById('personal-notif-form-' + userId).style.display = 'none';
+    } catch (e) {
+      showToast('خطأ: ' + e.message, 'error');
+    }
+  },
+
+  async toggleUserVerification(userId, isCurrentlyVerified) {
+    if (!confirm(isCurrentlyVerified ? 'هل أنت متأكد من نزع شارة التوثيق عن هذا المستخدم؟' : 'هل أنت متأكد من توثيق حساب هذا المستخدم؟')) return;
+    try {
+      const updateData = { 
+        isVerified: !isCurrentlyVerified,
+        verificationStatus: !isCurrentlyVerified ? 'verified' : 'none',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      if (!isCurrentlyVerified) {
+        updateData.verifiedAt = firebase.firestore.FieldValue.serverTimestamp();
+      } else {
+        updateData.verifiedAt = null;
+      }
+      
+      await db.collection('users').doc(userId).update(updateData);
+      
+      // Notify the user
+      await db.collection('notifications').add({
+        userId: userId, 
+        type: 'system',
+        title: !isCurrentlyVerified ? 'تم توثيق حسابك! ✅' : 'إلغاء التوثيق',
+        message: !isCurrentlyVerified ? 'مبروك! تم توثيق حسابك بنجاح من قبل الإدارة.' : 'تم نزع شارة التوثيق عن حسابك بواسطة الإدارة.',
+        isRead: false, 
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      showToast(!isCurrentlyVerified ? 'تم توثيق حساب المستخدم بنجاح' : 'تم نزع شارة التوثيق');
+      document.getElementById('user-modal').style.display = 'none';
+      this.loadUsers();
     } catch (e) {
       showToast('خطأ: ' + e.message, 'error');
     }
