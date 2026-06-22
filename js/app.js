@@ -367,10 +367,33 @@ const AdminApp = {
     this.renderUsers(filtered);
   },
 
-  showUserDetail(id) {
-    const u = this.allUsers.find(x => x.id === id);
-    if (!u) return;
-    document.getElementById('modal-user-name').textContent = u.name;
+  async showUserDetail(id) {
+    let u = this.allUsers.find(x => x.id === id);
+    if (!u && this.bannedUsersData) {
+      u = this.bannedUsersData.find(x => x.id === id);
+    }
+    if (!u) {
+      document.getElementById('modal-user-name').textContent = 'جاري التحميل...';
+      document.getElementById('modal-user-body').innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+      document.getElementById('user-modal').style.display = 'flex';
+      
+      try {
+        const doc = await db.collection('users').doc(id).get();
+        if (doc.exists) {
+          u = { id: doc.id, ...doc.data() };
+        }
+      } catch (e) {
+        console.error("Error fetching user details", e);
+      }
+    }
+    
+    if (!u) {
+      AdminApp.showToast('لم يتم العثور على بيانات المستخدم', 'error');
+      AdminApp.closeModal('user-modal');
+      return;
+    }
+
+    document.getElementById('modal-user-name').textContent = u.name || 'مستخدم';
     document.getElementById('modal-user-body').innerHTML = `
       <div class="user-detail-header">
         <img src="${u.profileImageUrl || 'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name)+'&background=6c5ce7&color=fff'}" alt="">
