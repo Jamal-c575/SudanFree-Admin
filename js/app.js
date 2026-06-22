@@ -24,6 +24,7 @@ const AdminApp = {
         await firebase.app('jhome').auth().signInWithEmailAndPassword(email, pass);
       } catch (je) {
         console.warn("Could not log into Jhome Firebase instance:", je.message);
+        showToast('تنبيه: فشل تسجيل الدخول في مشروع Jhome. (' + je.message + ')', 'error');
       }
 
       const doc = await db.collection('users').doc(cred.user.uid).get();
