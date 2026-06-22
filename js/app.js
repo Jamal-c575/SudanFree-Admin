@@ -194,7 +194,7 @@ const AdminApp = {
       return `
         <tr>
           <td><img class="user-avatar" src="${avatar}" alt=""></td>
-          <td><strong>${u.name}</strong><br><small style="color:var(--text-muted)">${u.email || u.phoneNumber || 'لا يوجد بريد'}</small></td>
+          <td><strong>${u.name}</strong>${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:16px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}<br><small style="color:var(--text-muted)">${u.email || u.phoneNumber || 'لا يوجد بريد'}</small></td>
           <td style="color:var(--danger)">${u.banReason || 'مخالفة الشروط والأحكام'}</td>
           <td>${bannedAt}</td>
           <td>
@@ -436,7 +436,7 @@ const AdminApp = {
         const u = req.user || {};
         return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
           <img style="width:40px;height:40px;border-radius:50%;object-fit:cover" src="${u.profileImageUrl||'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name||'User')+'&background=6c5ce7&color=fff'}" alt="">
-          <div style="flex:1"><strong>${u.name||'مستخدم'}</strong><br><small style="color:var(--text-muted)">${ROLE_NAMES[u.role]||''}</small></div>
+          <div style="flex:1"><strong>${u.name||'مستخدم'}</strong>${(u.isVerified || (req.user && req.user.isVerified)) ? ' <span class="verified-badge material-icons-outlined" style="font-size:16px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}<br><small style="color:var(--text-muted)">${ROLE_NAMES[u.role]||''}</small></div>
           <button class="btn btn-sm btn-primary" onclick="AdminApp.navigateTo('verification')">مراجعة</button>
         </div>`;
       }).join('');
@@ -452,7 +452,7 @@ const AdminApp = {
       <div class="verify-card">
         <div class="verify-card-header">
           <img src="${u.profileImageUrl||'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name||'User')+'&background=6c5ce7&color=fff'}" alt="">
-          <div class="verify-card-info"><h4>${u.name||'مستخدم'}</h4><p>${ROLE_NAMES[u.role]||u.role} — ${u.state||''} ${u.locality||''}</p><p>${u.phoneNumber||u.email||''}</p></div>
+          <div class="verify-card-info"><h4>${u.name||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:18px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}</h4><p>${ROLE_NAMES[u.role]||u.role} — ${u.state||''} ${u.locality||''}</p><p>${u.phoneNumber||u.email||''}</p></div>
         </div>
         <div class="verify-card-body">
           ${u.idCardUrl ? `<img class="verify-id-image" src="${u.idCardUrl}" onclick="AdminApp.previewImage('${u.idCardUrl}')" alt="صورة الهوية">` : '<p class="empty-state">لم يرفق صورة هوية</p>'}
@@ -622,7 +622,7 @@ const AdminApp = {
             <div style="font-size:11px; font-weight:bold; color:#00b894; width:50px; flex-shrink:0;">المُبلِّغ:</div>
             <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #00b894; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reporterId}')">
             <div style="flex:1; min-width:0; overflow:hidden;">
-              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reporterId}')">${u.name||r.reporterName||'مستخدم'}</div>
+              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reporterId}')">${u.name||r.reporterName||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:14px; vertical-align:middle; margin-right:2px;">verified</span>' : ''}</div>
               <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
             </div>
             <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#00b894;" onclick="AdminApp.showUserDetail('${r.reporterId}')">ملف</button>
@@ -639,7 +639,7 @@ const AdminApp = {
             <div style="font-size:11px; font-weight:bold; color:#d63031; width:50px; flex-shrink:0;">المُشتكى<br>ضده:</div>
             <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #d63031; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">
             <div style="flex:1; min-width:0; overflow:hidden;">
-              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">${u.name||r.reportedUserName||'مستخدم'}</div>
+              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">${u.name||r.reportedUserName||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:14px; vertical-align:middle; margin-right:2px;">verified</span>' : ''}</div>
               <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
             </div>
             <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#d63031;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">ملف</button>
@@ -727,7 +727,7 @@ const AdminApp = {
         <div class="verify-card-header">
           <img src="${avatar}" alt="" style="border-color:var(--desert-orange);">
           <div class="verify-card-info">
-            <h4>${r.name||'مستخدم'}</h4>
+            <h4>${r.name||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:18px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}</h4>
             <p>${r.email||'بدون بريد'}${jobTitle ? ' — '+jobTitle : ''}</p>
             ${location ? '<p>📍 '+location+'</p>' : ''}
           </div>
