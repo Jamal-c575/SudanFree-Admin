@@ -143,6 +143,7 @@
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('stories')">قصص النجاح</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('messages')">الرسائل</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">النشرة البريدية</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('pages')">محتوى الصفحات</button>
             </div>
           </div>
 
@@ -194,6 +195,32 @@
                 <thead><tr><th>البريد الإلكتروني</th><th>الاسم</th><th>الحالة</th></tr></thead>
                 <tbody id="jhome-newsletter-tbody"></tbody>
               </table>
+          </div>
+
+          <!-- Jhome: Pages Content Tab -->
+          <div id="jhome-tab-pages" class="jhome-tab" style="display:none;">
+            <div class="dashboard-row" style="align-items:flex-start;">
+              <div class="card" style="flex:1;">
+                <h3>اختر الصفحة للتعديل</h3>
+                <div style="display:flex; flex-direction:column; gap:10px; margin-top:15px;">
+                  <button class="btn btn-ghost" onclick="JhomeApp.loadPageContent('home')">الرئيسية</button>
+                  <button class="btn btn-ghost" onclick="JhomeApp.loadPageContent('about')">من نحن</button>
+                  <button class="btn btn-ghost" onclick="JhomeApp.loadPageContent('projects')">مشاريعنا</button>
+                  <button class="btn btn-ghost" onclick="JhomeApp.loadPageContent('sudan-free')">صفحة سودان فري</button>
+                  <button class="btn btn-ghost" onclick="JhomeApp.loadPageContent('contact')">تواصل معنا</button>
+                </div>
+              </div>
+              <div class="card" style="flex:3;">
+                <h3 id="jhome-page-editor-title">محرر محتوى الصفحة</h3>
+                <div id="jhome-page-editor-body">
+                  <p class="empty-state">اختر صفحة من القائمة الجانبية لعرض محتواها</p>
+                </div>
+                <div style="margin-top:20px; display:none;" id="jhome-page-editor-actions">
+                  <button class="btn btn-primary" onclick="JhomeApp.savePageContent()">
+                    <span class="material-icons-outlined">save</span> حفظ التعديلات
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>

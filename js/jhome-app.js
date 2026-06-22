@@ -20,6 +20,146 @@ const JhomeApp = {
     if (tabId === 'stories') this.loadStories();
     if (tabId === 'messages') this.loadMessages();
     if (tabId === 'newsletter') this.loadNewsletter();
+    if (tabId === 'pages') this.loadPageContent('home'); // Default page
+  },
+
+  // ── Page Content Management ──
+  pageSchemas: {
+    'home': {
+      title: 'الرئيسية',
+      fields: [
+        { key: 'heroTitle', label: 'العنوان الرئيسي (مؤسسة Jhome)', type: 'text' },
+        { key: 'heroSubtitle', label: 'الوصف تحت العنوان', type: 'text' },
+        { key: 'servicesTitle', label: 'عنوان قسم الخدمات', type: 'text' },
+        { key: 'sudanFreeTitle', label: 'عنوان بطاقة سودان فري', type: 'text' },
+        { key: 'sudanFreeDesc', label: 'وصف تطبيق سودان فري', type: 'textarea' }
+      ]
+    },
+    'about': {
+      title: 'من نحن',
+      fields: [
+        { key: 'aboutHeroTitle', label: 'عنوان غلاف الصفحة', type: 'text' },
+        { key: 'aboutStory', label: 'قصتنا', type: 'textarea' },
+        { key: 'value1_title', label: 'عنوان القيمة الأولى', type: 'text' },
+        { key: 'value1_desc', label: 'وصف القيمة الأولى', type: 'textarea' },
+        { key: 'value2_title', label: 'عنوان القيمة الثانية', type: 'text' },
+        { key: 'value2_desc', label: 'وصف القيمة الثانية', type: 'textarea' },
+        { key: 'value3_title', label: 'عنوان القيمة الثالثة', type: 'text' },
+        { key: 'value3_desc', label: 'وصف القيمة الثالثة', type: 'textarea' }
+      ]
+    },
+    'projects': {
+      title: 'مشاريعنا',
+      fields: [
+        { key: 'projectsTitle', label: 'عنوان الصفحة (مشاريعنا)', type: 'text' },
+        { key: 'projectsSubtitle', label: 'وصف الصفحة', type: 'text' },
+        { key: 'app1_title', label: 'اسم التطبيق الأول', type: 'text' },
+        { key: 'app1_desc', label: 'وصف التطبيق الأول', type: 'textarea' },
+        { key: 'tool1_title', label: 'اسم الأداة الأولى', type: 'text' },
+        { key: 'tool1_desc', label: 'وصف الأداة الأولى', type: 'textarea' }
+      ]
+    },
+    'sudan-free': {
+      title: 'سودان فري',
+      fields: [
+        { key: 'sfHeroTitle', label: 'العنوان الرئيسي', type: 'text' },
+        { key: 'sfHeroDesc', label: 'الوصف الرئيسي', type: 'textarea' },
+        { key: 'sfCustomerDesc', label: 'قسم "أنا زبون"', type: 'textarea' },
+        { key: 'sfWorkerDesc', label: 'قسم "أنا حرفي"', type: 'textarea' },
+        { key: 'sfStoreDesc', label: 'قسم "أنا صاحب متجر"', type: 'textarea' },
+        { key: 'appDownloadLink', label: 'رابط تحميل التطبيق', type: 'text', dir: 'ltr' }
+      ]
+    },
+    'contact': {
+      title: 'تواصل معنا',
+      fields: [
+        { key: 'contactTitle', label: 'العنوان', type: 'text' },
+        { key: 'contactEmail', label: 'البريد الإلكتروني', type: 'text', dir: 'ltr' },
+        { key: 'contactPhone', label: 'رقم الهاتف', type: 'text', dir: 'ltr' },
+        { key: 'contactAddress', label: 'العنوان (المقر)', type: 'text' }
+      ]
+    }
+  },
+
+  currentPageKey: null,
+
+  async loadPageContent(pageKey) {
+    this.currentPageKey = pageKey;
+    const schema = this.pageSchemas[pageKey];
+    if (!schema) return;
+
+    document.getElementById('jhome-page-editor-title').textContent = `تعديل صفحة: ${schema.title}`;
+    const body = document.getElementById('jhome-page-editor-body');
+    body.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+    document.getElementById('jhome-page-editor-actions').style.display = 'none';
+
+    try {
+      const docSnap = await jhomeDb.collection('pageContent').doc(pageKey).get();
+      let sectionsData = {};
+      if (docSnap.exists) {
+        sectionsData = docSnap.data().sections || {};
+      }
+
+      const html = schema.fields.map(f => {
+        const val = sectionsData[f.key] || '';
+        const dir = f.dir ? `dir="${f.dir}"` : '';
+        if (f.type === 'textarea') {
+          return `
+            <div style="margin-bottom:15px;">
+              <label style="display:block; margin-bottom:5px; font-weight:bold; font-size:14px;">${f.label}</label>
+              <textarea id="page-field-${f.key}" class="text-input" style="width:100%; min-height:80px; resize:vertical;" ${dir}>${val}</textarea>
+            </div>
+          `;
+        } else {
+          return `
+            <div style="margin-bottom:15px;">
+              <label style="display:block; margin-bottom:5px; font-weight:bold; font-size:14px;">${f.label}</label>
+              <input type="text" id="page-field-${f.key}" class="text-input" style="width:100%;" value="${val}" ${dir}>
+            </div>
+          `;
+        }
+      }).join('');
+
+      body.innerHTML = html;
+      document.getElementById('jhome-page-editor-actions').style.display = 'block';
+
+    } catch(e) {
+      console.error('Error loading page content:', e);
+      body.innerHTML = '<p class="empty-state" style="color:var(--danger)">فشل جلب بيانات الصفحة.</p>';
+    }
+  },
+
+  async savePageContent() {
+    if (!this.currentPageKey) return;
+    const schema = this.pageSchemas[this.currentPageKey];
+    if (!schema) return;
+
+    const sections = {};
+    schema.fields.forEach(f => {
+      const el = document.getElementById(`page-field-${f.key}`);
+      if (el) {
+        sections[f.key] = el.value.trim();
+      }
+    });
+
+    try {
+      document.getElementById('jhome-page-editor-actions').style.opacity = '0.5';
+      document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'none';
+      
+      const updatePageFn = firebase.app("jhome").functions().httpsCallable('adminUpdatePageContent');
+      await updatePageFn({
+        pageKey: this.currentPageKey,
+        sections: sections
+      });
+
+      showToast('تم حفظ التعديلات بنجاح!', 'success');
+    } catch(e) {
+      console.error('Error saving page content:', e);
+      showToast('فشل حفظ التعديلات. تأكد من الصلاحيات.', 'error');
+    } finally {
+      document.getElementById('jhome-page-editor-actions').style.opacity = '1';
+      document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'auto';
+    }
   },
 
   // ── Blog / Posts ──
