@@ -513,6 +513,52 @@
   <div id="verify-modal" class="modal" style="display:none;"><div class="modal-overlay" onclick="AdminApp.closeModal('verify-modal')"></div><div class="modal-content modal-lg"><div class="modal-header"><h3>مراجعة طلب التوثيق</h3><button class="modal-close" onclick="AdminApp.closeModal('verify-modal')"><span class="material-icons-outlined">close</span></button></div><div class="modal-body" id="modal-verify-body"></div><div class="modal-footer" id="modal-verify-footer"></div></div></div>
   <div id="image-modal" class="modal" style="display:none;" onclick="AdminApp.closeModal('image-modal')"><div class="modal-overlay"></div><div class="image-preview-container"><img id="image-preview-img" src="" alt="معاينة"><button class="modal-close image-close" onclick="AdminApp.closeModal('image-modal')"><span class="material-icons-outlined">close</span></button></div></div>
 
+  <!-- Jhome Post Modal -->
+  <div id="jhome-post-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-post-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>إضافة مقال جديد</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-post-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>عنوان المقال</label><input type="text" id="jpost-title" class="text-input" placeholder="عنوان جذاب..."></div>
+        <div class="form-group full-width"><label>الرابط (Slug - إنجليزي بدون مسافات)</label><input type="text" id="jpost-slug" class="text-input" placeholder="my-new-article" dir="ltr"></div>
+        <div class="form-group full-width"><label>مقتطف قصير (وصف)</label><textarea id="jpost-excerpt" class="text-input" rows="2" placeholder="وصف يظهر في قائمة المقالات"></textarea></div>
+        <div class="form-group full-width"><label>محتوى المقال الكامل</label><textarea id="jpost-content" class="text-input" rows="6" placeholder="محتوى المقال هنا..."></textarea></div>
+        <div class="form-group full-width"><label>رابط صورة الغلاف</label><input type="text" id="jpost-cover" class="text-input" placeholder="https://..." dir="ltr"></div>
+        <div style="display:flex; gap:15px; margin-top:10px;">
+          <div class="form-group" style="flex:1;"><label>التصنيف</label><input type="text" id="jpost-category" class="text-input" placeholder="أخبار، تقنية، مشاريع..."></div>
+          <div class="form-group" style="flex:1; align-items:center; display:flex; gap:10px;"><input type="checkbox" id="jpost-featured" style="width:20px;height:20px;"><label>مقال مميز (يظهر في الرئيسية)</label></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.savePost()">حفظ ونشر</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome Story Modal -->
+  <div id="jhome-story-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-story-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>إضافة قصة نجاح مؤسسية</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-story-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>اسم الشخص / الجهة</label><input type="text" id="jstory-person" class="text-input" placeholder="أحمد محمد..."></div>
+        <div class="form-group full-width"><label>العنوان الوظيفي / المهنة</label><input type="text" id="jstory-role" class="text-input" placeholder="مطور تطبيقات..."></div>
+        <div class="form-group full-width"><label>أهم إنجاز (سطر واحد)</label><input type="text" id="jstory-achievement" class="text-input" placeholder="إنجاز 100 مشروع عبر المنصة"></div>
+        <div class="form-group full-width"><label>تفاصيل قصة النجاح</label><textarea id="jstory-content" class="text-input" rows="5" placeholder="تفاصيل القصة كاملة..."></textarea></div>
+        <div class="form-group full-width"><label>رابط الصورة الشخصية</label><input type="text" id="jstory-cover" class="text-input" placeholder="https://..." dir="ltr"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.saveStory()">نشر القصة</button>
+      </div>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container"></div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>

@@ -212,7 +212,51 @@ const JhomeApp = {
   },
 
   showPostModal() {
-    alert('سيتم فتح محرر نصوص متقدم لإضافة مقال هنا قريباً!');
+    document.getElementById('jpost-title').value = '';
+    document.getElementById('jpost-slug').value = '';
+    document.getElementById('jpost-excerpt').value = '';
+    document.getElementById('jpost-content').value = '';
+    document.getElementById('jpost-cover').value = '';
+    document.getElementById('jpost-category').value = '';
+    document.getElementById('jpost-featured').checked = false;
+    document.getElementById('jhome-post-modal').style.display = 'flex';
+  },
+
+  async savePost() {
+    const title = document.getElementById('jpost-title').value.trim();
+    const slug = document.getElementById('jpost-slug').value.trim();
+    const excerpt = document.getElementById('jpost-excerpt').value.trim();
+    const content = document.getElementById('jpost-content').value.trim();
+    const coverImage = document.getElementById('jpost-cover').value.trim();
+    const category = document.getElementById('jpost-category').value.trim();
+    const isFeatured = document.getElementById('jpost-featured').checked;
+
+    if (!title || !slug || !content) {
+      showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
+      return;
+    }
+
+    try {
+      await jhomeDb.collection('posts').add({
+        title,
+        slug,
+        excerpt,
+        content,
+        coverImage,
+        category,
+        isFeatured,
+        status: 'published',
+        views: 0,
+        publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('تم نشر المقال بنجاح!', 'success');
+      AdminApp.closeModal('jhome-post-modal');
+      this.loadPosts();
+    } catch (e) {
+      console.error('Error saving post:', e);
+      showToast('خطأ أثناء حفظ المقال', 'error');
+    }
   },
 
   // ── Stories ──
@@ -301,7 +345,46 @@ const JhomeApp = {
   },
 
   showStoryModal() {
-    alert('سيتم فتح نافذة لإضافة قصة نجاح مؤسسية قريباً!');
+    document.getElementById('jstory-person').value = '';
+    document.getElementById('jstory-role').value = '';
+    document.getElementById('jstory-achievement').value = '';
+    document.getElementById('jstory-content').value = '';
+    document.getElementById('jstory-cover').value = '';
+    document.getElementById('jhome-story-modal').style.display = 'flex';
+  },
+
+  async saveStory() {
+    const title = document.getElementById('jstory-person').value.trim(); // used as personName/title
+    const personRole = document.getElementById('jstory-role').value.trim();
+    const keyAchievement = document.getElementById('jstory-achievement').value.trim();
+    const story = document.getElementById('jstory-content').value.trim();
+    const coverImage = document.getElementById('jstory-cover').value.trim();
+
+    if (!title || !story) {
+      showToast('الرجاء إدخال اسم الشخص وتفاصيل القصة', 'error');
+      return;
+    }
+
+    try {
+      await jhomeDb.collection('successStories').add({
+        title,
+        personName: title,
+        personRole,
+        keyAchievement,
+        story,
+        coverImage,
+        personAvatar: coverImage,
+        isPublished: true,
+        category: 'general',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('تم نشر قصة النجاح بنجاح!', 'success');
+      AdminApp.closeModal('jhome-story-modal');
+      this.loadStories();
+    } catch (e) {
+      console.error('Error saving story:', e);
+      showToast('خطأ أثناء حفظ القصة', 'error');
+    }
   },
 
   // ── Messages ──
