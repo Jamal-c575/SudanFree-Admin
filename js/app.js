@@ -1,6 +1,10 @@
 // ═══ AdminApp Core ═══
 const AdminApp = {
   allUsers: [],
+  lastUserDoc: null,
+  isLoadingUsers: false,
+  hasMoreUsers: true,
+  usersObserver: null,
   allReports: [],
 
   // ── Auth ──
@@ -151,10 +155,78 @@ const AdminApp = {
 
   // ── Users ──
   async loadUsers() {
-    // Limit users returned for dashboard performance; admins can still filter locally.
-    const snap = await db.collection('users').orderBy('createdAt','desc').limit(200).get();
-    this.allUsers = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    this.renderUsers(this.allUsers);
+    this.lastUserDoc = null;
+    this.hasMoreUsers = true;
+    this.allUsers = [];
+    document.getElementById('users-tbody').innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
+    await this.fetchMoreUsers();
+    this.setupUsersObserver();
+  },
+
+  async fetchMoreUsers() {
+    if (this.isLoadingUsers || !this.hasMoreUsers) return;
+    this.isLoadingUsers = true;
+    
+    const tbody = document.getElementById('users-tbody');
+    if (this.allUsers.length > 0) {
+      const tr = document.createElement('tr');
+      tr.id = 'users-loading-row';
+      tr.innerHTML = '<td colspan="7" style="text-align:center;"><div class="loading-spinner" style="display:inline-block; transform:scale(0.5);"><div class="spinner"></div></div></td>';
+      tbody.appendChild(tr);
+    }
+    
+    let query = db.collection('users').orderBy('createdAt', 'desc').limit(50);
+    if (this.lastUserDoc) {
+      query = query.startAfter(this.lastUserDoc);
+    }
+    
+    const snap = await query.get();
+    
+    const loadingRow = document.getElementById('users-loading-row');
+    if (loadingRow) loadingRow.remove();
+    
+    if (snap.empty) {
+      this.hasMoreUsers = false;
+      this.isLoadingUsers = false;
+      if (this.allUsers.length === 0) {
+         tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد مستخدمون</td></tr>';
+      }
+      return;
+    }
+    
+    this.lastUserDoc = snap.docs[snap.docs.length - 1];
+    const newUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    this.allUsers = [...this.allUsers, ...newUsers];
+    
+    if (snap.docs.length < 50) {
+      this.hasMoreUsers = false;
+    }
+    
+    this.isLoadingUsers = false;
+    this.filterUsers(); // Re-render with active filters
+  },
+
+  setupUsersObserver() {
+    if (this.usersObserver) {
+      this.usersObserver.disconnect();
+    }
+    
+    let sentinel = document.getElementById('users-sentinel');
+    if (!sentinel) {
+      sentinel = document.createElement('div');
+      sentinel.id = 'users-sentinel';
+      sentinel.style.height = '20px';
+      const container = document.querySelector('#page-users .table-container');
+      if (container) container.appendChild(sentinel);
+    }
+    
+    this.usersObserver = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && this.hasMoreUsers && !this.isLoadingUsers) {
+        this.fetchMoreUsers();
+      }
+    }, { root: null, rootMargin: '100px' });
+    
+    if (sentinel) this.usersObserver.observe(sentinel);
   },
 
   renderUsers(users) {
@@ -221,13 +293,74 @@ const AdminApp = {
     return (Date.now() - d.getTime()) < 300000;
   },
 
-  filterUsers() {
-    const search = document.getElementById('users-search').value.toLowerCase();
+  searchDebounceTimeout: null,
+  
+  filterUsers(immediate = false) {
+    if (!immediate) {
+      clearTimeout(this.searchDebounceTimeout);
+      this.searchDebounceTimeout = setTimeout(() => this.executeFilter(), 600);
+    } else {
+      clearTimeout(this.searchDebounceTimeout);
+      this.executeFilter();
+    }
+  },
+
+  async executeFilter() {
+    const searchRaw = document.getElementById('users-search').value;
+    const search = searchRaw.trim();
+    const searchLower = searchRaw.toLowerCase();
     const role = document.getElementById('users-role-filter').value;
     const state = document.getElementById('users-state-filter').value;
     const verified = document.getElementById('users-verified-filter').value;
+    
+    if (search) {
+      const tbody = document.getElementById('users-tbody');
+      tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
+      
+      let query;
+      if (search.includes('@')) {
+        query = db.collection('users').where('email', '==', search);
+      } else if (/^[+0-9]/.test(search)) {
+        query = db.collection('users').where('phoneNumber', '==', search);
+      } else {
+        // Prefix search for name
+        query = db.collection('users')
+                  .where('name', '>=', search)
+                  .where('name', '<=', search + '\\uf8ff');
+      }
+      
+      try {
+        const snap = await query.limit(50).get();
+        let serverResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        // Also get local matches (which supports substring / middle name matches)
+        const localMatches = this.allUsers.filter(u => 
+          (u.name||'').toLowerCase().includes(searchLower) || 
+          (u.email||'').toLowerCase().includes(searchLower) ||
+          (u.phoneNumber||'').includes(searchLower)
+        );
+        
+        // Merge and remove duplicates
+        const mergedMap = new Map();
+        localMatches.forEach(u => mergedMap.set(u.id, u));
+        serverResults.forEach(u => mergedMap.set(u.id, u));
+        let results = Array.from(mergedMap.values());
+        
+        // Apply other dropdown filters
+        if (role) results = results.filter(u => u.role === role);
+        if (state) results = results.filter(u => u.state === state);
+        if (verified) results = results.filter(u => String(u.isVerified||false) === verified);
+        
+        this.renderUsers(results);
+      } catch (e) {
+        console.error("Search error", e);
+        this.renderUsers([]);
+      }
+      return;
+    }
+    
+    // Local filtering when search is empty
     let filtered = this.allUsers;
-    if (search) filtered = filtered.filter(u => u.name.toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search));
     if (role) filtered = filtered.filter(u => u.role === role);
     if (state) filtered = filtered.filter(u => u.state === state);
     if (verified) filtered = filtered.filter(u => String(u.isVerified||false) === verified);
