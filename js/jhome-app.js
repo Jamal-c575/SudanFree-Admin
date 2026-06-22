@@ -191,7 +191,7 @@ const JhomeApp = {
       }).join('');
     } catch (e) {
       console.error('Error loading posts:', e);
-      showToast('خطأ في جلب المقالات', 'error');
+      showToast('خطأ في جلب المقالات: ' + e.message, 'error');
     }
   },
 
@@ -261,7 +261,7 @@ const JhomeApp = {
       }
     } catch (e) {
       console.error('Error loading stories:', e);
-      showToast('خطأ في جلب القصص', 'error');
+      showToast('خطأ في جلب القصص: ' + e.message, 'error');
     }
   },
 
@@ -330,7 +330,7 @@ const JhomeApp = {
       }).join('');
     } catch (e) {
       console.error('Error loading messages:', e);
-      showToast('خطأ في جلب الرسائل', 'error');
+      showToast('خطأ في جلب الرسائل: ' + e.message, 'error');
     }
   },
 

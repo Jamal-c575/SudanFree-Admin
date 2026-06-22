@@ -18,11 +18,20 @@ const AdminApp = {
     // Removing hard-coded credentials from the client improves security.
     try {
       const cred = await auth.signInWithEmailAndPassword(email, pass);
+      
+      // Try to sync login with Jhome app (assuming same admin credentials exist there)
+      try {
+        await firebase.app('jhome').auth().signInWithEmailAndPassword(email, pass);
+      } catch (je) {
+        console.warn("Could not log into Jhome Firebase instance:", je.message);
+      }
+
       const doc = await db.collection('users').doc(cred.user.uid).get();
       if (!doc.exists || doc.data().role !== 'admin') {
         errEl.textContent = 'ليس لديك صلاحية الوصول';
         errEl.style.display = 'block';
         await auth.signOut();
+        try { await firebase.app('jhome').auth().signOut(); } catch(e){}
         return;
       }
       this.showDashboard(doc.data().name || 'المشرف');
