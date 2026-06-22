@@ -526,7 +526,13 @@
         <div class="form-group full-width"><label>الرابط (Slug - إنجليزي بدون مسافات)</label><input type="text" id="jpost-slug" class="text-input" placeholder="my-new-article" dir="ltr"></div>
         <div class="form-group full-width"><label>مقتطف قصير (وصف)</label><textarea id="jpost-excerpt" class="text-input" rows="2" placeholder="وصف يظهر في قائمة المقالات"></textarea></div>
         <div class="form-group full-width"><label>محتوى المقال الكامل</label><textarea id="jpost-content" class="text-input" rows="6" placeholder="محتوى المقال هنا..."></textarea></div>
-        <div class="form-group full-width"><label>رابط صورة الغلاف</label><input type="text" id="jpost-cover" class="text-input" placeholder="https://..." dir="ltr"></div>
+        <div class="form-group full-width">
+          <label>صورة الغلاف (رفع صورة أو لصق رابط)</label>
+          <div style="display:flex; gap:10px;">
+            <input type="file" id="jpost-cover-file" class="text-input" accept="image/*" style="flex:1;">
+            <input type="text" id="jpost-cover-url" class="text-input" placeholder="أو رابط: https://..." dir="ltr" style="flex:1;">
+          </div>
+        </div>
         <div style="display:flex; gap:15px; margin-top:10px;">
           <div class="form-group" style="flex:1;"><label>التصنيف</label><input type="text" id="jpost-category" class="text-input" placeholder="أخبار، تقنية، مشاريع..."></div>
           <div class="form-group" style="flex:1; align-items:center; display:flex; gap:10px;"><input type="checkbox" id="jpost-featured" style="width:20px;height:20px;"><label>مقال مميز (يظهر في الرئيسية)</label></div>
@@ -551,7 +557,13 @@
         <div class="form-group full-width"><label>العنوان الوظيفي / المهنة</label><input type="text" id="jstory-role" class="text-input" placeholder="مطور تطبيقات..."></div>
         <div class="form-group full-width"><label>أهم إنجاز (سطر واحد)</label><input type="text" id="jstory-achievement" class="text-input" placeholder="إنجاز 100 مشروع عبر المنصة"></div>
         <div class="form-group full-width"><label>تفاصيل قصة النجاح</label><textarea id="jstory-content" class="text-input" rows="5" placeholder="تفاصيل القصة كاملة..."></textarea></div>
-        <div class="form-group full-width"><label>رابط الصورة الشخصية</label><input type="text" id="jstory-cover" class="text-input" placeholder="https://..." dir="ltr"></div>
+        <div class="form-group full-width">
+          <label>الصورة الشخصية (رفع صورة أو لصق رابط)</label>
+          <div style="display:flex; gap:10px;">
+            <input type="file" id="jstory-cover-file" class="text-input" accept="image/*" style="flex:1;">
+            <input type="text" id="jstory-cover-url" class="text-input" placeholder="أو رابط: https://..." dir="ltr" style="flex:1;">
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="JhomeApp.saveStory()">نشر القصة</button>

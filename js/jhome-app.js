@@ -216,10 +216,18 @@ const JhomeApp = {
     document.getElementById('jpost-slug').value = '';
     document.getElementById('jpost-excerpt').value = '';
     document.getElementById('jpost-content').value = '';
-    document.getElementById('jpost-cover').value = '';
+    document.getElementById('jpost-cover-url').value = '';
+    document.getElementById('jpost-cover-file').value = '';
     document.getElementById('jpost-category').value = '';
     document.getElementById('jpost-featured').checked = false;
     document.getElementById('jhome-post-modal').style.display = 'flex';
+  },
+
+  async uploadJhomeImage(file, folder) {
+    if (!file) return null;
+    const ref = firebase.app('jhome').storage().ref(`${folder}/${Date.now()}_${file.name}`);
+    const snapshot = await ref.put(file);
+    return await snapshot.ref.getDownloadURL();
   },
 
   async savePost() {
@@ -227,9 +235,12 @@ const JhomeApp = {
     const slug = document.getElementById('jpost-slug').value.trim();
     const excerpt = document.getElementById('jpost-excerpt').value.trim();
     const content = document.getElementById('jpost-content').value.trim();
-    const coverImage = document.getElementById('jpost-cover').value.trim();
+    let coverImage = document.getElementById('jpost-cover-url').value.trim();
     const category = document.getElementById('jpost-category').value.trim();
     const isFeatured = document.getElementById('jpost-featured').checked;
+    
+    const fileInput = document.getElementById('jpost-cover-file');
+    const file = fileInput.files[0];
 
     if (!title || !slug || !content) {
       showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
@@ -237,6 +248,11 @@ const JhomeApp = {
     }
 
     try {
+      showToast('جاري حفظ المقال...', 'success');
+      if (file) {
+        coverImage = await this.uploadJhomeImage(file, 'posts');
+      }
+
       await jhomeDb.collection('posts').add({
         title,
         slug,
@@ -255,7 +271,7 @@ const JhomeApp = {
       this.loadPosts();
     } catch (e) {
       console.error('Error saving post:', e);
-      showToast('خطأ أثناء حفظ المقال', 'error');
+      showToast('خطأ أثناء حفظ المقال: ' + e.message, 'error');
     }
   },
 
@@ -349,7 +365,8 @@ const JhomeApp = {
     document.getElementById('jstory-role').value = '';
     document.getElementById('jstory-achievement').value = '';
     document.getElementById('jstory-content').value = '';
-    document.getElementById('jstory-cover').value = '';
+    document.getElementById('jstory-cover-url').value = '';
+    document.getElementById('jstory-cover-file').value = '';
     document.getElementById('jhome-story-modal').style.display = 'flex';
   },
 
@@ -358,7 +375,10 @@ const JhomeApp = {
     const personRole = document.getElementById('jstory-role').value.trim();
     const keyAchievement = document.getElementById('jstory-achievement').value.trim();
     const story = document.getElementById('jstory-content').value.trim();
-    const coverImage = document.getElementById('jstory-cover').value.trim();
+    let coverImage = document.getElementById('jstory-cover-url').value.trim();
+    
+    const fileInput = document.getElementById('jstory-cover-file');
+    const file = fileInput.files[0];
 
     if (!title || !story) {
       showToast('الرجاء إدخال اسم الشخص وتفاصيل القصة', 'error');
@@ -366,6 +386,11 @@ const JhomeApp = {
     }
 
     try {
+      showToast('جاري الحفظ والرفع...', 'success');
+      if (file) {
+        coverImage = await this.uploadJhomeImage(file, 'successStories');
+      }
+
       await jhomeDb.collection('successStories').add({
         title,
         personName: title,
@@ -383,7 +408,7 @@ const JhomeApp = {
       this.loadStories();
     } catch (e) {
       console.error('Error saving story:', e);
-      showToast('خطأ أثناء حفظ القصة', 'error');
+      showToast('خطأ أثناء حفظ القصة: ' + e.message, 'error');
     }
   },
 
