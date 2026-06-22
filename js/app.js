@@ -459,7 +459,6 @@ const AdminApp = {
           ${req.submittedData?.notes ? `<p><strong>ملاحظات:</strong> ${req.submittedData.notes}</p>` : ''}
         </div>
         <div class="verify-card-actions">
-          <button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')" style="margin-left:auto;"><span class="material-icons-outlined">person</span>عرض الملف</button>
           <button class="btn btn-success btn-sm" onclick="AdminApp.approveVerification('${req.id}')"><span class="material-icons-outlined">check</span>توثيق</button>
           <button class="btn btn-danger btn-sm" onclick="AdminApp.rejectVerification('${req.id}')"><span class="material-icons-outlined">close</span>رفض</button>
         </div>
