@@ -15,6 +15,11 @@ const JhomeApp = {
     // Show selected tab
     document.getElementById(`jhome-tab-${tabId}`).style.display = 'block';
 
+    // Check if Jhome is authenticated
+    if (!firebase.app('jhome').auth().currentUser) {
+      showToast('⚠️ تحذير: حساب Jhome غير متصل! يرجى تسجيل الخروج بالكامل ثم الدخول مجدداً.', 'error');
+    }
+
     // Load data based on tab
     if (tabId === 'blog') this.loadPosts();
     if (tabId === 'stories') this.loadStories();
