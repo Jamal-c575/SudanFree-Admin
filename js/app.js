@@ -323,10 +323,10 @@ const AdminApp = {
       } else if (/^[+0-9]/.test(search)) {
         query = db.collection('users').where('phoneNumber', '==', search);
       } else {
-        // Prefix search for name
+        // Prefix search for name (Note: \uf8ff is used for high unicode bound)
         query = db.collection('users')
                   .where('name', '>=', search)
-                  .where('name', '<=', search + '\\uf8ff');
+                  .where('name', '<=', search + '\uf8ff');
       }
       
       try {
