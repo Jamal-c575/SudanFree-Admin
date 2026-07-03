@@ -99,7 +99,7 @@ const AdminApp = {
     document.getElementById('page-' + page).classList.add('active');
     const navEl = document.querySelector(`[data-page="${page}"]`);
     if (navEl) navEl.classList.add('active');
-    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات' };
+    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
     if (page === 'deletions') this.loadDeletions();
@@ -111,6 +111,7 @@ const AdminApp = {
     if (page === 'promotions') this.loadPromotions();
     if (page === 'contracts') this.loadContracts();
     if (page === 'settings') this.loadSettings();
+    if (page === 'success-stories') this.loadSuccessStories();
     if (page === 'banned') this.loadBannedUsers();
     document.getElementById('sidebar').classList.remove('open');
   },
@@ -240,7 +241,15 @@ const AdminApp = {
   },
 
   renderUsers(users) {
-    document.getElementById('users-count').textContent = `${users.length} مستخدم`;
+    const onlineCount = users.filter(u => this.isOnline(u)).length;
+    document.getElementById('users-count').innerHTML = `
+      <div style="display:flex; gap:20px; align-items:center;">
+        <span>إجمالي: ${users.length} مستخدم</span>
+        <span style="color: #2e7d32; font-weight:bold; background: #e8f5e9; padding: 4px 12px; border-radius: 12px; display:flex; align-items:center; gap:6px;">
+          <span class="status-dot status-online" style="margin:0;"></span> متصل حالياً: ${onlineCount}
+        </span>
+      </div>
+    `;
     const tbody = document.getElementById('users-tbody');
     if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد مستخدمون</td></tr>'; return; }
     tbody.innerHTML = users.map(u => `
@@ -253,6 +262,62 @@ const AdminApp = {
         <td><span class="status-dot ${this.isOnline(u) ? 'status-online' : 'status-offline'}"></span>${this.isOnline(u) ? 'متصل' : 'غير متصل'}</td>
         <td><button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')">عرض</button></td>
       </tr>`).join('');
+  },
+
+  async loadSuccessStories() {
+    const filter = document.getElementById('success-stories-filter').value;
+    try {
+      document.getElementById('success-stories-tbody').innerHTML = '<tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
+      const snap = await db.collection('success_stories').where('status', '==', filter).orderBy('createdAt', 'desc').limit(50).get();
+      const stories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const tbody = document.getElementById('success-stories-tbody');
+      if (!stories.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد قصص لعرضها</td></tr>';
+        return;
+      }
+      tbody.innerHTML = stories.map(s => {
+        const dateStr = s.createdAt ? s.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+        let actions = '';
+        if (filter === 'pending') {
+          actions = `
+            <button class="btn btn-sm btn-primary" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'approved')">قبول</button>
+            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'rejected')">رفض</button>
+          `;
+        } else if (filter === 'approved') {
+          actions = `<button class="btn btn-sm btn-danger" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'rejected')">إلغاء القبول</button>`;
+        } else {
+          actions = `<button class="btn btn-sm btn-primary" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'approved')">قبول القصة</button>`;
+        }
+        return `
+          <tr>
+            <td>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <img src="${s.userImage || 'https://ui-avatars.com/api/?name='+encodeURIComponent(s.userName)}" style="width:32px; height:32px; border-radius:50%;">
+                <strong>${s.userName}</strong>
+              </div>
+            </td>
+            <td><strong>${s.title}</strong></td>
+            <td><div style="max-width:300px; max-height:80px; overflow:hidden; text-overflow:ellipsis;">${s.content}</div></td>
+            <td>${dateStr}</td>
+            <td style="display:flex; gap:8px;">${actions}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      console.error(e);
+      document.getElementById('success-stories-tbody').innerHTML = '<tr><td colspan="5" class="empty-state" style="color:red">خطأ في التحميل</td></tr>';
+    }
+  },
+
+  async updateSuccessStoryStatus(id, status) {
+    if (!confirm('هل أنت متأكد من تغيير حالة القصة؟')) return;
+    try {
+      await db.collection('success_stories').doc(id).update({ status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+      showToast('تم تغيير الحالة بنجاح');
+      this.loadSuccessStories();
+    } catch (e) {
+      showToast('خطأ: ' + e.message, 'error');
+    }
   },
 
   async loadBannedUsers() {
@@ -1368,6 +1433,14 @@ const AdminApp = {
         if (d.termsUrl) document.getElementById('setting-terms').value = d.termsUrl;
         if (d.supportUrl) document.getElementById('setting-support').value = d.supportUrl;
       }
+      
+      const snap2 = await db.collection('settings').doc('app_settings').get();
+      if (snap2.exists) {
+        const d2 = snap2.data();
+        if (d2.ai_welcome_prompt) {
+          document.getElementById('setting-ai-welcome').value = d2.ai_welcome_prompt;
+        }
+      }
     } catch (e) {
       console.error('Error loading settings:', e);
     }
@@ -1388,7 +1461,16 @@ const AdminApp = {
           termsUrl: document.getElementById('setting-terms').value.trim(),
           supportUrl: document.getElementById('setting-support').value.trim(),
         };
+      } else if (section === 'ai') {
+        data = {
+          ai_welcome_prompt: document.getElementById('setting-ai-welcome').value.trim()
+        };
+        data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
+        await db.collection('settings').doc('app_settings').set(data, { merge: true });
+        showToast('تم حفظ توجيهات الذكاء الاصطناعي بنجاح ✅');
+        return;
       }
+      
       data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
       await db.collection('app_config').doc('settings').set(data, { merge: true });
       showToast('تم حفظ الإعدادات بنجاح ✅');

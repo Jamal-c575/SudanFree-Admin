@@ -63,6 +63,9 @@
         <a href="#" class="nav-item" data-page="users" onclick="AdminApp.navigateTo('users')">
           <span class="material-icons-outlined">people</span><span class="nav-text">المستخدمون</span>
         </a>
+        <a href="#" class="nav-item" data-page="success-stories" onclick="AdminApp.navigateTo('success-stories')">
+          <span class="material-icons-outlined">emoji_events</span><span class="nav-text">قصص النجاح</span>
+        </a>
         <a href="#" class="nav-item" data-page="banned" onclick="AdminApp.navigateTo('banned')">
           <span class="material-icons-outlined">block</span><span class="nav-text">المحظورون</span>
         </a>
@@ -94,6 +97,11 @@
         </a>
         <a href="#" class="nav-item" data-page="requests" onclick="AdminApp.navigateTo('requests')">
           <span class="material-icons-outlined">assignment</span><span class="nav-text">الطلبات</span>
+        </a>
+
+        <div class="nav-section-title">إدارة النظام</div>
+        <a href="#" class="nav-item" data-page="site-control" onclick="AdminApp.navigateTo('site-control')">
+          <span class="material-icons-outlined">settings_suggest</span><span class="nav-text">تحكم الموقع</span>
         </a>
         <a href="#" class="nav-item" data-page="promotions" onclick="AdminApp.navigateTo('promotions')">
           <span class="material-icons-outlined">star</span><span class="nav-text">الترويجات</span>
@@ -250,6 +258,30 @@
           </div>
           <div class="users-count" id="users-count"></div>
           <div class="table-container"><table class="data-table" id="users-table"><thead><tr><th>الصورة</th><th>الاسم</th><th>النوع</th><th>المنطقة</th><th>التقييم</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="users-tbody"><tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody></table></div>
+        </section>
+
+        <!-- Success Stories Page -->
+        <section id="page-success-stories" class="page">
+          <div class="filters-bar">
+            <h2>مراجعة قصص النجاح</h2>
+            <select id="success-stories-filter" class="filter-select" onchange="AdminApp.loadSuccessStories()"><option value="pending">بانتظار المراجعة</option><option value="approved">مقبولة</option><option value="rejected">مرفوضة</option></select>
+          </div>
+          <div class="table-container">
+            <table class="data-table" id="success-stories-table">
+              <thead>
+                <tr>
+                  <th>الكاتب</th>
+                  <th>العنوان</th>
+                  <th>القصة</th>
+                  <th>التاريخ</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="success-stories-tbody">
+                <tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <!-- Banned Users Page -->
@@ -457,6 +489,72 @@
           <div id="contracts-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
+        <!-- Site Control Page -->
+        <section id="page-site-control" class="page">
+          <div class="page-subtitle">التحكم بإعدادات الموقع والنظام ⚙️</div>
+          <div class="actions-bar" style="justify-content: flex-end; margin-bottom: 20px;">
+            <button class="btn btn-primary" onclick="SiteControl.saveSettings()">
+              <span class="material-icons-outlined">save</span> حفظ التغييرات
+            </button>
+          </div>
+          
+          <div class="dashboard-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+            <!-- AI Settings -->
+            <div class="card glass-card">
+              <div class="card-header"><h3><span class="material-icons-outlined">smart_toy</span> إعدادات الذكاء الاصطناعي (AI)</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>تفعيل المساعد الذكي (Jhome)</label>
+                  <select id="setting-ai-enabled" class="text-input">
+                    <option value="true">مفعل</option>
+                    <option value="false">معطل</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label>تعليمات النظام (System Prompt)</label>
+                  <textarea id="setting-ai-prompt" class="text-input" rows="4" placeholder="أنت مساعد ذكي لتطبيق سودان فري..."></textarea>
+                </div>
+              </div>
+            </div>
+
+            <!-- Maintenance & Global -->
+            <div class="card glass-card">
+              <div class="card-header"><h3><span class="material-icons-outlined">build_circle</span> حالة النظام والصيانة</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>وضع الصيانة (Maintenance Mode)</label>
+                  <select id="setting-maintenance" class="text-input">
+                    <option value="false">معطل (التطبيق يعمل)</option>
+                    <option value="true">مفعل (إغلاق مؤقت)</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label>رسالة وضع الصيانة</label>
+                  <input type="text" id="setting-maintenance-msg" class="text-input" placeholder="نقوم بتحديث التطبيق، سنعود قريباً!">
+                </div>
+              </div>
+            </div>
+            
+            <!-- Global Announcement -->
+            <div class="card glass-card" style="grid-column: 1 / -1;">
+              <div class="card-header"><h3><span class="material-icons-outlined">campaign</span> إشعار عام للتطبيق (Global Announcement)</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>تفعيل الإشعار</label>
+                  <select id="setting-announcement-enabled" class="text-input" style="width: 200px;">
+                    <option value="false">مخفي</option>
+                    <option value="true">ظاهر</option>
+                  </select>
+                </div>
+                <div class="form-group full-width">
+                  <label>نص الإشعار (يظهر في أعلى الشاشة الرئيسية)</label>
+                  <input type="text" id="setting-announcement" class="text-input" placeholder="أهلاً بكم في التحديث الجديد للسودان فري!">
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <!-- Settings Page -->
         <section id="page-settings" class="page">
           <div class="page-subtitle">إعدادات وروابط التطبيق</div>
@@ -499,6 +597,22 @@
                 </div>
                 <button class="btn btn-primary" style="margin-top: 16px;" onclick="AdminApp.saveSettings('policies')">
                   <span class="material-icons-outlined">save</span> حفظ السياسات
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          <div class="dashboard-row" style="margin-top: 20px;">
+            <div class="card" style="flex: 1;">
+              <div class="card-header"><h3><span class="material-icons-outlined">smart_toy</span> إعدادات الذكاء الاصطناعي</h3></div>
+              <div class="card-body">
+                <div class="form-group full-width">
+                  <label>توجيهات الشاشة الترحيبية للذكاء الاصطناعي</label>
+                  <textarea id="setting-ai-welcome" class="text-input" rows="3" placeholder="أدخل توجيهاتك لمحتوى الشاشة الترحيبية..."></textarea>
+                  <small style="color:var(--text-muted); display:block; margin-top:5px;">هذه التعليمات ستوجه الذكاء الاصطناعي حول ما يجب عرضه للمستخدمين في الشاشة الترحيبية.</small>
+                </div>
+                <button class="btn btn-primary" style="margin-top: 16px;" onclick="AdminApp.saveSettings('ai')">
+                  <span class="material-icons-outlined">save</span> حفظ التوجيهات
                 </button>
               </div>
             </div>
@@ -583,5 +697,61 @@
   <script src="js/extras.js?v=3"></script>
   <script src="js/app.js?v=3"></script>
   <script src="js/jhome-app.js?v=1"></script>
+  <script>
+    const SiteControl = {
+      init: async function() {
+        if (!firebase.auth().currentUser) return;
+        try {
+          const doc = await db.collection('system_settings').doc('config').get();
+          if (doc.exists) {
+            const data = doc.data();
+            document.getElementById('setting-ai-enabled').value = data.aiEnabled !== false ? "true" : "false";
+            document.getElementById('setting-ai-prompt').value = data.aiPrompt || "";
+            document.getElementById('setting-maintenance').value = data.maintenanceMode === true ? "true" : "false";
+            document.getElementById('setting-maintenance-msg').value = data.maintenanceMessage || "";
+            document.getElementById('setting-announcement-enabled').value = data.announcementEnabled === true ? "true" : "false";
+            document.getElementById('setting-announcement').value = data.announcementMessage || "";
+          }
+        } catch (error) {
+          console.error("Error loading settings:", error);
+        }
+      },
+      saveSettings: async function() {
+        try {
+          const btn = document.querySelector('#page-site-control .btn-primary');
+          btn.innerHTML = '<span class="material-icons-outlined">hourglass_empty</span> جاري الحفظ...';
+          btn.disabled = true;
+
+          const data = {
+            aiEnabled: document.getElementById('setting-ai-enabled').value === "true",
+            aiPrompt: document.getElementById('setting-ai-prompt').value,
+            maintenanceMode: document.getElementById('setting-maintenance').value === "true",
+            maintenanceMessage: document.getElementById('setting-maintenance-msg').value,
+            announcementEnabled: document.getElementById('setting-announcement-enabled').value === "true",
+            announcementMessage: document.getElementById('setting-announcement').value,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          };
+          
+          await db.collection('system_settings').doc('config').set(data, { merge: true });
+          AdminApp.showToast('تم حفظ الإعدادات بنجاح!', 'success');
+          
+          btn.innerHTML = '<span class="material-icons-outlined">save</span> حفظ التغييرات';
+          btn.disabled = false;
+        } catch (error) {
+          console.error("Error saving settings:", error);
+          AdminApp.showToast('حدث خطأ أثناء الحفظ', 'error');
+        }
+      }
+    };
+
+    // Hook into AdminApp navigation to load settings when tab is opened
+    const originalNavigate = AdminApp.navigateTo;
+    AdminApp.navigateTo = function(pageId) {
+      originalNavigate.call(AdminApp, pageId);
+      if (pageId === 'site-control') {
+        SiteControl.init();
+      }
+    };
+  </script>
 </body>
 </html>
