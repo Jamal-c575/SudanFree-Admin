@@ -470,8 +470,21 @@
         <section id="page-statistics" class="page">
           <div class="stats-grid stats-grid-large" id="stats-grid-detailed"></div>
           <div class="dashboard-row">
+            <div class="card">
+              <div class="card-header"><h3>النمو الزمني (آخر 7 أيام)</h3></div>
+              <div class="card-body" style="position: relative; height:300px;">
+                <canvas id="growthChart"></canvas>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3>توزيع الحسابات</h3></div>
+              <div class="card-body" style="position: relative; height:300px;">
+                <canvas id="roleChart"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="dashboard-row">
             <div class="card"><div class="card-header"><h3>توزيع المستخدمين حسب المنطقة</h3></div><div class="card-body" id="stats-by-region"></div></div>
-            <div class="card"><div class="card-header"><h3>توزيع المستخدمين حسب نوع الحساب</h3></div><div class="card-body" id="stats-by-role"></div></div>
           </div>
         </section>
         <!-- Promotions Page -->
@@ -685,8 +698,32 @@
     </div>
   </div>
 
+  <!-- Admin AI Assistant -->
+  <button id="admin-ai-fab" class="ai-fab" onclick="AdminAI.toggleChat()">
+    <span class="material-icons-outlined">auto_awesome</span>
+  </button>
+
+  <div id="admin-ai-window" class="ai-window" style="display: none;">
+    <div class="ai-header">
+      <div class="ai-header-title">
+        <span class="material-icons-outlined">auto_awesome</span>
+        <h3>المساعد الذكي للمشرف</h3>
+      </div>
+      <button class="icon-btn" onclick="AdminAI.toggleChat()"><span class="material-icons-outlined">close</span></button>
+    </div>
+    <div class="ai-messages" id="ai-messages-container">
+      <div class="ai-msg ai-msg-system">مرحباً بك! أنا مساعدك الذكي. يمكنك سؤالي عن الإحصائيات، البلاغات، أو ملخص المستخدمين.</div>
+    </div>
+    <div class="ai-input-area">
+      <input type="text" id="ai-input" placeholder="اسألني عن الإحصائيات..." onkeypress="if(event.key==='Enter') AdminAI.sendMessage()">
+      <button class="icon-btn" onclick="AdminAI.sendMessage()"><span class="material-icons-outlined">send</span></button>
+    </div>
+  </div>
+
   <div id="toast-container" class="toast-container"></div>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>

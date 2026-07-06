@@ -1198,43 +1198,134 @@ const AdminApp = {
 
   // ── Statistics ──
   async loadStatistics() {
-    const usersSnap = await db.collection('users').get();
-    const users = usersSnap.docs.map(d => d.data());
-    const total = users.length;
+    try {
+      // 1. Total users
+      const totalSnap = await db.collection('users').count().get();
+      const total = totalSnap.data().count;
 
-    // By role
-    const byRole = {};
-    users.forEach(u => { byRole[u.role] = (byRole[u.role]||0) + 1; });
-    const roleEl = document.getElementById('stats-by-role');
-    roleEl.innerHTML = '<div class="bar-chart">' + Object.entries(byRole).sort((a,b)=>b[1]-a[1]).map(([role,count]) => {
-      const pct = total ? Math.round(count/total*100) : 0;
-      return `<div class="bar-row"><span class="bar-label">${ROLE_NAMES[role]||role}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--primary)">${count}</div></div></div>`;
-    }).join('') + '</div>';
+      // 2. Roles distribution
+      const rolesToCount = ['client', 'freelancer', 'techService', 'privateService', 'shop', 'admin'];
+      const byRole = {};
+      await Promise.all(rolesToCount.map(async (role) => {
+        const snap = await db.collection('users').where('role', '==', role).count().get();
+        byRole[role] = snap.data().count;
+      }));
 
-    // By state
-    const byState = {};
-    users.forEach(u => { if(u.state) byState[u.state] = (byState[u.state]||0) + 1; });
-    const stateEl = document.getElementById('stats-by-region');
-    stateEl.innerHTML = '<div class="bar-chart">' + Object.entries(byState).sort((a,b)=>b[1]-a[1]).map(([state,count]) => {
-      const pct = total ? Math.round(count/total*100) : 0;
-      return `<div class="bar-row"><span class="bar-label">${state}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)">${count}</div></div></div>`;
-    }).join('') + '</div>';
+      // Render Role Chart
+      const roleCtx = document.getElementById('roleChart');
+      if (roleCtx) {
+        if (window.roleChartInstance) window.roleChartInstance.destroy();
+        window.roleChartInstance = new Chart(roleCtx, {
+          type: 'doughnut',
+          data: {
+            labels: Object.keys(byRole).map(k => (typeof ROLE_NAMES !== 'undefined' ? ROLE_NAMES[k] : null) || k),
+            datasets: [{
+              data: Object.values(byRole),
+              backgroundColor: ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#00cec9', '#74b9ff']
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { position: 'left', labels: { color: '#f8f9fa' } } }
+          }
+        });
+      }
 
-    // Detailed stats
-    const verified = users.filter(u => u.isVerified).length;
-    const online = users.filter(u => this.isOnline(u)).length;
-    const clients = byRole.client || 0;
-    const craftsmen = byRole.freelancer || 0;
-    document.getElementById('stats-grid-detailed').innerHTML = [
-      { icon:'people', label:'إجمالي المستخدمين', value:total, color:'#6c5ce7' },
-      { icon:'verified', label:'موثقون', value:verified, color:'#00cec9' },
-      { icon:'circle', label:'متصلون الآن', value:online, color:'#00b894' },
-      { icon:'person', label:'عملاء', value:clients, color:'#74b9ff' },
-      { icon:'construction', label:'حرفيين (صنايعية)', value:craftsmen, color:'#e17055' },
-      { icon:'store', label:'متاجر', value:byRole.shop||0, color:'#fdcb6e' },
-      { icon:'code', label:'تقنيين', value:byRole.techService||0, color:'#a29bfe' },
-      { icon:'room_service', label:'خدمات خاصة', value:byRole.privateService||0, color:'#fd79a8' },
-    ].map(s => `<div class="stat-card"><div class="stat-icon" style="background:${s.color}22;color:${s.color}"><span class="material-icons-outlined">${s.icon}</span></div><div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div></div>`).join('');
+      // 3. Growth Chart (Last 7 days)
+      const last7Days = [];
+      const now = new Date();
+      // Using a loop to create promises for concurrent execution
+      const dayPromises = [];
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(now);
+        d.setDate(d.getDate() - (6 - i));
+        d.setHours(0,0,0,0);
+        const nextDay = new Date(d);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const promise = db.collection('users')
+          .where('createdAt', '>=', d)
+          .where('createdAt', '<', nextDay)
+          .count().get().then(snap => ({
+            index: i,
+            dateStr: d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}),
+            count: snap.data().count
+          }));
+        dayPromises.push(promise);
+      }
+      
+      const dayResults = await Promise.all(dayPromises);
+      dayResults.sort((a,b) => a.index - b.index);
+      dayResults.forEach(r => last7Days.push(r));
+
+      const growthCtx = document.getElementById('growthChart');
+      if (growthCtx) {
+        if (window.growthChartInstance) window.growthChartInstance.destroy();
+        window.growthChartInstance = new Chart(growthCtx, {
+          type: 'line',
+          data: {
+            labels: last7Days.map(d => d.dateStr),
+            datasets: [{
+              label: 'مستخدمين جدد',
+              data: last7Days.map(d => d.count),
+              borderColor: '#00b894', backgroundColor: 'rgba(0,184,148,0.2)', fill: true, tension: 0.4
+            }]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#a0aab2' } },
+              x: { grid: { display: false }, ticks: { color: '#a0aab2' } }
+            }
+          }
+        });
+      }
+
+      // 4. By state (For simplicity, we show a message or just don't load this costly one fully unless requested)
+      // Since Sudan has 18 states, doing 18 queries is okay. Let's do the top ones or just show a simplified version.
+      const states = ['ولاية الخرطوم', 'ولاية الجزيرة', 'ولاية البحر الأحمر', 'ولاية نهر النيل', 'ولاية شمال كردفان'];
+      const byState = {};
+      await Promise.all(states.map(async (state) => {
+         const snap = await db.collection('users').where('state', '==', state).count().get();
+         if (snap.data().count > 0) byState[state] = snap.data().count;
+      }));
+
+      const stateEl = document.getElementById('stats-by-region');
+      if (Object.keys(byState).length > 0) {
+        stateEl.innerHTML = '<div class="bar-chart">' + Object.entries(byState).sort((a,b)=>b[1]-a[1]).map(([state,count]) => {
+          const pct = total ? Math.round(count/total*100) : 0;
+          return `<div class="bar-row"><span class="bar-label">${state}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)">${count}</div></div></div>`;
+        }).join('') + '</div>';
+      } else {
+        stateEl.innerHTML = '<p class="empty-state">لا توجد بيانات للمناطق حالياً</p>';
+      }
+
+      // 5. Detailed stats
+      const verifiedSnap = await db.collection('users').where('isVerified', '==', true).count().get();
+      const verified = verifiedSnap.data().count;
+      
+      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const onlineSnap = await db.collection('users').where('lastActive', '>=', fiveMinsAgo).count().get();
+      const online = onlineSnap.data().count;
+
+      const clients = byRole.client || 0;
+      const craftsmen = byRole.freelancer || 0;
+      
+      document.getElementById('stats-grid-detailed').innerHTML = [
+        { icon:'people', label:'إجمالي المستخدمين', value:total, color:'#6c5ce7' },
+        { icon:'verified', label:'موثقون', value:verified, color:'#00cec9' },
+        { icon:'circle', label:'متصلون الآن', value:online, color:'#00b894' },
+        { icon:'person', label:'عملاء', value:clients, color:'#74b9ff' },
+        { icon:'construction', label:'حرفيين (صنايعية)', value:craftsmen, color:'#e17055' },
+        { icon:'store', label:'متاجر', value:byRole.shop||0, color:'#fdcb6e' },
+        { icon:'code', label:'تقنيين', value:byRole.techService||0, color:'#a29bfe' },
+        { icon:'room_service', label:'خدمات خاصة', value:byRole.privateService||0, color:'#fd79a8' },
+      ].map(s => `<div class="stat-card"><div class="stat-icon" style="background:${s.color}22;color:${s.color}"><span class="material-icons-outlined">${s.icon}</span></div><div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div></div>`).join('');
+      
+    } catch (error) {
+      console.error("Error loading statistics:", error);
+    }
   },
 
   // ── Modals ──
@@ -1492,3 +1583,54 @@ auth.onAuthStateChanged(async user => {
     }
   }
 });
+
+// ── Admin AI Assistant ──
+const AdminAI = {
+  isOpen: false,
+  toggleChat() {
+    this.isOpen = !this.isOpen;
+    document.getElementById('admin-ai-window').style.display = this.isOpen ? 'flex' : 'none';
+    if (this.isOpen) document.getElementById('ai-input').focus();
+  },
+  async sendMessage() {
+    const inputEl = document.getElementById('ai-input');
+    const text = inputEl.value.trim();
+    if (!text) return;
+    
+    inputEl.value = '';
+    this.appendMessage('user', text);
+    this.appendMessage('system', 'جاري معالجة البيانات...', 'ai-loading');
+
+    try {
+      // Calling Cloud Function (must be deployed to support this)
+      const func = firebase.functions().httpsCallable('adminAiAssistant');
+      const res = await func({ query: text });
+      
+      this.removeMessage('ai-loading');
+      this.appendMessage('system', res.data.response || 'اكتملت العملية.');
+    } catch (e) {
+      console.error("AI Error:", e);
+      this.removeMessage('ai-loading');
+      this.appendMessage('system', 'حدث خطأ أثناء التواصل مع الذكاء الاصطناعي.');
+    }
+  },
+  appendMessage(role, text, id = null) {
+    const container = document.getElementById('ai-messages-container');
+    const msg = document.createElement('div');
+    msg.className = `ai-msg ai-msg-${role}`;
+    if (id) msg.id = id;
+    
+    // Simple bolding and line breaks for markdown
+    let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    formattedText = formattedText.replace(/\n/g, '<br>');
+    msg.innerHTML = formattedText;
+    
+    container.appendChild(msg);
+    container.scrollTop = container.scrollHeight;
+  },
+  removeMessage(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+};
+
