@@ -1959,4 +1959,9 @@ document.getElementById('reject-sub-btn')?.addEventListener('click', async () =>
   }
 });
 
+window.PaymentSettingsApp = PaymentSettingsApp;
+window.SubscriptionAdminApp = SubscriptionAdminApp;
+window.AdminApp = AdminApp;
+
+
 
