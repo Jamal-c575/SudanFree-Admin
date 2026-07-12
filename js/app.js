@@ -55,6 +55,7 @@ const AdminApp = {
     this.loadDashboard();
     this.loadUsers();
     this.listenVerifications();
+    this.listenOtpRequests();
     this.loadReports();
     this.loadDeletions();
     this.loadLocalities();
@@ -99,7 +100,7 @@ const AdminApp = {
     document.getElementById('page-' + page).classList.add('active');
     const navEl = document.querySelector(`[data-page="${page}"]`);
     if (navEl) navEl.classList.add('active');
-    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات' };
+    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
     if (page === 'deletions') this.loadDeletions();
@@ -113,6 +114,8 @@ const AdminApp = {
     if (page === 'settings') this.loadSettings();
     if (page === 'success-stories') this.loadSuccessStories();
     if (page === 'banned') this.loadBannedUsers();
+    if (page === 'subscriptions') SubscriptionAdminApp.loadSubscriptions();
+    if (page === 'payment-settings') PaymentSettingsApp.loadMethods();
     document.getElementById('sidebar').classList.remove('open');
   },
   refreshCurrentPage() {
@@ -794,6 +797,101 @@ const AdminApp = {
     } catch (error) {
       console.error('Error rejecting verification:', error);
       showToast('حدث خطأ أثناء رفض الطلب', 'error');
+    }
+  },
+
+  // ── OTP Requests ──
+  otpData: [],
+  listenOtpRequests() {
+    db.collection('otp_codes').where('deliveryStatus', '==', 'pending_admin').onSnapshot(snap => {
+      const badge = document.getElementById('otp-badge');
+      if (snap.empty) {
+        badge.style.display = 'none';
+        this.otpData = [];
+        this.displayOtpRequests([]);
+        return;
+      }
+      badge.textContent = snap.size;
+      badge.style.display = 'inline';
+      
+      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort by createdAt desc manually since we don't have a composite index
+      requests.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      
+      this.otpData = requests;
+      this.displayOtpRequests(this.otpData);
+    }, error => {
+      console.error('Error listening to OTP requests:', error);
+    });
+  },
+
+  displayOtpRequests(requests) {
+    const el = document.getElementById('otp-list');
+    if (!el) return;
+    if (!requests || requests.length === 0) {
+      el.innerHTML = '<p class="empty-state">لا توجد طلبات أكواد تحقق معلقة</p>';
+      return;
+    }
+
+    let html = '';
+    requests.forEach(req => {
+      const timeStr = timeAgo(req.createdAt);
+      // Remove + and leading zeros to format for wa.me
+      let phoneForWa = req.phoneNumber || '';
+      if (phoneForWa.startsWith('+')) phoneForWa = phoneForWa.substring(1);
+      
+      const msg = encodeURIComponent(`كود التحقق الخاص بك في منصة سودان فري هو: ${req.otp}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.`);
+      const waLink = `https://wa.me/${phoneForWa}?text=${msg}`;
+
+      html += `
+        <div class="card fade-in">
+          <div class="card-body">
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+              <strong>رقم الهاتف: <span dir="ltr">${req.phoneNumber}</span></strong>
+              <span class="badge" style="background:#ff9800;">بانتظار الإرسال</span>
+            </div>
+            <div class="detail-item"><div class="label">كود التحقق (OTP)</div><div class="value" style="font-size:24px; font-weight:bold; letter-spacing:3px; color:var(--primary);">${req.otp}</div></div>
+            <div class="detail-item"><div class="label">تاريخ الطلب</div><div class="value">${timeStr}</div></div>
+          </div>
+          <div class="card-footer" style="display:flex; gap:10px;">
+            <a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
+              <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
+            </a>
+            <button class="btn btn-primary" onclick="AdminApp.markOtpSent('${req.id}')" style="flex:1;">
+              <span class="material-icons-outlined">done_all</span> تحديد كمُرسل
+            </button>
+          </div>
+        </div>
+      `;
+    });
+    el.innerHTML = html;
+  },
+
+  filterOtpList() {
+    const search = document.getElementById('otp-search').value.toLowerCase();
+    if (!this.otpData) return;
+    let filtered = this.otpData;
+    if (search) {
+      filtered = filtered.filter(req => 
+        (req.phoneNumber || '').toLowerCase().includes(search) || 
+        (req.otp || '').toLowerCase().includes(search)
+      );
+    }
+    this.displayOtpRequests(filtered);
+  },
+
+  async markOtpSent(requestId) {
+    if (!confirm('هل أنت متأكد أنك قمت بإرسال الكود للمستخدم عبر الواتساب؟')) return;
+    try {
+      await db.collection('otp_codes').doc(requestId).update({
+        deliveryStatus: 'sent',
+        sentAt: firebase.firestore.FieldValue.serverTimestamp(),
+        sentByAdmin: true
+      });
+      showToast('تم تحديد الكود كمُرسل بنجاح');
+    } catch (error) {
+      console.error('Error marking OTP as sent:', error);
+      showToast('حدث خطأ أثناء التحديث', 'error');
     }
   },
 
@@ -1531,6 +1629,9 @@ const AdminApp = {
         if (d2.ai_welcome_prompt) {
           document.getElementById('setting-ai-welcome').value = d2.ai_welcome_prompt;
         }
+        if (d2.ai_system_prompt) {
+          document.getElementById('setting-ai-system').value = d2.ai_system_prompt;
+        }
       }
     } catch (e) {
       console.error('Error loading settings:', e);
@@ -1554,11 +1655,12 @@ const AdminApp = {
         };
       } else if (section === 'ai') {
         data = {
-          ai_welcome_prompt: document.getElementById('setting-ai-welcome').value.trim()
+          ai_welcome_prompt: document.getElementById('setting-ai-welcome').value.trim(),
+          ai_system_prompt: document.getElementById('setting-ai-system').value.trim()
         };
         data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
         await db.collection('settings').doc('app_settings').set(data, { merge: true });
-        showToast('تم حفظ توجيهات الذكاء الاصطناعي بنجاح ✅');
+        showToast('تم حفظ توجيهات وقوانين الذكاء الاصطناعي بنجاح ✅');
         return;
       }
       
@@ -1628,9 +1730,233 @@ const AdminAI = {
     container.appendChild(msg);
     container.scrollTop = container.scrollHeight;
   },
+
   removeMessage(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
   }
 };
+
+// ── Payment Settings App ──
+const PaymentSettingsApp = {
+  async loadMethods() {
+    try {
+      const grid = document.getElementById('payment-methods-grid');
+      grid.innerHTML = '<div class="loading">جاري التحميل...</div>';
+      
+      const snap = await db.collection('admin_settings').doc('payment_methods').get();
+      const methods = snap.exists ? (snap.data().methods || []) : [];
+      
+      if (methods.length === 0) {
+        grid.innerHTML = '<div class="empty-state">لا توجد حسابات مضافة.</div>';
+        return;
+      }
+
+      let html = '';
+      methods.forEach((m, idx) => {
+        html += `
+          <div class="card" style="padding:15px; border-top:4px solid var(--primary);">
+            <div style="font-weight:bold; font-size:16px; margin-bottom:10px;">${m.bankName}</div>
+            <div style="color:var(--text-secondary); margin-bottom:5px;">اسم الحساب: ${m.accountName}</div>
+            <div style="color:var(--text-secondary); margin-bottom:15px;">رقم الحساب: ${m.accountNumber}</div>
+            <div style="text-align:left;">
+              <button class="btn btn-sm btn-danger" onclick="PaymentSettingsApp.deleteMethod(${idx})">
+                <span class="material-icons-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        `;
+      });
+      grid.innerHTML = html;
+    } catch (e) {
+      console.error(e);
+      document.getElementById('payment-methods-grid').innerHTML = '<div class="error-msg">فشل تحميل الحسابات</div>';
+    }
+  },
+  openAddModal() {
+    document.getElementById('payment-bank').value = '';
+    document.getElementById('payment-name').value = '';
+    document.getElementById('payment-number').value = '';
+    document.getElementById('payment-modal').style.display = 'flex';
+  }
+};
+
+document.getElementById('payment-method-form')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const bankName = document.getElementById('payment-bank').value.trim();
+  const accountName = document.getElementById('payment-name').value.trim();
+  const accountNumber = document.getElementById('payment-number').value.trim();
+  
+  if(!bankName || !accountName || !accountNumber) return;
+
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.textContent = 'جاري الحفظ...';
+
+  try {
+    const docRef = db.collection('admin_settings').doc('payment_methods');
+    const snap = await docRef.get();
+    let methods = snap.exists ? (snap.data().methods || []) : [];
+    
+    methods.push({ bankName, accountName, accountNumber });
+    
+    await docRef.set({ methods }, { merge: true });
+    
+    AdminApp.closeModal('payment-modal');
+    showToast('تمت الإضافة بنجاح', 'success');
+    PaymentSettingsApp.loadMethods();
+  } catch (err) {
+    console.error(err);
+    showToast('فشل في الحفظ', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'حفظ';
+  }
+});
+
+PaymentSettingsApp.deleteMethod = async function(index) {
+  if(!confirm('هل أنت متأكد من حذف هذا الحساب؟')) return;
+  try {
+    const docRef = db.collection('admin_settings').doc('payment_methods');
+    const snap = await docRef.get();
+    let methods = snap.exists ? (snap.data().methods || []) : [];
+    
+    methods.splice(index, 1);
+    await docRef.set({ methods }, { merge: true });
+    
+    showToast('تم الحذف', 'success');
+    PaymentSettingsApp.loadMethods();
+  } catch (err) {
+    console.error(err);
+    showToast('فشل الحذف', 'error');
+  }
+};
+
+// ── Subscriptions App ──
+const SubscriptionAdminApp = {
+  currentSubId: null,
+  currentUserId: null,
+  
+  async loadSubscriptions() {
+    try {
+      const tbody = document.getElementById('subscriptions-table-body');
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
+      
+      const snap = await db.collection('subscriptions').orderBy('createdAt', 'desc').limit(50).get();
+      if(snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا توجد طلبات اشتراك</td></tr>';
+        return;
+      }
+
+      let html = '';
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        const d = data.createdAt ? data.createdAt.toDate() : new Date();
+        const dateStr = d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG');
+        const statusClass = data.status === 'active' ? 'badge-success' : (data.status === 'rejected' ? 'badge-danger' : 'badge-warning');
+        
+        let actions = '';
+        if (data.status === 'pending') {
+          actions = `<button class="btn btn-sm btn-primary" onclick="SubscriptionAdminApp.viewReceipt('${doc.id}', '${data.receiptUrl}', '${data.userId}')">مراجعة</button>`;
+        } else {
+          actions = `<span class="badge ${statusClass}">${data.status}</span>`;
+        }
+
+        html += `
+          <tr>
+            <td>${doc.id.substring(0,6)}...</td>
+            <td><a href="#" onclick="AdminApp.viewUser('${data.userId}')">عرض المستخدم</a></td>
+            <td>${data.plan || 'Pro'}</td>
+            <td>
+              ${data.receiptUrl ? `<a href="#" onclick="SubscriptionAdminApp.viewReceipt('${doc.id}', '${data.receiptUrl}', '${data.userId}')"><span class="material-icons-outlined">image</span> عرض</a>` : 'لا يوجد'}
+            </td>
+            <td><span class="badge ${statusClass}">${data.status === 'pending' ? 'قيد المراجعة' : (data.status==='active' ? 'مفعل' : 'مرفوض')}</span></td>
+            <td>${actions}</td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    } catch(e) {
+      console.error(e);
+      document.getElementById('subscriptions-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
+    }
+  },
+  viewReceipt(subId, url, userId) {
+    this.currentSubId = subId;
+    this.currentUserId = userId;
+    document.getElementById('receipt-img-view').src = url;
+    document.getElementById('receipt-modal').style.display = 'flex';
+    
+    // Only show approve/reject buttons if status is not already set. Actually, always show in modal, but we'll assume the clicker wants to change it.
+    // If we wanted to hide them, we'd fetch status first. For now, assume it's for pending.
+  }
+};
+
+document.getElementById('approve-sub-btn')?.addEventListener('click', async () => {
+  const subId = SubscriptionAdminApp.currentSubId;
+  const userId = SubscriptionAdminApp.currentUserId;
+  if(!subId || !userId) return;
+
+  const btn = document.getElementById('approve-sub-btn');
+  btn.disabled = true;
+  btn.textContent = 'جاري التفعيل...';
+
+  try {
+    const validUntil = new Date();
+    validUntil.setMonth(validUntil.getMonth() + 1); // 1 Month fixed duration
+    
+    // Batch update
+    const batch = db.batch();
+    
+    const subRef = db.collection('subscriptions').doc(subId);
+    batch.update(subRef, { 
+      status: 'active',
+      validUntil: firebase.firestore.Timestamp.fromDate(validUntil),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    const userRef = db.collection('users').doc(userId);
+    batch.update(userRef, {
+      isPremium: true,
+      subscriptionExpiry: firebase.firestore.Timestamp.fromDate(validUntil)
+    });
+    
+    await batch.commit();
+    
+    showToast('تم تفعيل الاشتراك', 'success');
+    AdminApp.closeModal('receipt-modal');
+    SubscriptionAdminApp.loadSubscriptions();
+  } catch(e) {
+    console.error(e);
+    showToast('فشل تفعيل الاشتراك', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span class="material-icons-outlined">check</span> موافقة';
+  }
+});
+
+document.getElementById('reject-sub-btn')?.addEventListener('click', async () => {
+  const subId = SubscriptionAdminApp.currentSubId;
+  if(!subId) return;
+
+  const btn = document.getElementById('reject-sub-btn');
+  btn.disabled = true;
+  
+  try {
+    await db.collection('subscriptions').doc(subId).update({
+      status: 'rejected',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    showToast('تم رفض الطلب', 'success');
+    AdminApp.closeModal('receipt-modal');
+    SubscriptionAdminApp.loadSubscriptions();
+  } catch(e) {
+    console.error(e);
+    showToast('فشل الرفض', 'error');
+  } finally {
+    btn.disabled = false;
+  }
+});
+
 
