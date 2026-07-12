@@ -689,7 +689,10 @@ const AdminApp = {
           <div class="verify-card-info"><h4>${u.name||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:18px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}</h4><p>${ROLE_NAMES[u.role]||u.role} — ${u.state||''} ${u.locality||''}</p><p>${u.phoneNumber||u.email||''}</p></div>
         </div>
         <div class="verify-card-body">
-          ${u.idCardUrl ? `<img class="verify-id-image" src="${u.idCardUrl}" onclick="AdminApp.previewImage('${u.idCardUrl}')" alt="صورة الهوية">` : '<p class="empty-state">لم يرفق صورة هوية</p>'}
+          <div style="display: flex; gap: 10px; overflow-x: auto;">
+            ${u.idCardUrl ? `<div><p style="margin:0;font-size:12px;font-weight:bold;">الهوية:</p><img class="verify-id-image" style="max-width: 150px; cursor: pointer; border-radius: 8px;" src="${u.idCardUrl}" onclick="AdminApp.previewImage('${u.idCardUrl}')" alt="صورة الهوية"></div>` : '<p class="empty-state">لم يرفق صورة هوية</p>'}
+            ${req.submittedData?.receiptUrl ? `<div><p style="margin:0;font-size:12px;font-weight:bold;">إيصال رسوم التوثيق:</p><img class="verify-id-image" style="max-width: 150px; cursor: pointer; border-radius: 8px;" src="${req.submittedData.receiptUrl}" onclick="AdminApp.previewImage('${req.submittedData.receiptUrl}')" alt="إيصال الدفع"></div>` : ''}
+          </div>
           ${req.submittedData?.notes ? `<p><strong>ملاحظات:</strong> ${req.submittedData.notes}</p>` : ''}
         </div>
         <div class="verify-card-actions">
