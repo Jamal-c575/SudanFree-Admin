@@ -174,15 +174,19 @@ const AdminApp = {
     try {
       const fiveMinutesAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
       
-      const [totalSnap, onlineSnap, verifiedSnap] = await Promise.all([
-        db.collection('users').count().get(),
-        db.collection('users').where('lastActive', '>=', fiveMinutesAgo).count().get(),
-        db.collection('users').where('isVerified', '==', true).count().get()
+      const [totalCount, onlineCount, verifiedCount] = await Promise.all([
+        this.getCount(db.collection('users')),
+        this.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo)),
+        this.getCount(db.collection('users').where('isVerified', '==', true))
       ]);
 
-      document.getElementById('global-users-count').textContent = totalSnap.data().count;
-      document.getElementById('global-online-count').textContent = onlineSnap.data().count;
-      document.getElementById('global-verified-count').textContent = verifiedSnap.data().count;
+      const totalEl = document.getElementById('global-users-count');
+      const onlineEl = document.getElementById('global-online-count');
+      const verifiedEl = document.getElementById('global-verified-count');
+      
+      if (totalEl) totalEl.textContent = totalCount;
+      if (onlineEl) onlineEl.textContent = onlineCount;
+      if (verifiedEl) verifiedEl.textContent = verifiedCount;
     } catch (e) {
       console.error("Error updating global user stats:", e);
     }
