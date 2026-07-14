@@ -168,11 +168,37 @@ const AdminApp = {
   },
 
   // ── Users ──
+  globalUserStatsInterval: null,
+
+  async updateGlobalUserStats() {
+    try {
+      const fiveMinutesAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
+      
+      const [totalSnap, onlineSnap, verifiedSnap] = await Promise.all([
+        db.collection('users').count().get(),
+        db.collection('users').where('lastActive', '>=', fiveMinutesAgo).count().get(),
+        db.collection('users').where('isVerified', '==', true).count().get()
+      ]);
+
+      document.getElementById('global-users-count').textContent = totalSnap.data().count;
+      document.getElementById('global-online-count').textContent = onlineSnap.data().count;
+      document.getElementById('global-verified-count').textContent = verifiedSnap.data().count;
+    } catch (e) {
+      console.error("Error updating global user stats:", e);
+    }
+  },
+
   async loadUsers() {
     this.lastUserDoc = null;
     this.hasMoreUsers = true;
     this.allUsers = [];
     document.getElementById('users-tbody').innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
+    
+    // Initial fetch of global stats and setup interval
+    this.updateGlobalUserStats();
+    if (this.globalUserStatsInterval) clearInterval(this.globalUserStatsInterval);
+    this.globalUserStatsInterval = setInterval(() => this.updateGlobalUserStats(), 60000);
+
     await this.fetchMoreUsers();
     this.setupUsersObserver();
   },
@@ -189,7 +215,18 @@ const AdminApp = {
       tbody.appendChild(tr);
     }
     
-    let query = db.collection('users').orderBy('createdAt', 'desc').limit(50);
+    const onlineFilter = document.getElementById('users-online-filter') ? document.getElementById('users-online-filter').value : '';
+    let query = db.collection('users');
+    
+    if (onlineFilter === 'true') {
+      const fiveMinsAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
+      query = query.where('lastActive', '>=', fiveMinsAgo).orderBy('lastActive', 'desc');
+    } else {
+      query = query.orderBy('createdAt', 'desc');
+    }
+    
+    query = query.limit(50);
+    
     if (this.lastUserDoc) {
       query = query.startAfter(this.lastUserDoc);
     }
@@ -390,6 +427,19 @@ const AdminApp = {
     const role = document.getElementById('users-role-filter').value;
     const state = document.getElementById('users-state-filter').value;
     const verified = document.getElementById('users-verified-filter').value;
+    const online = document.getElementById('users-online-filter') ? document.getElementById('users-online-filter').value : '';
+    
+    // Initialize if undefined
+    if (this.lastOnlineFilterState === undefined) {
+        this.lastOnlineFilterState = online;
+    }
+    
+    // Check if online filter changed compared to last load state
+    if (this.lastOnlineFilterState !== online) {
+        this.lastOnlineFilterState = online;
+        this.loadUsers();
+        return;
+    }
     
     if (search) {
       const tbody = document.getElementById('users-tbody');
@@ -428,6 +478,7 @@ const AdminApp = {
         if (role) results = results.filter(u => u.role === role);
         if (state) results = results.filter(u => u.state === state);
         if (verified) results = results.filter(u => String(u.isVerified||false) === verified);
+        if (online === 'true') results = results.filter(u => this.isOnline(u));
         
         this.renderUsers(results);
       } catch (e) {
@@ -442,6 +493,7 @@ const AdminApp = {
     if (role) filtered = filtered.filter(u => u.role === role);
     if (state) filtered = filtered.filter(u => u.state === state);
     if (verified) filtered = filtered.filter(u => String(u.isVerified||false) === verified);
+    if (online === 'true') filtered = filtered.filter(u => this.isOnline(u));
     this.renderUsers(filtered);
   },
 

@@ -261,13 +261,38 @@
 
         <!-- Users Page -->
         <section id="page-users" class="page">
+          <div class="users-top-stats" id="users-global-stats">
+            <div class="users-stat-card">
+              <div class="stat-icon"><span class="material-icons-outlined" style="color:#6c5ce7">group</span></div>
+              <div class="stat-info">
+                <span class="stat-value" id="global-users-count">...</span>
+                <span class="stat-label">إجمالي المستخدمين</span>
+              </div>
+            </div>
+            <div class="users-stat-card online-card">
+              <div class="stat-icon"><span class="pulse-dot"></span></div>
+              <div class="stat-info">
+                <span class="stat-value" id="global-online-count">...</span>
+                <span class="stat-label">متصلون الآن</span>
+              </div>
+            </div>
+            <div class="users-stat-card">
+              <div class="stat-icon"><span class="material-icons-outlined" style="color:var(--success)">verified</span></div>
+              <div class="stat-info">
+                <span class="stat-value" id="global-verified-count">...</span>
+                <span class="stat-label">حسابات موثقة</span>
+              </div>
+            </div>
+          </div>
+
           <div class="filters-bar">
             <div class="input-group search-input"><span class="material-icons-outlined">search</span><input type="text" id="users-search" placeholder="بحث بالاسم أو البريد..." oninput="AdminApp.filterUsers()"></div>
             <select id="users-role-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">كل الأنواع</option><option value="freelancer">خدمات فنية</option><option value="techService">خدمات تقنية</option><option value="privateService">خدمات خاصة</option><option value="shop">متجر</option><option value="client">عميل</option></select>
             <select id="users-state-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">كل المناطق</option><option value="الخرطوم">الخرطوم</option><option value="الجزيرة">الجزيرة</option><option value="نهر النيل">نهر النيل</option><option value="الشمالية">الشمالية</option><option value="كسلا">كسلا</option><option value="القضارف">القضارف</option><option value="البحر الأحمر">البحر الأحمر</option><option value="سنار">سنار</option><option value="النيل الأزرق">النيل الأزرق</option><option value="النيل الأبيض">النيل الأبيض</option><option value="شمال كردفان">شمال كردفان</option><option value="جنوب كردفان">جنوب كردفان</option><option value="غرب كردفان">غرب كردفان</option><option value="شمال دارفور">شمال دارفور</option><option value="جنوب دارفور">جنوب دارفور</option><option value="غرب دارفور">غرب دارفور</option><option value="وسط دارفور">وسط دارفور</option><option value="شرق دارفور">شرق دارفور</option></select>
-            <select id="users-verified-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">الكل</option><option value="true">موثق</option><option value="false">غير موثق</option></select>
+            <select id="users-verified-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">حالة التوثيق: الكل</option><option value="true">موثق</option><option value="false">غير موثق</option></select>
+            <select id="users-online-filter" class="filter-select" onchange="AdminApp.filterUsers()"><option value="">حالة الاتصال: الكل</option><option value="true">متصل الآن</option></select>
           </div>
-          <div class="users-count" id="users-count"></div>
+          <div class="users-count" id="users-count" style="display:none;"></div>
           <div class="table-container"><table class="data-table" id="users-table"><thead><tr><th>الصورة</th><th>الاسم</th><th>النوع</th><th>المنطقة</th><th>التقييم</th><th>الحالة</th><th>الإجراءات</th></tr></thead><tbody id="users-tbody"><tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody></table></div>
         </section>
 
