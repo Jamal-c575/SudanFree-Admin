@@ -171,22 +171,25 @@ const AdminApp = {
   globalUserStatsInterval: null,
 
   async updateGlobalUserStats() {
+    const totalEl = document.getElementById('global-users-count');
+    const onlineEl = document.getElementById('global-online-count');
+    const verifiedEl = document.getElementById('global-verified-count');
+    
     try {
       const fiveMinutesAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
       
-      const [totalCount, onlineCount, verifiedCount] = await Promise.all([
-        this.getCount(db.collection('users')),
-        this.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo)),
-        this.getCount(db.collection('users').where('isVerified', '==', true))
-      ]);
+      this.getCount(db.collection('users'))
+        .then(count => { if (totalEl) totalEl.textContent = count; })
+        .catch(e => { console.error("Error total count:", e); if (totalEl) totalEl.textContent = "Error"; });
 
-      const totalEl = document.getElementById('global-users-count');
-      const onlineEl = document.getElementById('global-online-count');
-      const verifiedEl = document.getElementById('global-verified-count');
-      
-      if (totalEl) totalEl.textContent = totalCount;
-      if (onlineEl) onlineEl.textContent = onlineCount;
-      if (verifiedEl) verifiedEl.textContent = verifiedCount;
+      this.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo))
+        .then(count => { if (onlineEl) onlineEl.textContent = count; })
+        .catch(e => { console.error("Error online count:", e); if (onlineEl) onlineEl.textContent = "Error"; });
+
+      this.getCount(db.collection('users').where('isVerified', '==', true))
+        .then(count => { if (verifiedEl) verifiedEl.textContent = count; })
+        .catch(e => { console.error("Error verified count:", e); if (verifiedEl) verifiedEl.textContent = "Error"; });
+
     } catch (e) {
       console.error("Error updating global user stats:", e);
     }
