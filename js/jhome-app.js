@@ -26,7 +26,7 @@ const JhomeApp = {
     if (tabId === 'messages') this.loadMessages();
     if (tabId === 'newsletter') this.loadNewsletter();
     if (tabId === 'academy-payments') this.renderAcademyAccounts();
-    if (tabId === 'academy-users') this.renderAcademyUsers();
+    if (tabId === 'academy-courses') this.renderCourses();
     if (tabId === 'pages') this.loadPageContent('home'); // Default page
   },
 
@@ -545,90 +545,309 @@ const JhomeApp = {
     }
   },
 
-  getAcademyUsers() {
-    const stored = localStorage.getItem('jhome_users');
+  // ── Academy Course Management ──
+  currentCourseId: null,
+
+  getCourses() {
+    const stored = localStorage.getItem('jhome_courses');
     if (!stored) {
-        const defaultUsers = [
-            { id: 'admin-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
+        // Default dummy data
+        const defaultCourses = [
+            {
+                id: 'course-1',
+                title: 'دورة التسويق الرقمي',
+                duration: 30,
+                status: 'open',
+                requests: [
+                    { id: 'req-1', studentName: 'أحمد محمد', receiptId: '112233', phone: '0123456789' }
+                ],
+                rooms: [
+                    { id: 'room-1', name: 'غرفة المحاضرة 1' }
+                ],
+                users: [
+                    { id: 'inst-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
+                ]
+            }
         ];
-        localStorage.setItem('jhome_users', JSON.stringify(defaultUsers));
-        return defaultUsers;
+        localStorage.setItem('jhome_courses', JSON.stringify(defaultCourses));
+        return defaultCourses;
     }
     return JSON.parse(stored);
   },
 
-  saveAcademyUsers(users) {
-    localStorage.setItem('jhome_users', JSON.stringify(users));
+  saveCourses(courses) {
+    localStorage.setItem('jhome_courses', JSON.stringify(courses));
   },
 
-  renderAcademyUsers() {
-    const list = document.getElementById('users-list');
+  renderCourses() {
+    const list = document.getElementById('courses-list-tbody');
     if (!list) return;
-    const users = this.getAcademyUsers();
+    const courses = this.getCourses();
     list.innerHTML = '';
-    if (users.length === 0) {
-        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
+    
+    if (courses.length === 0) {
+        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد دورات حالياً</td></tr>';
         return;
     }
-    users.forEach(user => {
-        const roleBadge = user.role === 'instructor' 
-            ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مدرب / مشرف</span>'
-            : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
-        
+
+    const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
+    const statusColor = { 'open': 'var(--primary)', 'ongoing': 'var(--warning)', 'closed': 'var(--danger)' };
+
+    courses.forEach(course => {
         list.innerHTML += `
             <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 1rem;">${user.fullname}</td>
-                <td style="padding: 1rem; font-family: monospace; color: var(--primary);">${user.username}</td>
-                <td style="padding: 1rem; font-family: monospace;">${user.password}</td>
-                <td style="padding: 1rem;">${roleBadge}</td>
+                <td style="padding: 1rem;">${course.title}</td>
+                <td style="padding: 1rem;">${course.duration} يوم</td>
                 <td style="padding: 1rem;">
-                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteAcademyUser('${user.id}')">حذف</button>
+                    <span style="color: ${statusColor[course.status] || '#fff'}; font-weight: bold;">
+                        ${statusMap[course.status] || course.status}
+                    </span>
+                </td>
+                <td style="padding: 1rem;">
+                    <button class="btn btn-sm btn-secondary" onclick="JhomeApp.openCourse('${course.id}')">إدارة الدورة</button>
+                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${course.id}')">حذف</button>
                 </td>
             </tr>
         `;
     });
   },
 
-  addAcademyUser(e) {
+  addCourse(e) {
     e.preventDefault();
-    const fullname = document.getElementById('new-user-fullname').value;
-    const role = document.getElementById('new-user-role').value;
-    const base = fullname.replace(/\s+/g, '').toLowerCase();
+    const title = document.getElementById('new-course-title').value;
+    const duration = document.getElementById('new-course-duration').value;
+    const status = document.getElementById('new-course-status').value;
     
-    const users = this.getAcademyUsers();
-    users.push({
-        id: Date.now().toString(),
-        fullname,
-        username: base,
-        password: base,
-        role
+    const courses = this.getCourses();
+    courses.push({
+        id: 'course-' + Date.now(),
+        title,
+        duration: parseInt(duration),
+        status,
+        requests: [],
+        rooms: [],
+        users: []
     });
-    this.saveAcademyUsers(users);
-    document.getElementById('add-user-form').reset();
-    this.renderAcademyUsers();
+    this.saveCourses(courses);
+    document.getElementById('add-course-form').reset();
+    this.renderCourses();
+    showToast('تم إنشاء الدورة بنجاح');
   },
 
-  deleteAcademyUser(id) {
-    if (confirm('حذف هذا المستخدم؟')) {
-        let users = this.getAcademyUsers();
-        users = users.filter(u => u.id !== id);
-        this.saveAcademyUsers(users);
-        this.renderAcademyUsers();
+  deleteCourse(id) {
+    if (confirm('هل أنت متأكد من حذف هذه الدورة بالكامل مع بياناتها؟')) {
+        let courses = this.getCourses();
+        courses = courses.filter(c => c.id !== id);
+        this.saveCourses(courses);
+        this.renderCourses();
     }
+  },
+
+  openCourse(id) {
+      this.currentCourseId = id;
+      const courses = this.getCourses();
+      const course = courses.find(c => c.id === id);
+      if (!course) return;
+
+      document.getElementById('academy-courses-list').style.display = 'none';
+      document.getElementById('academy-course-details').style.display = 'block';
+
+      const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
+      document.getElementById('detail-course-title').textContent = course.title;
+      document.getElementById('detail-course-status').textContent = `المدة: ${course.duration} يوم | الحالة: ${statusMap[course.status]}`;
+
+      this.renderCourseRequests();
+      this.renderCourseRooms();
+      this.renderCourseUsers();
+  },
+
+  closeCourseDetails() {
+      this.currentCourseId = null;
+      document.getElementById('academy-course-details').style.display = 'none';
+      document.getElementById('academy-courses-list').style.display = 'block';
+      this.renderCourses();
+  },
+
+  getCourseData() {
+      if (!this.currentCourseId) return null;
+      return this.getCourses().find(c => c.id === this.currentCourseId);
+  },
+
+  updateCourseData(updatedCourse) {
+      const courses = this.getCourses();
+      const index = courses.findIndex(c => c.id === updatedCourse.id);
+      if (index !== -1) {
+          courses[index] = updatedCourse;
+          this.saveCourses(courses);
+      }
+  },
+
+  // Requests
+  renderCourseRequests() {
+      const course = this.getCourseData();
+      const tbody = document.getElementById('course-requests-tbody');
+      tbody.innerHTML = '';
+      if (course.requests.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد طلبات جديدة</td></tr>';
+          return;
+      }
+      course.requests.forEach(req => {
+          tbody.innerHTML += `
+              <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 0.5rem;">${req.studentName}</td>
+                  <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId}</td>
+                  <td style="padding: 0.5rem;" dir="ltr">${req.phone}</td>
+                  <td style="padding: 0.5rem;">
+                      <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${req.id}')">قبول وتوليد حساب</button>
+                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${req.id}')">رفض</button>
+                  </td>
+              </tr>
+          `;
+      });
+  },
+
+  approveCourseRequest(reqId) {
+      const course = this.getCourseData();
+      const reqIndex = course.requests.findIndex(r => r.id === reqId);
+      if (reqIndex === -1) return;
+      const req = course.requests[reqIndex];
+
+      // Generate credentials
+      const base = req.studentName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
+      course.users.push({
+          id: 'student-' + Date.now(),
+          fullname: req.studentName,
+          username: base,
+          password: base, // Simplified logic for password
+          role: 'student'
+      });
+
+      // Remove from requests
+      course.requests.splice(reqIndex, 1);
+      this.updateCourseData(course);
+      
+      showToast('تم قبول الطالب وتوليد الحساب بنجاح!');
+      this.renderCourseRequests();
+      this.renderCourseUsers();
+  },
+
+  rejectCourseRequest(reqId) {
+      if(confirm('رفض وحذف هذا الطلب؟')) {
+          const course = this.getCourseData();
+          course.requests = course.requests.filter(r => r.id !== reqId);
+          this.updateCourseData(course);
+          this.renderCourseRequests();
+      }
+  },
+
+  // Rooms
+  renderCourseRooms() {
+      const course = this.getCourseData();
+      const list = document.getElementById('course-rooms-list');
+      list.innerHTML = '';
+      if (course.rooms.length === 0) {
+          list.innerHTML = '<li class="text-muted">لا توجد غرف مضافة</li>';
+          return;
+      }
+      course.rooms.forEach(room => {
+          list.innerHTML += `
+              <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-card); margin-bottom: 5px; border-radius: 8px;">
+                  <span>${room.name}</span>
+                  <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseRoom('${room.id}')">حذف</button>
+              </li>
+          `;
+      });
+  },
+
+  addCourseRoom(e) {
+      e.preventDefault();
+      const course = this.getCourseData();
+      const roomName = document.getElementById('new-room-name').value;
+      course.rooms.push({ id: 'room-' + Date.now(), name: roomName });
+      this.updateCourseData(course);
+      document.getElementById('add-room-form').reset();
+      this.renderCourseRooms();
+      showToast('تم إضافة الغرفة');
+  },
+
+  deleteCourseRoom(roomId) {
+      if(confirm('حذف الغرفة؟')) {
+          const course = this.getCourseData();
+          course.rooms = course.rooms.filter(r => r.id !== roomId);
+          this.updateCourseData(course);
+          this.renderCourseRooms();
+      }
+  },
+
+  // Users
+  renderCourseUsers() {
+      const course = this.getCourseData();
+      const tbody = document.getElementById('course-users-tbody');
+      tbody.innerHTML = '';
+      if (course.users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
+          return;
+      }
+      course.users.forEach(user => {
+          const roleBadge = user.role === 'instructor' 
+              ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مشرف</span>'
+              : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
+          tbody.innerHTML += `
+              <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 0.5rem;">${user.fullname}</td>
+                  <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.username}</td>
+                  <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
+                  <td style="padding: 0.5rem;">${roleBadge}</td>
+                  <td style="padding: 0.5rem;">
+                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseUser('${user.id}')">حذف</button>
+                  </td>
+              </tr>
+          `;
+      });
+  },
+
+  addCourseInstructor(e) {
+      e.preventDefault();
+      const course = this.getCourseData();
+      const fullname = document.getElementById('new-instructor-name').value;
+      const base = fullname.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 100);
+      
+      course.users.push({
+          id: 'inst-' + Date.now(),
+          fullname,
+          username: base,
+          password: base,
+          role: 'instructor'
+      });
+      this.updateCourseData(course);
+      document.getElementById('add-instructor-form').reset();
+      this.renderCourseUsers();
+      showToast('تم توليد حساب المشرف');
+  },
+
+  deleteCourseUser(userId) {
+      if(confirm('حذف هذا المستخدم من الدورة؟')) {
+          const course = this.getCourseData();
+          course.users = course.users.filter(u => u.id !== userId);
+          this.updateCourseData(course);
+          this.renderCourseUsers();
+      }
   }
 };
 
 // ── Academy Form Listeners ──
 document.addEventListener('DOMContentLoaded', () => {
     const addBankForm = document.getElementById('add-bank-form');
-    if (addBankForm) {
-        addBankForm.addEventListener('submit', (e) => JhomeApp.addAcademyAccount(e));
-    }
+    if (addBankForm) addBankForm.addEventListener('submit', (e) => JhomeApp.addAcademyAccount(e));
 
-    const addUserForm = document.getElementById('add-user-form');
-    if (addUserForm) {
-        addUserForm.addEventListener('submit', (e) => JhomeApp.addAcademyUser(e));
-    }
+    const addCourseForm = document.getElementById('add-course-form');
+    if (addCourseForm) addCourseForm.addEventListener('submit', (e) => JhomeApp.addCourse(e));
+
+    const addRoomForm = document.getElementById('add-room-form');
+    if (addRoomForm) addRoomForm.addEventListener('submit', (e) => JhomeApp.addCourseRoom(e));
+
+    const addInstForm = document.getElementById('add-instructor-form');
+    if (addInstForm) addInstForm.addEventListener('submit', (e) => JhomeApp.addCourseInstructor(e));
 });
 
 // Initialize by loading the default tab when Jhome page opens

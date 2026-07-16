@@ -163,8 +163,8 @@
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('messages')">الرسائل</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">النشرة البريدية</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('pages')">محتوى الصفحات</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-payments')">حسابات الأكاديمية</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-users')">مستخدمي الدورات</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-payments')">حسابات الدفع (عام)</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses')">الدورات التعليمية</button>
             </div>
           </div>
 
@@ -293,52 +293,140 @@
             </div>
           </div>
 
-          <!-- Jhome: Academy Users Tab -->
-          <div id="jhome-tab-academy-users" class="jhome-tab" style="display:none;">
-            <div class="card" style="margin-bottom: 2rem;">
-              <div class="card-header">
-                <h3>إنشاء حساب مستخدم (طالب أو مدرب)</h3>
-                <span class="text-muted" style="font-size: 0.9rem; display:block; margin-top:5px;">سيتم توليد اسم المستخدم وكلمة المرور تلقائياً</span>
-              </div>
-              <div class="card-body">
-                  <form id="add-user-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
-                      <div class="input-group">
-                          <label style="display:block; margin-bottom: 5px;">الاسم الحقيقي للمستخدم</label>
-                          <input type="text" id="new-user-fullname" required placeholder="مثال: جمال أحمد">
-                      </div>
-                      <div class="input-group">
-                          <label style="display:block; margin-bottom: 5px;">الصلاحية (الرتبة)</label>
-                          <select id="new-user-role" class="filter-select" style="width: 100%;">
-                              <option value="student">طالب (Student)</option>
-                              <option value="instructor">مدرب / مشرف (Instructor)</option>
-                          </select>
-                      </div>
-                      <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                          <span class="material-icons-outlined">person_add</span> إنشاء وتوليد
-                      </button>
-                  </form>
-              </div>
+          <!-- Jhome: Academy Courses Tab -->
+          <div id="jhome-tab-academy-courses" class="jhome-tab" style="display:none;">
+            
+            <!-- 1. Courses List View -->
+            <div id="academy-courses-list">
+                <div class="card" style="margin-bottom: 2rem;">
+                  <div class="card-header">
+                    <h3>إنشاء دورة تعليمية جديدة</h3>
+                  </div>
+                  <div class="card-body">
+                      <form id="add-course-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                          <div class="input-group">
+                              <label style="display:block; margin-bottom: 5px;">اسم الدورة</label>
+                              <input type="text" id="new-course-title" required placeholder="مثال: دورة التسويق الرقمي">
+                          </div>
+                          <div class="input-group">
+                              <label style="display:block; margin-bottom: 5px;">المدة (أيام)</label>
+                              <input type="number" id="new-course-duration" required placeholder="مثال: 30" min="1">
+                          </div>
+                          <div class="input-group">
+                              <label style="display:block; margin-bottom: 5px;">الحالة</label>
+                              <select id="new-course-status" class="filter-select" style="width: 100%;">
+                                  <option value="open">مفتوحة للتسجيل</option>
+                                  <option value="ongoing">جارية</option>
+                                  <option value="closed">مغلقة</option>
+                              </select>
+                          </div>
+                          <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                              <span class="material-icons-outlined">add_task</span> إنشاء دورة
+                          </button>
+                      </form>
+                  </div>
+                </div>
+
+                <div class="card">
+                  <div class="card-header">
+                    <h3>الدورات الحالية</h3>
+                  </div>
+                  <div class="card-body">
+                    <table style="width: 100%; border-collapse: collapse;">
+                      <thead>
+                        <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                          <th style="padding: 1rem;">اسم الدورة</th>
+                          <th style="padding: 1rem;">المدة</th>
+                          <th style="padding: 1rem;">الحالة</th>
+                          <th style="padding: 1rem;">الإجراءات</th>
+                        </tr>
+                      </thead>
+                      <tbody id="courses-list-tbody">
+                          <!-- Populated by JS -->
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
             </div>
-            <div class="card">
-              <div class="card-header">
-                <h3>المستخدمين الحاليين</h3>
-              </div>
-              <div class="card-body">
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
-                      <th style="padding: 1rem;">الاسم الحقيقي</th>
-                      <th style="padding: 1rem;">اسم المستخدم</th>
-                      <th style="padding: 1rem;">كلمة المرور</th>
-                      <th style="padding: 1rem;">الصلاحية</th>
-                      <th style="padding: 1rem;">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody id="users-list">
-                      <!-- Populated by JS -->
-                  </tbody>
-                </table>
-              </div>
+
+            <!-- 2. Course Details View (Hidden initially) -->
+            <div id="academy-course-details" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div>
+                        <h2 id="detail-course-title" style="margin: 0; color: var(--primary);">اسم الدورة</h2>
+                        <span id="detail-course-status" style="font-size: 0.9rem; color: var(--text-muted);">حالة الدورة</span>
+                    </div>
+                    <button class="btn btn-ghost" onclick="JhomeApp.closeCourseDetails()" style="display: flex; align-items: center; gap: 5px;">
+                        <span class="material-icons-outlined">arrow_forward</span> العودة للدورات
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
+                    <!-- A. Course Requests (طلبات التسجيل) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">how_to_reg</span>طلبات التسجيل الجديدة</h3>
+                        </div>
+                        <div class="card-body">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                                        <th style="padding: 0.5rem;">الطالب</th>
+                                        <th style="padding: 0.5rem;">رقم الدفع</th>
+                                        <th style="padding: 0.5rem;">رقم الواتساب</th>
+                                        <th style="padding: 0.5rem;">الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="course-requests-tbody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- B. Course Rooms (الغرف) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">meeting_room</span>غرف الدورة</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-room-form" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <input type="text" id="new-room-name" placeholder="اسم الغرفة (مثال: محاضرة 1)" required style="flex: 1;" class="text-input">
+                                <button type="submit" class="btn btn-secondary">إنشاء غرفة</button>
+                            </form>
+                            <ul id="course-rooms-list" style="list-style: none; padding: 0; margin: 0;">
+                                <!-- Populated by JS -->
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- C. Course Users & Instructors (حسابات الدورة) -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">group</span>حسابات المشرفين والطلاب</h3>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-instructor-form" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                                <input type="text" id="new-instructor-name" placeholder="إضافة مشرف (الاسم الحقيقي)" required style="flex: 1;" class="text-input">
+                                <button type="submit" class="btn btn-primary" style="background-color: var(--warning); color: #000;">توليد حساب مشرف</button>
+                            </form>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                                        <th style="padding: 0.5rem;">الاسم الحقيقي</th>
+                                        <th style="padding: 0.5rem;">اسم المستخدم</th>
+                                        <th style="padding: 0.5rem;">كلمة المرور</th>
+                                        <th style="padding: 0.5rem;">الرتبة</th>
+                                        <th style="padding: 0.5rem;">حذف</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="course-users-tbody">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
           </div>
         </section>
