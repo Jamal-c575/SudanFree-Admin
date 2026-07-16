@@ -7,7 +7,14 @@ const JhomeApp = {
     
     // Update active button state
     document.querySelectorAll('.jhome-tab-btn').forEach(btn => btn.classList.remove('active'));
-    event.target.classList.add('active');
+    try {
+        if (typeof event !== 'undefined' && event && event.currentTarget) {
+            event.currentTarget.classList.add('active');
+        } else {
+            const activeBtn = document.querySelector(`.jhome-tab-btn[onclick*="'${tabId}'"]`);
+            if (activeBtn) activeBtn.classList.add('active');
+        }
+    } catch (e) {}
     
     // Hide all tabs
     document.querySelectorAll('.jhome-tab').forEach(tab => tab.style.display = 'none');
