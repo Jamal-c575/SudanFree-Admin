@@ -25,6 +25,8 @@ const JhomeApp = {
     if (tabId === 'stories') this.loadStories();
     if (tabId === 'messages') this.loadMessages();
     if (tabId === 'newsletter') this.loadNewsletter();
+    if (tabId === 'academy-payments') this.renderAcademyAccounts();
+    if (tabId === 'academy-users') this.renderAcademyUsers();
     if (tabId === 'pages') this.loadPageContent('home'); // Default page
   },
 
@@ -479,8 +481,155 @@ const JhomeApp = {
       console.error('Error loading newsletter:', e);
       showToast('خطأ في جلب القائمة البريدية', 'error');
     }
+  },
+
+  // ── Academy Features ──
+  getAcademyAccounts() {
+    const stored = localStorage.getItem('jhome_banks');
+    if (!stored) {
+        const defaultBanks = [
+            { id: '1', bankName: 'بنكك', accountName: 'جمال أحمد', accountNumber: '123456789' },
+            { id: '2', bankName: 'فوري', accountName: 'جمال أحمد', accountNumber: '987654321' }
+        ];
+        localStorage.setItem('jhome_banks', JSON.stringify(defaultBanks));
+        return defaultBanks;
+    }
+    return JSON.parse(stored);
+  },
+  
+  saveAcademyAccounts(accounts) {
+    localStorage.setItem('jhome_banks', JSON.stringify(accounts));
+  },
+
+  renderAcademyAccounts() {
+    const list = document.getElementById('bank-accounts-list');
+    if (!list) return;
+    const accounts = this.getAcademyAccounts();
+    list.innerHTML = '';
+    if (accounts.length === 0) {
+        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد حسابات</td></tr>';
+        return;
+    }
+    accounts.forEach(acc => {
+        list.innerHTML += `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">${acc.bankName}</td>
+                <td style="padding: 1rem;">${acc.accountName}</td>
+                <td style="padding: 1rem; font-family: monospace;">${acc.accountNumber}</td>
+                <td style="padding: 1rem;">
+                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteAcademyAccount('${acc.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+  },
+
+  addAcademyAccount(e) {
+    e.preventDefault();
+    const bankName = document.getElementById('new-bank-name').value;
+    const accName = document.getElementById('new-account-name').value;
+    const accNum = document.getElementById('new-account-number').value;
+    const accounts = this.getAcademyAccounts();
+    accounts.push({ id: Date.now().toString(), bankName, accountName: accName, accountNumber: accNum });
+    this.saveAcademyAccounts(accounts);
+    document.getElementById('add-bank-form').reset();
+    this.renderAcademyAccounts();
+  },
+
+  deleteAcademyAccount(id) {
+    if (confirm('حذف هذا الحساب؟')) {
+        let accounts = this.getAcademyAccounts();
+        accounts = accounts.filter(a => a.id !== id);
+        this.saveAcademyAccounts(accounts);
+        this.renderAcademyAccounts();
+    }
+  },
+
+  getAcademyUsers() {
+    const stored = localStorage.getItem('jhome_users');
+    if (!stored) {
+        const defaultUsers = [
+            { id: 'admin-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
+        ];
+        localStorage.setItem('jhome_users', JSON.stringify(defaultUsers));
+        return defaultUsers;
+    }
+    return JSON.parse(stored);
+  },
+
+  saveAcademyUsers(users) {
+    localStorage.setItem('jhome_users', JSON.stringify(users));
+  },
+
+  renderAcademyUsers() {
+    const list = document.getElementById('users-list');
+    if (!list) return;
+    const users = this.getAcademyUsers();
+    list.innerHTML = '';
+    if (users.length === 0) {
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
+        return;
+    }
+    users.forEach(user => {
+        const roleBadge = user.role === 'instructor' 
+            ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مدرب / مشرف</span>'
+            : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
+        
+        list.innerHTML += `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">${user.fullname}</td>
+                <td style="padding: 1rem; font-family: monospace; color: var(--primary);">${user.username}</td>
+                <td style="padding: 1rem; font-family: monospace;">${user.password}</td>
+                <td style="padding: 1rem;">${roleBadge}</td>
+                <td style="padding: 1rem;">
+                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteAcademyUser('${user.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+  },
+
+  addAcademyUser(e) {
+    e.preventDefault();
+    const fullname = document.getElementById('new-user-fullname').value;
+    const role = document.getElementById('new-user-role').value;
+    const base = fullname.replace(/\s+/g, '').toLowerCase();
+    
+    const users = this.getAcademyUsers();
+    users.push({
+        id: Date.now().toString(),
+        fullname,
+        username: base,
+        password: base,
+        role
+    });
+    this.saveAcademyUsers(users);
+    document.getElementById('add-user-form').reset();
+    this.renderAcademyUsers();
+  },
+
+  deleteAcademyUser(id) {
+    if (confirm('حذف هذا المستخدم؟')) {
+        let users = this.getAcademyUsers();
+        users = users.filter(u => u.id !== id);
+        this.saveAcademyUsers(users);
+        this.renderAcademyUsers();
+    }
   }
 };
+
+// ── Academy Form Listeners ──
+document.addEventListener('DOMContentLoaded', () => {
+    const addBankForm = document.getElementById('add-bank-form');
+    if (addBankForm) {
+        addBankForm.addEventListener('submit', (e) => JhomeApp.addAcademyAccount(e));
+    }
+
+    const addUserForm = document.getElementById('add-user-form');
+    if (addUserForm) {
+        addUserForm.addEventListener('submit', (e) => JhomeApp.addAcademyUser(e));
+    }
+});
 
 // Initialize by loading the default tab when Jhome page opens
 // We hook into the AdminApp's navigation logic

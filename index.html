@@ -157,12 +157,14 @@
               <span class="material-icons-outlined" style="color:var(--primary);">domain</span>
               إدارة مؤسسة Jhome
             </h2>
-            <div class="jhome-nav" style="display:flex; gap:10px; background:var(--bg-card); padding:5px; border-radius:12px; border:1px solid var(--border);">
+            <div class="jhome-nav" style="display:flex; gap:10px; background:var(--bg-card); padding:5px; border-radius:12px; border:1px solid var(--border); overflow-x: auto;">
               <button class="btn btn-sm btn-primary jhome-tab-btn active" onclick="JhomeApp.showTab('blog')">المقالات</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('stories')">قصص النجاح</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('messages')">الرسائل</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">النشرة البريدية</button>
               <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('pages')">محتوى الصفحات</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-payments')">حسابات الأكاديمية</button>
+              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-users')">مستخدمي الدورات</button>
             </div>
           </div>
 
@@ -239,6 +241,103 @@
                     <span class="material-icons-outlined">save</span> حفظ التعديلات
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jhome: Academy Payments Tab -->
+          <div id="jhome-tab-academy-payments" class="jhome-tab" style="display:none;">
+            <div class="card" style="margin-bottom: 2rem;">
+              <div class="card-header">
+                <h3>إضافة حساب بنكي جديد</h3>
+              </div>
+              <div class="card-body">
+                  <form id="add-bank-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                      <div class="input-group">
+                          <label style="display:block; margin-bottom: 5px;">اسم البنك</label>
+                          <input type="text" id="new-bank-name" required placeholder="مثال: بنكك">
+                      </div>
+                      <div class="input-group">
+                          <label style="display:block; margin-bottom: 5px;">صاحب الحساب</label>
+                          <input type="text" id="new-account-name" required placeholder="الاسم الرباعي">
+                      </div>
+                      <div class="input-group">
+                          <label style="display:block; margin-bottom: 5px;">رقم الحساب</label>
+                          <input type="text" id="new-account-number" required placeholder="رقم الحساب">
+                      </div>
+                      <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                          <span class="material-icons-outlined">add</span> إضافة
+                      </button>
+                  </form>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>الحسابات الحالية</h3>
+              </div>
+              <div class="card-body">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                      <th style="padding: 1rem;">البنك</th>
+                      <th style="padding: 1rem;">الاسم</th>
+                      <th style="padding: 1rem;">رقم الحساب</th>
+                      <th style="padding: 1rem;">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="bank-accounts-list">
+                      <!-- Populated by JS -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jhome: Academy Users Tab -->
+          <div id="jhome-tab-academy-users" class="jhome-tab" style="display:none;">
+            <div class="card" style="margin-bottom: 2rem;">
+              <div class="card-header">
+                <h3>إنشاء حساب مستخدم (طالب أو مدرب)</h3>
+                <span class="text-muted" style="font-size: 0.9rem; display:block; margin-top:5px;">سيتم توليد اسم المستخدم وكلمة المرور تلقائياً</span>
+              </div>
+              <div class="card-body">
+                  <form id="add-user-form" style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 1rem; align-items: end;">
+                      <div class="input-group">
+                          <label style="display:block; margin-bottom: 5px;">الاسم الحقيقي للمستخدم</label>
+                          <input type="text" id="new-user-fullname" required placeholder="مثال: جمال أحمد">
+                      </div>
+                      <div class="input-group">
+                          <label style="display:block; margin-bottom: 5px;">الصلاحية (الرتبة)</label>
+                          <select id="new-user-role" class="filter-select" style="width: 100%;">
+                              <option value="student">طالب (Student)</option>
+                              <option value="instructor">مدرب / مشرف (Instructor)</option>
+                          </select>
+                      </div>
+                      <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                          <span class="material-icons-outlined">person_add</span> إنشاء وتوليد
+                      </button>
+                  </form>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <h3>المستخدمين الحاليين</h3>
+              </div>
+              <div class="card-body">
+                <table style="width: 100%; border-collapse: collapse;">
+                  <thead>
+                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                      <th style="padding: 1rem;">الاسم الحقيقي</th>
+                      <th style="padding: 1rem;">اسم المستخدم</th>
+                      <th style="padding: 1rem;">كلمة المرور</th>
+                      <th style="padding: 1rem;">الصلاحية</th>
+                      <th style="padding: 1rem;">الإجراءات</th>
+                    </tr>
+                  </thead>
+                  <tbody id="users-list">
+                      <!-- Populated by JS -->
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
