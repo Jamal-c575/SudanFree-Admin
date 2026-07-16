@@ -25,7 +25,7 @@ const JhomeApp = {
     if (tabId === 'stories') this.loadStories();
     if (tabId === 'messages') this.loadMessages();
     if (tabId === 'newsletter') this.loadNewsletter();
-    if (tabId === 'academy-payments') this.renderAcademyAccounts();
+
     if (tabId === 'academy-courses') this.renderCourses();
     if (tabId === 'pages') this.loadPageContent('home'); // Default page
   },
@@ -483,67 +483,6 @@ const JhomeApp = {
     }
   },
 
-  // ── Academy Features ──
-  getAcademyAccounts() {
-    const stored = localStorage.getItem('jhome_banks');
-    if (!stored) {
-        const defaultBanks = [
-            { id: '1', bankName: 'بنكك', accountName: 'جمال أحمد', accountNumber: '123456789' },
-            { id: '2', bankName: 'فوري', accountName: 'جمال أحمد', accountNumber: '987654321' }
-        ];
-        localStorage.setItem('jhome_banks', JSON.stringify(defaultBanks));
-        return defaultBanks;
-    }
-    return JSON.parse(stored);
-  },
-  
-  saveAcademyAccounts(accounts) {
-    localStorage.setItem('jhome_banks', JSON.stringify(accounts));
-  },
-
-  renderAcademyAccounts() {
-    const list = document.getElementById('bank-accounts-list');
-    if (!list) return;
-    const accounts = this.getAcademyAccounts();
-    list.innerHTML = '';
-    if (accounts.length === 0) {
-        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد حسابات</td></tr>';
-        return;
-    }
-    accounts.forEach(acc => {
-        list.innerHTML += `
-            <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 1rem;">${acc.bankName}</td>
-                <td style="padding: 1rem;">${acc.accountName}</td>
-                <td style="padding: 1rem; font-family: monospace;">${acc.accountNumber}</td>
-                <td style="padding: 1rem;">
-                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteAcademyAccount('${acc.id}')">حذف</button>
-                </td>
-            </tr>
-        `;
-    });
-  },
-
-  addAcademyAccount(e) {
-    e.preventDefault();
-    const bankName = document.getElementById('new-bank-name').value;
-    const accName = document.getElementById('new-account-name').value;
-    const accNum = document.getElementById('new-account-number').value;
-    const accounts = this.getAcademyAccounts();
-    accounts.push({ id: Date.now().toString(), bankName, accountName: accName, accountNumber: accNum });
-    this.saveAcademyAccounts(accounts);
-    document.getElementById('add-bank-form').reset();
-    this.renderAcademyAccounts();
-  },
-
-  deleteAcademyAccount(id) {
-    if (confirm('حذف هذا الحساب؟')) {
-        let accounts = this.getAcademyAccounts();
-        accounts = accounts.filter(a => a.id !== id);
-        this.saveAcademyAccounts(accounts);
-        this.renderAcademyAccounts();
-    }
-  },
 
   // ── Academy Course Management ──
   currentCourseId: null,
@@ -836,19 +775,7 @@ const JhomeApp = {
 };
 
 // ── Academy Form Listeners ──
-document.addEventListener('DOMContentLoaded', () => {
-    const addBankForm = document.getElementById('add-bank-form');
-    if (addBankForm) addBankForm.addEventListener('submit', (e) => JhomeApp.addAcademyAccount(e));
-
-    const addCourseForm = document.getElementById('add-course-form');
-    if (addCourseForm) addCourseForm.addEventListener('submit', (e) => JhomeApp.addCourse(e));
-
-    const addRoomForm = document.getElementById('add-room-form');
-    if (addRoomForm) addRoomForm.addEventListener('submit', (e) => JhomeApp.addCourseRoom(e));
-
-    const addInstForm = document.getElementById('add-instructor-form');
-    if (addInstForm) addInstForm.addEventListener('submit', (e) => JhomeApp.addCourseInstructor(e));
-});
+// Handled directly via onsubmit in HTML
 
 // Initialize by loading the default tab when Jhome page opens
 // We hook into the AdminApp's navigation logic

@@ -269,53 +269,6 @@
             </div>
           </div>
 
-          <!-- Jhome: Academy Payments Tab -->
-          <div id="jhome-tab-academy-payments" class="jhome-tab" style="display:none;">
-            <div class="card" style="margin-bottom: 2rem;">
-              <div class="card-header">
-                <h3>إضافة حساب بنكي جديد</h3>
-              </div>
-              <div class="card-body">
-                  <form id="add-bank-form" style="display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 1rem; align-items: end;">
-                      <div class="input-group">
-                          <label style="display:block; margin-bottom: 5px;">اسم البنك</label>
-                          <input type="text" id="new-bank-name" required placeholder="مثال: بنكك">
-                      </div>
-                      <div class="input-group">
-                          <label style="display:block; margin-bottom: 5px;">صاحب الحساب</label>
-                          <input type="text" id="new-account-name" required placeholder="الاسم الرباعي">
-                      </div>
-                      <div class="input-group">
-                          <label style="display:block; margin-bottom: 5px;">رقم الحساب</label>
-                          <input type="text" id="new-account-number" required placeholder="رقم الحساب">
-                      </div>
-                      <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                          <span class="material-icons-outlined">add</span> إضافة
-                      </button>
-                  </form>
-              </div>
-            </div>
-            <div class="card">
-              <div class="card-header">
-                <h3>الحسابات الحالية</h3>
-              </div>
-              <div class="card-body">
-                <table style="width: 100%; border-collapse: collapse;">
-                  <thead>
-                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
-                      <th style="padding: 1rem;">البنك</th>
-                      <th style="padding: 1rem;">الاسم</th>
-                      <th style="padding: 1rem;">رقم الحساب</th>
-                      <th style="padding: 1rem;">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody id="bank-accounts-list">
-                      <!-- Populated by JS -->
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
 
           <!-- Jhome: Academy Courses Tab -->
           <div id="jhome-tab-academy-courses" class="jhome-tab" style="display:none;">
@@ -327,7 +280,7 @@
                     <h3>إنشاء دورة تعليمية جديدة</h3>
                   </div>
                   <div class="card-body">
-                      <form id="add-course-form" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
+                      <form id="add-course-form" onsubmit="JhomeApp.addCourse(event)" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
                           <div class="input-group">
                               <label style="display:block; margin-bottom: 5px;">اسم الدورة</label>
                               <input type="text" id="new-course-title" required placeholder="مثال: دورة التسويق الرقمي">
@@ -414,7 +367,7 @@
                             <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">meeting_room</span>غرف الدورة</h3>
                         </div>
                         <div class="card-body">
-                            <form id="add-room-form" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <form id="add-room-form" onsubmit="JhomeApp.addCourseRoom(event)" style="display: flex; gap: 10px; margin-bottom: 1rem;">
                                 <input type="text" id="new-room-name" placeholder="اسم الغرفة (مثال: محاضرة 1)" required style="flex: 1;" class="text-input">
                                 <button type="submit" class="btn btn-secondary">إنشاء غرفة</button>
                             </form>
@@ -430,7 +383,7 @@
                             <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">group</span>حسابات المشرفين والطلاب</h3>
                         </div>
                         <div class="card-body">
-                            <form id="add-instructor-form" style="display: flex; gap: 10px; margin-bottom: 15px;">
+                            <form id="add-instructor-form" onsubmit="JhomeApp.addCourseInstructor(event)" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
                                 <input type="text" id="new-instructor-name" placeholder="إضافة مشرف (الاسم الحقيقي)" required style="flex: 1;" class="text-input">
                                 <button type="submit" class="btn btn-primary" style="background-color: var(--warning); color: #000;">توليد حساب مشرف</button>
                             </form>
