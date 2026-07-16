@@ -51,7 +51,7 @@
           </span>
         </div>
       </div>
-      <nav class="sidebar-nav">
+      <nav class="sidebar-nav" id="main-sidebar-nav">
         <a href="#" class="nav-item active" data-page="dashboard" onclick="AdminApp.navigateTo('dashboard')">
           <span class="material-icons-outlined">dashboard</span><span class="nav-text">الرئيسية</span>
         </a>
@@ -124,6 +124,39 @@
           <span class="material-icons-outlined">settings</span><span class="nav-text">الإعدادات</span>
         </a>
       </nav>
+
+      <!-- Jhome Sidebar Nav -->
+      <nav class="sidebar-nav" id="jhome-sidebar-nav" style="display:none;">
+        <div class="nav-section-title">إدارة موقع Jhome</div>
+        <a href="#" class="nav-item jhome-tab-btn active" onclick="JhomeApp.showTab('blog')">
+          <span class="material-icons-outlined">article</span><span class="nav-text">المقالات</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('stories')">
+          <span class="material-icons-outlined">emoji_events</span><span class="nav-text">قصص النجاح</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('messages')">
+          <span class="material-icons-outlined">mail</span><span class="nav-text">الرسائل</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">
+          <span class="material-icons-outlined">forward_to_inbox</span><span class="nav-text">النشرة البريدية</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('pages')">
+          <span class="material-icons-outlined">web</span><span class="nav-text">محتوى الصفحات</span>
+        </a>
+
+        <div class="nav-section-title">أكاديمية Jhome</div>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses')">
+          <span class="material-icons-outlined">school</span><span class="nav-text">الدورات التعليمية</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-payments')">
+          <span class="material-icons-outlined">payments</span><span class="nav-text">حسابات الدفع (عام)</span>
+        </a>
+
+        <div class="nav-section-title">العودة للتطبيق</div>
+        <a href="#" class="nav-item" onclick="AdminApp.navigateTo('dashboard')">
+          <span class="material-icons-outlined">arrow_forward</span><span class="nav-text">رجوع للرئيسية</span>
+        </a>
+      </nav>
       <div class="sidebar-footer">
         <button class="btn btn-ghost btn-full" onclick="AdminApp.logout()">
           <span class="material-icons-outlined">logout</span>تسجيل الخروج
@@ -157,15 +190,6 @@
               <span class="material-icons-outlined" style="color:var(--primary);">domain</span>
               إدارة مؤسسة Jhome
             </h2>
-            <div class="jhome-nav" style="display:flex; gap:10px; background:var(--bg-card); padding:5px; border-radius:12px; border:1px solid var(--border); overflow-x: auto;">
-              <button class="btn btn-sm btn-primary jhome-tab-btn active" onclick="JhomeApp.showTab('blog')">المقالات</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('stories')">قصص النجاح</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('messages')">الرسائل</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">النشرة البريدية</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('pages')">محتوى الصفحات</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-payments')">حسابات الدفع (عام)</button>
-              <button class="btn btn-sm btn-ghost jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses')">الدورات التعليمية</button>
-            </div>
           </div>
 
           <!-- Jhome: Blog Tab -->

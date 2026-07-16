@@ -98,8 +98,24 @@ const AdminApp = {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('page-' + page).classList.add('active');
-    const navEl = document.querySelector(`[data-page="${page}"]`);
-    if (navEl) navEl.classList.add('active');
+
+    // Toggle Sidebars
+    if (page === 'jhome') {
+        const mainNav = document.getElementById('main-sidebar-nav');
+        if(mainNav) mainNav.style.display = 'none';
+        const jhomeNav = document.getElementById('jhome-sidebar-nav');
+        if(jhomeNav) jhomeNav.style.display = 'block';
+    } else {
+        const mainNav = document.getElementById('main-sidebar-nav');
+        if(mainNav) mainNav.style.display = 'block';
+        const jhomeNav = document.getElementById('jhome-sidebar-nav');
+        if(jhomeNav) jhomeNav.style.display = 'none';
+        
+        // Highlight active link in main sidebar
+        const navEl = document.querySelector(`#main-sidebar-nav [data-page="${page}"]`);
+        if (navEl) navEl.classList.add('active');
+    }
+
     const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
