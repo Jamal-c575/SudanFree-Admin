@@ -600,8 +600,11 @@ const JhomeApp = {
       });
 
       // 2. Generate and save instructor credentials
+      const baseStr = instName.replace(/\s+/g, '').toLowerCase();
+      const base = (baseStr || 'instructor') + Math.floor(Math.random() * 10000);
+      const instUsername = `${base}`;
       const password = Math.random().toString(36).slice(-8);
-      await jhomeDb.collection('courses_credentials').doc(instEmail).set({
+      await jhomeDb.collection('courses_credentials').doc(instUsername).set({
           password: password,
           courseId: courseRef.id,
           role: 'instructor'
@@ -611,7 +614,7 @@ const JhomeApp = {
       this.renderCourses();
       
       // Alert with credentials to send to the instructor
-      alert(`تم إضافة الدورة بنجاح!\n\nبيانات دخول المدرب:\nاسم المستخدم: ${instEmail}\nكلمة المرور: ${password}\n\nيرجى نسخها وإرسالها للمدرب.`);
+      alert(`تم إضافة الدورة بنجاح!\n\nبيانات دخول المدرب:\nاسم المستخدم: ${instUsername}\nكلمة المرور: ${password}\n\nيرجى نسخها وإرسالها للمدرب.`);
       showToast('تم إنشاء الدورة وتوليد حساب المدرب');
     } catch(err) {
       console.error(err);
@@ -912,14 +915,14 @@ const JhomeApp = {
       const fullname = document.getElementById('new-instructor-name').value;
       const baseStr = fullname.replace(/\s+/g, '').toLowerCase();
       const base = (baseStr || 'instructor') + Math.floor(Math.random() * 10000);
-      const email = `${base}@jhome.sd`;
+      const username = `${base}`;
       const password = Math.random().toString(36).slice(-8);
       
       try {
         showToast('جاري إنشاء الحساب...', 'info');
         
         // Add to courses_credentials collection directly
-        await jhomeDb.collection('courses_credentials').doc(email).set({
+        await jhomeDb.collection('courses_credentials').doc(username).set({
             fullname,
             password: password,
             role: 'instructor',
@@ -930,7 +933,7 @@ const JhomeApp = {
         document.getElementById('add-instructor-form').reset();
         
         // Let the user know the generated credentials
-        alert(`تم إضافة المشرف بنجاح!\n\nبيانات الدخول:\nاسم المستخدم: ${email}\nكلمة المرور: ${password}\n\nيرجى إرسالها للمشرف.`);
+        alert(`تم إضافة المشرف بنجاح!\n\nبيانات الدخول:\nاسم المستخدم: ${username}\nكلمة المرور: ${password}\n\nيرجى إرسالها للمشرف.`);
 
         this.renderCourseUsers();
         showToast('تم توليد حساب المشرف');
