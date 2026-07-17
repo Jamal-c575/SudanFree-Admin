@@ -1,0 +1,36 @@
+[debug] [2026-07-17T17:39:57.976Z] ----------------------------------------------------------------------
+[debug] [2026-07-17T17:39:57.979Z] Command:       /usr/bin/node /home/jamal/.npm/_npx/ba4f1959e38407b5/node_modules/.bin/firebase projects:list
+[debug] [2026-07-17T17:39:57.979Z] CLI Version:   15.24.0
+[debug] [2026-07-17T17:39:57.980Z] Platform:      linux
+[debug] [2026-07-17T17:39:57.980Z] Node Version:  v22.23.1
+[debug] [2026-07-17T17:39:57.980Z] Detected Agent: antigravity
+[debug] [2026-07-17T17:39:57.980Z] Time:          Fri Jul 17 2026 19:39:57 GMT+0200 (Central Africa Time)
+[debug] [2026-07-17T17:39:57.980Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-07-17T17:39:57.988Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-07-17T17:39:57.989Z] > authorizing via signed-in user (ja5009006@gmail.com)
+[debug] [2026-07-17T17:39:58.015Z] Checked if tokens are valid: false, expires at: 1784282886096
+[debug] [2026-07-17T17:39:58.016Z] Checked if tokens are valid: false, expires at: 1784282886096
+[debug] [2026-07-17T17:39:58.016Z] > refreshing access token with scopes: []
+[debug] [2026-07-17T17:39:58.019Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2026-07-17T17:39:58.019Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-17T17:40:08.801Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2026-07-17T17:40:08.802Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2026-07-17T17:40:08.810Z] >>> [apiv2][query] GET https://firebase.googleapis.com/v1beta1/projects pageSize=1000
+[debug] [2026-07-17T17:40:16.492Z] <<< [apiv2][status] GET https://firebase.googleapis.com/v1beta1/projects 200
+[debug] [2026-07-17T17:40:16.492Z] <<< [apiv2][body] GET https://firebase.googleapis.com/v1beta1/projects [omitted]
+[info] ┌──────────────────────┬─────────────────┬────────────────┬──────────────────────┐
+│ Project Display Name │ Project ID      │ Project Number │ Resource Location ID │
+├──────────────────────┼─────────────────┼────────────────┼──────────────────────┤
+│ Jhomeweb             │ jhomeweb-9ee56  │ 572713499787   │ [Not specified]      │
+├──────────────────────┼─────────────────┼────────────────┼──────────────────────┤
+│ SudanFree            │ sudanfree-d04fc │ 233114260      │ [Not specified]      │
+└──────────────────────┴─────────────────┴────────────────┴──────────────────────┘
+[info] 
+[info] 2 project(s) total.
+[debug] [2026-07-17T17:40:26.528Z] Error: Timed out.
+    at Timeout._onTimeout (/home/jamal/.npm/_npx/ba4f1959e38407b5/node_modules/firebase-tools/lib/utils.js:296:49)
+    at listOnTimeout (node:internal/timers:585:17)
+    at process.processTimers (node:internal/timers:521:7)
+[error] 
+[error] Error: An unexpected error has occurred.

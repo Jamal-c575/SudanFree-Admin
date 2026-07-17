@@ -1007,6 +1007,15 @@
         <div class="form-group full-width" style="display: flex; align-items: center; gap: 10px;">
           <input type="checkbox" id="jcourse-is-paid" checked> <label for="jcourse-is-paid" style="margin:0;">دورة مدفوعة؟</label>
         </div>
+        
+        <hr style="margin: 1rem 0; border: none; border-top: 1px solid var(--border);">
+        <h4 style="margin-bottom: 1rem; color: var(--primary);">بيانات المدرب</h4>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group"><label>اسم المدرب</label><input type="text" id="jcourse-instructor-name" class="text-input" placeholder="مثال: م. جمال"></div>
+          <div class="form-group"><label>البريد الإلكتروني (لتسجيل الدخول)</label><input type="email" id="jcourse-instructor-email" class="text-input" placeholder="مثال: jamal@jhome.com" dir="ltr"></div>
+        </div>
+        <div class="form-group full-width"><label>التخصص</label><input type="text" id="jcourse-instructor-specialty" class="text-input" placeholder="مثال: مهندس برمجيات وخبير تواصل"></div>
+        <div class="form-group full-width"><label>نبذة عن المدرب</label><textarea id="jcourse-instructor-bio" class="text-input" rows="3" placeholder="نبذة قصيرة تظهر للطلاب..."></textarea></div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="JhomeApp.addCourse(event)">حفظ الدورة</button>

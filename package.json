@@ -1,0 +1,23 @@
+{
+  "name": "sudanfree-admin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jamal-c575/SudanFree-Admin.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jamal-c575/SudanFree-Admin/issues"
+  },
+  "homepage": "https://github.com/Jamal-c575/SudanFree-Admin#readme",
+  "dependencies": {
+    "htmlparser2": "^12.0.0"
+  }
+}

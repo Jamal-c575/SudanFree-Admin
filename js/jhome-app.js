@@ -569,14 +569,20 @@ const JhomeApp = {
     const cover = document.getElementById('jcourse-cover-url').value.trim() || 'assets/images/courses/web_dev_cover.png';
     const description = document.getElementById('jcourse-desc').value.trim();
     const isPaid = document.getElementById('jcourse-is-paid').checked;
+
+    const instName = document.getElementById('jcourse-instructor-name').value.trim();
+    const instEmail = document.getElementById('jcourse-instructor-email').value.trim();
+    const instSpecialty = document.getElementById('jcourse-instructor-specialty').value.trim();
+    const instBio = document.getElementById('jcourse-instructor-bio').value.trim();
     
-    if (!title || !duration) {
-        showToast('الرجاء إدخال اسم الدورة والمدة', 'error');
+    if (!title || !duration || !instEmail) {
+        showToast('الرجاء إدخال اسم الدورة، المدة، والبريد الإلكتروني للمدرب', 'error');
         return;
     }
 
     try {
-      await jhomeDb.collection('courses').add({
+      // 1. Add the course
+      const courseRef = await jhomeDb.collection('courses').add({
           title,
           duration,
           status,
@@ -585,11 +591,28 @@ const JhomeApp = {
           icon: 'fa-book',
           cover,
           description,
+          instructor: instName,
+          instructorEmail: instEmail,
+          instructorSpecialty: instSpecialty,
+          instructorBio: instBio,
+          instructorPhoto: 'assets/images/courses/instructor.png', // Default
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
+
+      // 2. Generate and save instructor credentials
+      const password = Math.random().toString(36).slice(-8);
+      await jhomeDb.collection('courses_credentials').doc(instEmail).set({
+          password: password,
+          courseId: courseRef.id,
+          role: 'instructor'
+      });
+
       AdminApp.closeModal('jhome-course-modal');
       this.renderCourses();
-      showToast('تم إنشاء الدورة بنجاح');
+      
+      // Alert with credentials to send to the instructor
+      alert(`تم إضافة الدورة بنجاح!\n\nبيانات دخول المدرب:\nاسم المستخدم: ${instEmail}\nكلمة المرور: ${password}\n\nيرجى نسخها وإرسالها للمدرب.`);
+      showToast('تم إنشاء الدورة وتوليد حساب المدرب');
     } catch(err) {
       console.error(err);
       showToast('حدث خطأ أثناء إضافة الدورة', 'error');
@@ -683,19 +706,15 @@ const JhomeApp = {
         // Generate credentials
         const baseStr = studentName.replace(/\s+/g, '').toLowerCase();
         const base = (baseStr || 'student') + Math.floor(Math.random() * 10000);
-        const email = `${base}@jhome.sd`;
+        const username = `${base}`; // Using simple username instead of email for students
         const password = Math.random().toString(36).slice(-8); // 8 char random password
         
-        // Create Auth User
         showToast('جاري إنشاء الحساب...', 'info');
-        const userCredential = await jhomeAuthCreator.createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
 
-        // Add to users collection
-        await jhomeDb.collection('users').doc(uid).set({
+        // Add to courses_credentials collection instead of Firebase Auth
+        await jhomeDb.collection('courses_credentials').doc(username).set({
+            password: password,
             fullname: studentName,
-            email: email,
-            password: password, // Storing temporarily so Admin can copy and send
             role: 'student',
             courseId: this.currentCourseId,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -704,6 +723,9 @@ const JhomeApp = {
         // Update request status
         await jhomeDb.collection('enrollmentRequests').doc(reqId).update({ status: 'approved' });
         
+        // Show credentials to admin
+        alert(`تم قبول الطالب بنجاح!\n\nبيانات دخول الطالب:\nاسم المستخدم: ${username}\nكلمة المرور: ${password}\n\nيرجى إرسالها للطالب.`);
+
         showToast('تم قبول الطالب وتوليد الحساب بنجاح!');
         this.renderCourseRequests();
         this.renderCourseUsers();
