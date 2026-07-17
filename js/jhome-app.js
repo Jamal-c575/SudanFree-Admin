@@ -876,7 +876,7 @@ const JhomeApp = {
       tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">جاري التحميل...</td></tr>';
       
       try {
-        const snap = await jhomeDb.collection('users').where('courseId', '==', courseId).get();
+        const snap = await jhomeDb.collection('courses_credentials').where('courseId', '==', courseId).get();
         tbody.innerHTML = '';
         if (snap.empty) {
             tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
@@ -905,7 +905,7 @@ const JhomeApp = {
       }
   },
 
-  async addCourseInstructor(e) {
+    async addCourseInstructor(e) {
       e.preventDefault();
       const courseId = this.currentCourseId;
       if (!courseId) return;
@@ -917,18 +917,21 @@ const JhomeApp = {
       
       try {
         showToast('جاري إنشاء الحساب...', 'info');
-        const userCredential = await jhomeAuthCreator.createUserWithEmailAndPassword(email, password);
-        const uid = userCredential.user.uid;
-
-        await jhomeDb.collection('users').doc(uid).set({
+        
+        // Add to courses_credentials collection directly
+        await jhomeDb.collection('courses_credentials').doc(email).set({
             fullname,
-            email: email,
             password: password,
             role: 'instructor',
             courseId: courseId,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
+
         document.getElementById('add-instructor-form').reset();
+        
+        // Let the user know the generated credentials
+        alert(`تم إضافة المشرف بنجاح!\n\nبيانات الدخول:\nاسم المستخدم: ${email}\nكلمة المرور: ${password}\n\nيرجى إرسالها للمشرف.`);
+
         this.renderCourseUsers();
         showToast('تم توليد حساب المشرف');
       } catch(e) {
@@ -939,7 +942,7 @@ const JhomeApp = {
   async deleteCourseUser(userId) {
       if(confirm('حذف هذا المستخدم من الدورة؟')) {
           try {
-            await jhomeDb.collection('users').doc(userId).delete();
+            await jhomeDb.collection('courses_credentials').doc(userId).delete();
             this.renderCourseUsers();
             showToast('تم الحذف');
           } catch(e) {
