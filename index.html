@@ -277,31 +277,9 @@
             <!-- 1. Courses List View -->
             <div id="academy-courses-list">
                 <div class="card" style="margin-bottom: 2rem;">
-                  <div class="card-header">
-                    <h3>إنشاء دورة تعليمية جديدة</h3>
-                  </div>
-                  <div class="card-body">
-                      <form id="add-course-form" onsubmit="JhomeApp.addCourse(event)" style="display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 1rem; align-items: end;">
-                          <div class="input-group">
-                              <label style="display:block; margin-bottom: 5px;">اسم الدورة</label>
-                              <input type="text" id="new-course-title" required placeholder="مثال: دورة التسويق الرقمي">
-                          </div>
-                          <div class="input-group">
-                              <label style="display:block; margin-bottom: 5px;">المدة (أيام)</label>
-                              <input type="number" id="new-course-duration" required placeholder="مثال: 30" min="1">
-                          </div>
-                          <div class="input-group">
-                              <label style="display:block; margin-bottom: 5px;">الحالة</label>
-                              <select id="new-course-status" class="filter-select" style="width: 100%;">
-                                  <option value="open">مفتوحة للتسجيل</option>
-                                  <option value="ongoing">جارية</option>
-                                  <option value="closed">مغلقة</option>
-                              </select>
-                          </div>
-                          <button type="submit" class="btn btn-primary" style="height: 42px; display: flex; align-items: center; justify-content: center; gap: 5px;">
-                              <span class="material-icons-outlined">add_task</span> إنشاء دورة
-                          </button>
-                      </form>
+                  <div class="card-header" style="display:flex; justify-content:space-between;">
+                    <h3>قائمة الدورات التعليمية</h3>
+                    <button class="btn btn-primary" onclick="JhomeApp.showCourseModal()"><span class="material-icons-outlined">add</span> دورة جديدة</button>
                   </div>
                 </div>
 
@@ -368,10 +346,9 @@
                             <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">meeting_room</span>غرف الدورة</h3>
                         </div>
                         <div class="card-body">
-                            <form id="add-room-form" onsubmit="JhomeApp.addCourseRoom(event)" style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                                <input type="text" id="new-room-name" placeholder="اسم الغرفة (مثال: محاضرة 1)" required style="flex: 1;" class="text-input">
-                                <button type="submit" class="btn btn-secondary">إنشاء غرفة</button>
-                            </form>
+                            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+                                <button class="btn btn-secondary" onclick="JhomeApp.showRoomModal()"><span class="material-icons-outlined">add</span> إضافة درس/غرفة جديدة</button>
+                            </div>
                             <ul id="course-rooms-list" style="list-style: none; padding: 0; margin: 0;">
                                 <!-- Populated by JS -->
                             </ul>
@@ -986,6 +963,7 @@
         <div class="form-group full-width"><label>العنوان الوظيفي / المهنة</label><input type="text" id="jstory-role" class="text-input" placeholder="مطور تطبيقات..."></div>
         <div class="form-group full-width"><label>أهم إنجاز (سطر واحد)</label><input type="text" id="jstory-achievement" class="text-input" placeholder="إنجاز 100 مشروع عبر المنصة"></div>
         <div class="form-group full-width"><label>تفاصيل قصة النجاح</label><textarea id="jstory-content" class="text-input" rows="5" placeholder="تفاصيل القصة كاملة..."></textarea></div>
+        <div class="form-group full-width"><label>رابط ملف الحرفي في التطبيق (اختياري)</label><input type="url" id="jstory-freelancer-link" class="text-input" placeholder="https://app.sudanfree.com/user/123..." dir="ltr"></div>
         <div class="form-group full-width">
           <label>الصورة الشخصية (رفع صورة أو لصق رابط)</label>
           <div style="display:flex; gap:10px;">
@@ -996,6 +974,75 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="JhomeApp.saveStory()">نشر القصة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome Course Modal -->
+  <div id="jhome-course-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-course-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>إضافة دورة تعليمية</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-course-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>اسم الدورة</label><input type="text" id="jcourse-title" class="text-input" placeholder="مثال: دورة التسويق الرقمي"></div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group"><label>المدة (أيام)</label><input type="number" id="jcourse-duration" class="text-input" placeholder="مثال: 30" min="1"></div>
+          <div class="form-group">
+            <label>الحالة</label>
+            <select id="jcourse-status" class="filter-select" style="width: 100%; height: 42px;">
+                <option value="open">مفتوحة للتسجيل</option>
+                <option value="ongoing">جارية</option>
+                <option value="closed">مغلقة</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group full-width">
+          <label>غلاف الدورة (رابط صورة)</label>
+          <input type="text" id="jcourse-cover-url" class="text-input" placeholder="https://..." dir="ltr">
+        </div>
+        <div class="form-group full-width"><label>وصف الدورة</label><textarea id="jcourse-desc" class="text-input" rows="4" placeholder="وصف كامل للدورة..."></textarea></div>
+        <div class="form-group full-width" style="display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="jcourse-is-paid" checked> <label for="jcourse-is-paid" style="margin:0;">دورة مدفوعة؟</label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.addCourse(event)">حفظ الدورة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome Room Modal -->
+  <div id="jhome-room-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-room-modal')"></div>
+    <div class="modal-content modal-md">
+      <div class="modal-header">
+        <h3>إضافة درس/غرفة جديدة</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-room-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>اسم الدرس/الغرفة</label><input type="text" id="jroom-name" class="text-input" placeholder="مثال: الدرس الأول - مقدمة"></div>
+        <div class="form-group full-width">
+            <label>نوع الغرفة</label>
+            <select id="jroom-type" class="filter-select" style="width: 100%; height: 42px;" onchange="document.getElementById('jroom-video-container').style.display = this.value === 'recorded' ? 'block' : 'none'">
+                <option value="live">بث مباشر</option>
+                <option value="recorded">فيديو مسجل</option>
+            </select>
+        </div>
+        <div class="form-group full-width" id="jroom-video-container" style="display:none;">
+            <label>الفيديو (رابط خارجي أو ملف)</label>
+            <div style="display: flex; gap: 10px;">
+                <input type="text" id="jroom-video-url" class="text-input" placeholder="https://youtube.com/... أو رابط MP4" dir="ltr" style="flex: 1;">
+                <input type="file" id="jroom-video-file" class="text-input" accept="video/mp4,video/x-m4v,video/*" style="flex: 1;">
+            </div>
+            <small class="text-muted" style="display:block; margin-top:5px;">يمكنك وضع رابط مباشر أو رفع ملف فيديو من جهازك.</small>
+        </div>
+        <div class="form-group full-width"><label>المصادر والمرفقات</label><textarea id="jroom-sources" class="text-input" rows="3" placeholder="روابط للمصادر أو المرفقات..."></textarea></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.addCourseRoom(event)">حفظ الدرس</button>
       </div>
     </div>
   </div>

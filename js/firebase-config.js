@@ -26,6 +26,10 @@ const jhomeFirebaseConfig = {
 
 firebase.initializeApp(jhomeFirebaseConfig, "jhome");
 const jhomeDb = firebase.app("jhome").firestore();
+
+// Third App specifically for Auth creation (so we don't log out the admin)
+firebase.initializeApp(jhomeFirebaseConfig, "jhomeAuthCreator");
+const jhomeAuthCreator = firebase.app("jhomeAuthCreator").auth();
 const storage = firebase.storage();
 const functions = firebase.functions();
 const deleteUserAccount = functions.httpsCallable('deleteUserAccount');

@@ -385,6 +385,7 @@ const JhomeApp = {
     document.getElementById('jstory-role').value = '';
     document.getElementById('jstory-achievement').value = '';
     document.getElementById('jstory-content').value = '';
+    document.getElementById('jstory-freelancer-link').value = '';
     document.getElementById('jstory-cover-url').value = '';
     document.getElementById('jstory-cover-file').value = '';
     document.getElementById('jhome-story-modal').style.display = 'flex';
@@ -395,6 +396,7 @@ const JhomeApp = {
     const personRole = document.getElementById('jstory-role').value.trim();
     const keyAchievement = document.getElementById('jstory-achievement').value.trim();
     const story = document.getElementById('jstory-content').value.trim();
+    const freelancerLink = document.getElementById('jstory-freelancer-link').value.trim();
     let coverImage = document.getElementById('jstory-cover-url').value.trim();
     
     const fileInput = document.getElementById('jstory-cover-file');
@@ -419,6 +421,7 @@ const JhomeApp = {
         story,
         coverImage,
         personAvatar: coverImage,
+        freelancerLink,
         isPublished: true,
         category: 'general',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -548,29 +551,47 @@ const JhomeApp = {
     }
   },
 
+  showCourseModal() {
+    document.getElementById('jcourse-title').value = '';
+    document.getElementById('jcourse-duration').value = '';
+    document.getElementById('jcourse-status').value = 'open';
+    document.getElementById('jcourse-cover-url').value = '';
+    document.getElementById('jcourse-desc').value = '';
+    document.getElementById('jcourse-is-paid').checked = true;
+    document.getElementById('jhome-course-modal').style.display = 'flex';
+  },
+
   async addCourse(e) {
-    e.preventDefault();
-    const title = document.getElementById('new-course-title').value;
-    const duration = document.getElementById('new-course-duration').value;
-    const status = document.getElementById('new-course-status').value;
+    if (e) e.preventDefault();
+    const title = document.getElementById('jcourse-title').value.trim();
+    const duration = document.getElementById('jcourse-duration').value.trim();
+    const status = document.getElementById('jcourse-status').value.trim();
+    const cover = document.getElementById('jcourse-cover-url').value.trim() || 'assets/images/courses/web_dev_cover.png';
+    const description = document.getElementById('jcourse-desc').value.trim();
+    const isPaid = document.getElementById('jcourse-is-paid').checked;
     
+    if (!title || !duration) {
+        showToast('الرجاء إدخال اسم الدورة والمدة', 'error');
+        return;
+    }
+
     try {
       await jhomeDb.collection('courses').add({
           title,
           duration,
           status,
-          isPaid: true,
+          isPaid,
           color: '#4F46E5',
           icon: 'fa-book',
-          cover: 'assets/images/courses/web_dev_cover.png', // Default
-          description: '',
+          cover,
+          description,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      document.getElementById('add-course-form').reset();
+      AdminApp.closeModal('jhome-course-modal');
       this.renderCourses();
       showToast('تم إنشاء الدورة بنجاح');
-    } catch(e) {
-      console.error(e);
+    } catch(err) {
+      console.error(err);
       showToast('حدث خطأ أثناء إضافة الدورة', 'error');
     }
   },
@@ -660,13 +681,21 @@ const JhomeApp = {
   async approveCourseRequest(reqId, studentName) {
       try {
         // Generate credentials
-        const base = studentName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
+        const baseStr = studentName.replace(/\s+/g, '').toLowerCase();
+        const base = (baseStr || 'student') + Math.floor(Math.random() * 10000);
+        const email = `${base}@jhome.sd`;
+        const password = Math.random().toString(36).slice(-8); // 8 char random password
         
+        // Create Auth User
+        showToast('جاري إنشاء الحساب...', 'info');
+        const userCredential = await jhomeAuthCreator.createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+
         // Add to users collection
-        await jhomeDb.collection('users').add({
+        await jhomeDb.collection('users').doc(uid).set({
             fullname: studentName,
-            username: base,
-            password: base,
+            email: email,
+            password: password, // Storing temporarily so Admin can copy and send
             role: 'student',
             courseId: this.currentCourseId,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -696,6 +725,66 @@ const JhomeApp = {
       }
   },
 
+  showRoomModal() {
+      document.getElementById('jroom-name').value = '';
+      document.getElementById('jroom-type').value = 'live';
+      document.getElementById('jroom-video-container').style.display = 'none';
+      document.getElementById('jroom-video-url').value = '';
+      document.getElementById('jroom-video-file').value = '';
+      document.getElementById('jroom-sources').value = '';
+      document.getElementById('jhome-room-modal').style.display = 'flex';
+  },
+
+  async addCourseRoom(e) {
+      if(e) e.preventDefault();
+      const course = this.currentCourseData;
+      if (!course) return;
+      
+      const roomName = document.getElementById('jroom-name').value.trim();
+      const roomType = document.getElementById('jroom-type').value;
+      let videoUrl = document.getElementById('jroom-video-url').value.trim();
+      const videoFile = document.getElementById('jroom-video-file').files[0];
+      const sources = document.getElementById('jroom-sources').value.trim();
+
+      if(!roomName) {
+          showToast('الرجاء إدخال اسم الدرس', 'error');
+          return;
+      }
+
+      if (roomType === 'recorded' && !videoUrl && !videoFile) {
+          showToast('الرجاء إدخال رابط أو اختيار ملف فيديو', 'error');
+          return;
+      }
+      
+      try {
+        if (roomType === 'recorded' && videoFile) {
+            showToast('جاري رفع الفيديو...', 'info');
+            const fileRef = storage.ref(`courses/${course.id}/rooms/${Date.now()}_${videoFile.name}`);
+            await fileRef.put(videoFile);
+            videoUrl = await fileRef.getDownloadURL();
+        }
+
+        const newRoom = { 
+            id: 'room-' + Date.now(), 
+            name: roomName,
+            type: roomType,
+            videoUrl: roomType === 'recorded' ? videoUrl : '',
+            sources: sources
+        };
+        
+        const updatedRooms = [...(course.rooms || []), newRoom];
+        
+        await jhomeDb.collection('courses').doc(course.id).update({ rooms: updatedRooms });
+        this.currentCourseData.rooms = updatedRooms;
+        AdminApp.closeModal('jhome-room-modal');
+        this.renderCourseRooms();
+        showToast('تمت إضافة الدرس/الغرفة بنجاح');
+      } catch(err) {
+        console.error(err);
+        showToast('حدث خطأ أثناء الإضافة', 'error');
+      }
+  },
+
   // Rooms
   renderCourseRooms() {
       const course = this.currentCourseData;
@@ -707,9 +796,16 @@ const JhomeApp = {
           return;
       }
       course.rooms.forEach(room => {
+          const typeBadge = room.type === 'recorded' 
+              ? '<span class="badge" style="background:rgba(59,130,246,0.1);color:#3B82F6;font-size:0.7rem;padding:2px 6px;">مسجل</span>' 
+              : '<span class="badge" style="background:rgba(239,68,68,0.1);color:#EF4444;font-size:0.7rem;padding:2px 6px;">مباشر</span>';
+              
           list.innerHTML += `
               <li style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: var(--bg-card); margin-bottom: 5px; border-radius: 8px;">
-                  <span>${room.name}</span>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                      <span>${room.name}</span>
+                      ${typeBadge}
+                  </div>
                   <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseRoom('${room.id}')">حذف</button>
               </li>
           `;
@@ -773,7 +869,7 @@ const JhomeApp = {
             tbody.innerHTML += `
                 <tr style="border-bottom: 1px solid var(--border);">
                     <td style="padding: 0.5rem;">${user.fullname}</td>
-                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.username}</td>
+                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.email || user.username}</td>
                     <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
                     <td style="padding: 0.5rem;">${roleBadge}</td>
                     <td style="padding: 0.5rem;">
@@ -792,13 +888,20 @@ const JhomeApp = {
       const courseId = this.currentCourseId;
       if (!courseId) return;
       const fullname = document.getElementById('new-instructor-name').value;
-      const base = fullname.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 100);
+      const baseStr = fullname.replace(/\s+/g, '').toLowerCase();
+      const base = (baseStr || 'instructor') + Math.floor(Math.random() * 10000);
+      const email = `${base}@jhome.sd`;
+      const password = Math.random().toString(36).slice(-8);
       
       try {
-        await jhomeDb.collection('users').add({
+        showToast('جاري إنشاء الحساب...', 'info');
+        const userCredential = await jhomeAuthCreator.createUserWithEmailAndPassword(email, password);
+        const uid = userCredential.user.uid;
+
+        await jhomeDb.collection('users').doc(uid).set({
             fullname,
-            username: base,
-            password: base,
+            email: email,
+            password: password,
             role: 'instructor',
             courseId: courseId,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
