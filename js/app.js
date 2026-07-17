@@ -1767,6 +1767,17 @@ auth.onAuthStateChanged(async user => {
     if (doc.exists && doc.data().role === 'admin') {
       AdminApp.showDashboard(doc.data().name || 'المشرف');
       AdminApp.loadNotifHistory();
+      
+      // Auto-sync Jhome auth silently to prevent forced logouts on page refresh
+      const jhomeAuth = firebase.app('jhome').auth();
+      if (!jhomeAuth.currentUser && user.email === 'ja5009006@gmail.com') {
+        try {
+          await jhomeAuth.signInWithEmailAndPassword('ja5009006@gmail.com', 'Jamal@www20');
+        } catch (e) {
+          console.warn("Auto-sync Jhome login failed:", e);
+        }
+      }
+      
     } else {
       AdminApp.logout();
     }

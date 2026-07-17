@@ -22,9 +22,20 @@ const JhomeApp = {
     // Show selected tab
     document.getElementById(`jhome-tab-${tabId}`).style.display = 'block';
 
-    // Check if Jhome is authenticated
+    // Check if Jhome is authenticated and auto-login if needed
     if (!firebase.app('jhome').auth().currentUser) {
-      showToast('⚠️ تحذير: حساب Jhome غير متصل! يرجى تسجيل الخروج بالكامل ثم الدخول مجدداً.', 'error');
+      const mainUser = firebase.auth().currentUser;
+      if (mainUser && mainUser.email === 'ja5009006@gmail.com') {
+        firebase.app('jhome').auth().signInWithEmailAndPassword('ja5009006@gmail.com', 'Jamal@www20')
+          .then(() => {
+            console.log("Jhome auto-login successful.");
+          })
+          .catch(err => {
+            showToast('⚠️ تحذير: فشل الاتصال بحساب Jhome تلقائياً.', 'error');
+          });
+      } else {
+        showToast('⚠️ تحذير: حساب Jhome غير متصل! يرجى تسجيل الخروج بالكامل ثم الدخول مجدداً.', 'error');
+      }
     }
 
     // Load data based on tab
