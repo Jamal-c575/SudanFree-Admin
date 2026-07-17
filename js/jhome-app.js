@@ -891,17 +891,25 @@ const JhomeApp = {
             const roleBadge = user.role === 'instructor' 
                 ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مشرف</span>'
                 : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
+            const displayName = user.fullname || doc.id;
             tbody.innerHTML += `
                 <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.5rem;">${user.fullname}</td>
-                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.email || user.username}</td>
+                    <td style="padding: 0.5rem;">${displayName}</td>
+                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${doc.id}</td>
                     <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
                     <td style="padding: 0.5rem;">${roleBadge}</td>
                     <td style="padding: 0.5rem;">
-                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseUser('${doc.id}')">حذف</button>
+                        <button class="btn btn-sm btn-danger jhome-delete-user-btn" data-userid="${doc.id}">حذف</button>
                     </td>
                 </tr>
             `;
+        });
+
+        // Attach delete event listeners after rendering (avoids special char issues in onclick)
+        tbody.querySelectorAll('.jhome-delete-user-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                JhomeApp.deleteCourseUser(btn.getAttribute('data-userid'));
+            });
         });
       } catch(e) {
         console.error(e);
