@@ -86,6 +86,132 @@ const AdminApp = {
       console.error('Error loading localities:', e);
     }
   },
+
+  // ── Academy Features ──
+  async getAcademyAccounts() {
+    const snap = await jhomeDb.collection('bankAccounts').get();
+    if (snap.empty) {
+      return [
+          { id: '1', bankName: 'بنكك', accountName: 'جمال أحمد', accountNumber: '123456789' },
+          { id: '2', bankName: 'فوري', accountName: 'جمال أحمد', accountNumber: '987654321' }
+      ];
+    }
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+  
+  async renderAcademyAccounts() {
+    const list = document.getElementById('bank-accounts-list');
+    if (!list) return;
+    list.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
+    
+    const accounts = await this.getAcademyAccounts();
+    list.innerHTML = '';
+    if (accounts.length === 0) {
+        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد حسابات</td></tr>';
+        return;
+    }
+    accounts.forEach(acc => {
+        list.innerHTML += `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">${acc.bankName}</td>
+                <td style="padding: 1rem;">${acc.accountName}</td>
+                <td style="padding: 1rem; font-family: monospace;">${acc.accountNumber}</td>
+                <td style="padding: 1rem;">
+                    <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyAccount('${acc.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+  },
+
+  async addAcademyAccount(e) {
+    e.preventDefault();
+    const bankName = document.getElementById('new-bank-name').value;
+    const accName = document.getElementById('new-account-name').value;
+    const accNum = document.getElementById('new-account-number').value;
+    
+    await jhomeDb.collection('bankAccounts').add({ bankName, accountName: accName, accountNumber: accNum });
+    
+    document.getElementById('add-bank-form').reset();
+    this.renderAcademyAccounts();
+  },
+
+  async deleteAcademyAccount(id) {
+    if (confirm('حذف هذا الحساب؟')) {
+        if (id === '1' || id === '2') {
+           showToast('لا يمكن حذف الحسابات الافتراضية بهذه الطريقة، تمت إضافتها للعرض فقط', 'error');
+           return;
+        }
+        await jhomeDb.collection('bankAccounts').doc(id).delete();
+        this.renderAcademyAccounts();
+    }
+  },
+
+  async getAcademyUsers() {
+    const snap = await jhomeDb.collection('academyUsers').get();
+    if (snap.empty) {
+        return [
+            { id: 'admin-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
+        ];
+    }
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  },
+
+  async renderAcademyUsers() {
+    const list = document.getElementById('users-list');
+    if (!list) return;
+    list.innerHTML = '<tr><td colspan="5" style="text-align: center;">جاري التحميل...</td></tr>';
+
+    const users = await this.getAcademyUsers();
+    list.innerHTML = '';
+    if (users.length === 0) {
+        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
+        return;
+    }
+    users.forEach(user => {
+        const roleBadge = user.role === 'instructor' 
+            ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مدرب / مشرف</span>'
+            : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
+        
+        list.innerHTML += `
+            <tr style="border-bottom: 1px solid var(--border);">
+                <td style="padding: 1rem;">${user.fullname}</td>
+                <td style="padding: 1rem; font-family: monospace; color: var(--primary);">${user.username}</td>
+                <td style="padding: 1rem; font-family: monospace;">${user.password}</td>
+                <td style="padding: 1rem;">${roleBadge}</td>
+                <td style="padding: 1rem;">
+                    <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyUser('${user.id}')">حذف</button>
+                </td>
+            </tr>
+        `;
+    });
+  },
+
+  async addAcademyUser(e) {
+    e.preventDefault();
+    const fullname = document.getElementById('new-user-fullname').value;
+    const role = document.getElementById('new-user-role').value;
+    const base = fullname.replace(/\s+/g, '').toLowerCase();
+    
+    await jhomeDb.collection('academyUsers').add({
+        fullname,
+        username: base,
+        password: base,
+        role
+    });
+    
+    document.getElementById('add-user-form').reset();
+    this.renderAcademyUsers();
+  },
+
+  async deleteAcademyUser(id) {
+    if (confirm('حذف هذا المستخدم؟')) {
+        if (id === 'admin-1') return;
+        await jhomeDb.collection('academyUsers').doc(id).delete();
+        this.renderAcademyUsers();
+    }
+  },
+
   populateLocalityDropdowns() {
     const ids = ['ad-locality', 'notif-locality'];
     ids.forEach(id => {

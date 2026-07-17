@@ -504,205 +504,205 @@ const JhomeApp = {
 
   // ── Academy Course Management ──
   currentCourseId: null,
+  currentCourseData: null,
 
-  getCourses() {
-    const stored = localStorage.getItem('jhome_courses');
-    if (!stored) {
-        // Default dummy data
-        const defaultCourses = [
-            {
-                id: 'course-1',
-                title: 'دورة التسويق الرقمي',
-                duration: 30,
-                status: 'open',
-                requests: [
-                    { id: 'req-1', studentName: 'أحمد محمد', receiptId: '112233', phone: '0123456789' }
-                ],
-                rooms: [
-                    { id: 'room-1', name: 'غرفة المحاضرة 1' }
-                ],
-                users: [
-                    { id: 'inst-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
-                ]
-            }
-        ];
-        localStorage.setItem('jhome_courses', JSON.stringify(defaultCourses));
-        return defaultCourses;
-    }
-    return JSON.parse(stored);
-  },
-
-  saveCourses(courses) {
-    localStorage.setItem('jhome_courses', JSON.stringify(courses));
-  },
-
-  renderCourses() {
+  async renderCourses() {
     const list = document.getElementById('courses-list-tbody');
     if (!list) return;
-    const courses = this.getCourses();
-    list.innerHTML = '';
+    list.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
     
-    if (courses.length === 0) {
-        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد دورات حالياً</td></tr>';
-        return;
+    try {
+      const snap = await jhomeDb.collection('courses').orderBy('createdAt', 'desc').get();
+      list.innerHTML = '';
+      
+      if (snap.empty) {
+          list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد دورات حالياً</td></tr>';
+          return;
+      }
+
+      const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
+      const statusColor = { 'open': 'var(--primary)', 'ongoing': 'var(--warning)', 'closed': 'var(--danger)' };
+
+      snap.docs.forEach(doc => {
+          const course = doc.data();
+          course.id = doc.id;
+          list.innerHTML += `
+              <tr style="border-bottom: 1px solid var(--border);">
+                  <td style="padding: 1rem;">${course.title}</td>
+                  <td style="padding: 1rem;">${course.duration || ''}</td>
+                  <td style="padding: 1rem;">
+                      <span style="color: ${statusColor[course.status] || '#fff'}; font-weight: bold;">
+                          ${statusMap[course.status] || course.status}
+                      </span>
+                  </td>
+                  <td style="padding: 1rem;">
+                      <button class="btn btn-sm btn-secondary" onclick="JhomeApp.openCourse('${course.id}')">إدارة الدورة</button>
+                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${course.id}')">حذف</button>
+                  </td>
+              </tr>
+          `;
+      });
+    } catch(e) {
+      console.error(e);
+      list.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">حدث خطأ أثناء جلب الدورات</td></tr>';
     }
-
-    const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
-    const statusColor = { 'open': 'var(--primary)', 'ongoing': 'var(--warning)', 'closed': 'var(--danger)' };
-
-    courses.forEach(course => {
-        list.innerHTML += `
-            <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 1rem;">${course.title}</td>
-                <td style="padding: 1rem;">${course.duration} يوم</td>
-                <td style="padding: 1rem;">
-                    <span style="color: ${statusColor[course.status] || '#fff'}; font-weight: bold;">
-                        ${statusMap[course.status] || course.status}
-                    </span>
-                </td>
-                <td style="padding: 1rem;">
-                    <button class="btn btn-sm btn-secondary" onclick="JhomeApp.openCourse('${course.id}')">إدارة الدورة</button>
-                    <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${course.id}')">حذف</button>
-                </td>
-            </tr>
-        `;
-    });
   },
 
-  addCourse(e) {
+  async addCourse(e) {
     e.preventDefault();
     const title = document.getElementById('new-course-title').value;
     const duration = document.getElementById('new-course-duration').value;
     const status = document.getElementById('new-course-status').value;
     
-    const courses = this.getCourses();
-    courses.push({
-        id: 'course-' + Date.now(),
-        title,
-        duration: parseInt(duration),
-        status,
-        requests: [],
-        rooms: [],
-        users: []
-    });
-    this.saveCourses(courses);
-    document.getElementById('add-course-form').reset();
-    this.renderCourses();
-    showToast('تم إنشاء الدورة بنجاح');
-  },
-
-  deleteCourse(id) {
-    if (confirm('هل أنت متأكد من حذف هذه الدورة بالكامل مع بياناتها؟')) {
-        let courses = this.getCourses();
-        courses = courses.filter(c => c.id !== id);
-        this.saveCourses(courses);
-        this.renderCourses();
+    try {
+      await jhomeDb.collection('courses').add({
+          title,
+          duration,
+          status,
+          isPaid: true,
+          color: '#4F46E5',
+          icon: 'fa-book',
+          cover: 'assets/images/courses/web_dev_cover.png', // Default
+          description: '',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      document.getElementById('add-course-form').reset();
+      this.renderCourses();
+      showToast('تم إنشاء الدورة بنجاح');
+    } catch(e) {
+      console.error(e);
+      showToast('حدث خطأ أثناء إضافة الدورة', 'error');
     }
   },
 
-  openCourse(id) {
+  async deleteCourse(id) {
+    if (confirm('هل أنت متأكد من حذف هذه الدورة بالكامل مع بياناتها؟')) {
+      try {
+        await jhomeDb.collection('courses').doc(id).delete();
+        this.renderCourses();
+        showToast('تم الحذف بنجاح');
+      } catch(e) {
+        showToast('حدث خطأ أثناء الحذف', 'error');
+      }
+    }
+  },
+
+  async openCourse(id) {
       this.currentCourseId = id;
-      const courses = this.getCourses();
-      const course = courses.find(c => c.id === id);
-      if (!course) return;
+      try {
+        const doc = await jhomeDb.collection('courses').doc(id).get();
+        if (!doc.exists) return;
+        const course = doc.data();
+        course.id = doc.id;
+        this.currentCourseData = course;
 
-      document.getElementById('academy-courses-list').style.display = 'none';
-      document.getElementById('academy-course-details').style.display = 'block';
+        document.getElementById('academy-courses-list').style.display = 'none';
+        document.getElementById('academy-course-details').style.display = 'block';
 
-      const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
-      document.getElementById('detail-course-title').textContent = course.title;
-      document.getElementById('detail-course-status').textContent = `المدة: ${course.duration} يوم | الحالة: ${statusMap[course.status]}`;
+        const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
+        document.getElementById('detail-course-title').textContent = course.title;
+        document.getElementById('detail-course-status').textContent = `المدة: ${course.duration} | الحالة: ${statusMap[course.status] || course.status}`;
 
-      this.renderCourseRequests();
-      this.renderCourseRooms();
-      this.renderCourseUsers();
+        this.renderCourseRequests();
+        this.renderCourseRooms();
+        this.renderCourseUsers();
+      } catch(e) {
+        console.error(e);
+      }
   },
 
   closeCourseDetails() {
       this.currentCourseId = null;
+      this.currentCourseData = null;
       document.getElementById('academy-course-details').style.display = 'none';
       document.getElementById('academy-courses-list').style.display = 'block';
       this.renderCourses();
   },
 
-  getCourseData() {
-      if (!this.currentCourseId) return null;
-      return this.getCourses().find(c => c.id === this.currentCourseId);
-  },
-
-  updateCourseData(updatedCourse) {
-      const courses = this.getCourses();
-      const index = courses.findIndex(c => c.id === updatedCourse.id);
-      if (index !== -1) {
-          courses[index] = updatedCourse;
-          this.saveCourses(courses);
-      }
-  },
-
   // Requests
-  renderCourseRequests() {
-      const course = this.getCourseData();
+  async renderCourseRequests() {
+      const courseId = this.currentCourseId;
+      if (!courseId) return;
       const tbody = document.getElementById('course-requests-tbody');
-      tbody.innerHTML = '';
-      if (course.requests.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد طلبات جديدة</td></tr>';
-          return;
-      }
-      course.requests.forEach(req => {
-          tbody.innerHTML += `
-              <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 0.5rem;">${req.studentName}</td>
-                  <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId}</td>
-                  <td style="padding: 0.5rem;" dir="ltr">${req.phone}</td>
-                  <td style="padding: 0.5rem;">
-                      <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${req.id}')">قبول وتوليد حساب</button>
-                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${req.id}')">رفض</button>
-                  </td>
-              </tr>
-          `;
-      });
-  },
-
-  approveCourseRequest(reqId) {
-      const course = this.getCourseData();
-      const reqIndex = course.requests.findIndex(r => r.id === reqId);
-      if (reqIndex === -1) return;
-      const req = course.requests[reqIndex];
-
-      // Generate credentials
-      const base = req.studentName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
-      course.users.push({
-          id: 'student-' + Date.now(),
-          fullname: req.studentName,
-          username: base,
-          password: base, // Simplified logic for password
-          role: 'student'
-      });
-
-      // Remove from requests
-      course.requests.splice(reqIndex, 1);
-      this.updateCourseData(course);
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
       
-      showToast('تم قبول الطالب وتوليد الحساب بنجاح!');
-      this.renderCourseRequests();
-      this.renderCourseUsers();
+      try {
+        const snap = await jhomeDb.collection('enrollmentRequests')
+            .where('courseId', '==', courseId)
+            .where('status', '==', 'pending')
+            .get();
+            
+        tbody.innerHTML = '';
+        if (snap.empty) {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد طلبات جديدة</td></tr>';
+            return;
+        }
+        
+        snap.docs.forEach(doc => {
+            const req = doc.data();
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.5rem;">${req.studentName}</td>
+                    <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId}</td>
+                    <td style="padding: 0.5rem;" dir="ltr">${req.phone}</td>
+                    <td style="padding: 0.5rem;">
+                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${doc.id}', '${req.studentName}')">قبول وتوليد حساب</button>
+                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${doc.id}')">رفض</button>
+                    </td>
+                </tr>
+            `;
+        });
+      } catch(e) {
+        console.error(e);
+      }
   },
 
-  rejectCourseRequest(reqId) {
+  async approveCourseRequest(reqId, studentName) {
+      try {
+        // Generate credentials
+        const base = studentName.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 1000);
+        
+        // Add to users collection
+        await jhomeDb.collection('users').add({
+            fullname: studentName,
+            username: base,
+            password: base,
+            role: 'student',
+            courseId: this.currentCourseId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Update request status
+        await jhomeDb.collection('enrollmentRequests').doc(reqId).update({ status: 'approved' });
+        
+        showToast('تم قبول الطالب وتوليد الحساب بنجاح!');
+        this.renderCourseRequests();
+        this.renderCourseUsers();
+      } catch(e) {
+        showToast('حدث خطأ', 'error');
+        console.error(e);
+      }
+  },
+
+  async rejectCourseRequest(reqId) {
       if(confirm('رفض وحذف هذا الطلب؟')) {
-          const course = this.getCourseData();
-          course.requests = course.requests.filter(r => r.id !== reqId);
-          this.updateCourseData(course);
-          this.renderCourseRequests();
+          try {
+              await jhomeDb.collection('enrollmentRequests').doc(reqId).update({ status: 'rejected' });
+              this.renderCourseRequests();
+              showToast('تم الرفض');
+          } catch(e) {
+              console.error(e);
+          }
       }
   },
 
   // Rooms
   renderCourseRooms() {
-      const course = this.getCourseData();
+      const course = this.currentCourseData;
+      if (!course) return;
       const list = document.getElementById('course-rooms-list');
       list.innerHTML = '';
-      if (course.rooms.length === 0) {
+      if (!course.rooms || course.rooms.length === 0) {
           list.innerHTML = '<li class="text-muted">لا توجد غرف مضافة</li>';
           return;
       }
@@ -716,78 +716,110 @@ const JhomeApp = {
       });
   },
 
-  addCourseRoom(e) {
+  async addCourseRoom(e) {
       e.preventDefault();
-      const course = this.getCourseData();
+      const course = this.currentCourseData;
+      if (!course) return;
+      
       const roomName = document.getElementById('new-room-name').value;
-      course.rooms.push({ id: 'room-' + Date.now(), name: roomName });
-      this.updateCourseData(course);
-      document.getElementById('add-room-form').reset();
-      this.renderCourseRooms();
-      showToast('تم إضافة الغرفة');
+      const newRoom = { id: 'room-' + Date.now(), name: roomName };
+      const updatedRooms = [...(course.rooms || []), newRoom];
+      
+      try {
+        await jhomeDb.collection('courses').doc(course.id).update({ rooms: updatedRooms });
+        this.currentCourseData.rooms = updatedRooms;
+        document.getElementById('add-room-form').reset();
+        this.renderCourseRooms();
+        showToast('تم إضافة الغرفة');
+      } catch(e) {
+        console.error(e);
+      }
   },
 
-  deleteCourseRoom(roomId) {
+  async deleteCourseRoom(roomId) {
       if(confirm('حذف الغرفة؟')) {
-          const course = this.getCourseData();
-          course.rooms = course.rooms.filter(r => r.id !== roomId);
-          this.updateCourseData(course);
-          this.renderCourseRooms();
+          const course = this.currentCourseData;
+          const updatedRooms = (course.rooms || []).filter(r => r.id !== roomId);
+          try {
+            await jhomeDb.collection('courses').doc(course.id).update({ rooms: updatedRooms });
+            this.currentCourseData.rooms = updatedRooms;
+            this.renderCourseRooms();
+          } catch(e) {
+            console.error(e);
+          }
       }
   },
 
   // Users
-  renderCourseUsers() {
-      const course = this.getCourseData();
+  async renderCourseUsers() {
+      const courseId = this.currentCourseId;
+      if (!courseId) return;
       const tbody = document.getElementById('course-users-tbody');
-      tbody.innerHTML = '';
-      if (course.users.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
-          return;
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">جاري التحميل...</td></tr>';
+      
+      try {
+        const snap = await jhomeDb.collection('users').where('courseId', '==', courseId).get();
+        tbody.innerHTML = '';
+        if (snap.empty) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
+            return;
+        }
+        
+        snap.docs.forEach(doc => {
+            const user = doc.data();
+            const roleBadge = user.role === 'instructor' 
+                ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مشرف</span>'
+                : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
+            tbody.innerHTML += `
+                <tr style="border-bottom: 1px solid var(--border);">
+                    <td style="padding: 0.5rem;">${user.fullname}</td>
+                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.username}</td>
+                    <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
+                    <td style="padding: 0.5rem;">${roleBadge}</td>
+                    <td style="padding: 0.5rem;">
+                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseUser('${doc.id}')">حذف</button>
+                    </td>
+                </tr>
+            `;
+        });
+      } catch(e) {
+        console.error(e);
       }
-      course.users.forEach(user => {
-          const roleBadge = user.role === 'instructor' 
-              ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مشرف</span>'
-              : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
-          tbody.innerHTML += `
-              <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 0.5rem;">${user.fullname}</td>
-                  <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${user.username}</td>
-                  <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
-                  <td style="padding: 0.5rem;">${roleBadge}</td>
-                  <td style="padding: 0.5rem;">
-                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourseUser('${user.id}')">حذف</button>
-                  </td>
-              </tr>
-          `;
-      });
   },
 
-  addCourseInstructor(e) {
+  async addCourseInstructor(e) {
       e.preventDefault();
-      const course = this.getCourseData();
+      const courseId = this.currentCourseId;
+      if (!courseId) return;
       const fullname = document.getElementById('new-instructor-name').value;
       const base = fullname.replace(/\s+/g, '').toLowerCase() + Math.floor(Math.random() * 100);
       
-      course.users.push({
-          id: 'inst-' + Date.now(),
-          fullname,
-          username: base,
-          password: base,
-          role: 'instructor'
-      });
-      this.updateCourseData(course);
-      document.getElementById('add-instructor-form').reset();
-      this.renderCourseUsers();
-      showToast('تم توليد حساب المشرف');
+      try {
+        await jhomeDb.collection('users').add({
+            fullname,
+            username: base,
+            password: base,
+            role: 'instructor',
+            courseId: courseId,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('add-instructor-form').reset();
+        this.renderCourseUsers();
+        showToast('تم توليد حساب المشرف');
+      } catch(e) {
+        console.error(e);
+      }
   },
 
-  deleteCourseUser(userId) {
+  async deleteCourseUser(userId) {
       if(confirm('حذف هذا المستخدم من الدورة؟')) {
-          const course = this.getCourseData();
-          course.users = course.users.filter(u => u.id !== userId);
-          this.updateCourseData(course);
-          this.renderCourseUsers();
+          try {
+            await jhomeDb.collection('users').doc(userId).delete();
+            this.renderCourseUsers();
+            showToast('تم الحذف');
+          } catch(e) {
+            console.error(e);
+          }
       }
   }
 };
