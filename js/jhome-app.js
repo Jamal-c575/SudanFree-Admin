@@ -566,7 +566,7 @@ const JhomeApp = {
     const title = document.getElementById('jcourse-title').value.trim();
     const duration = document.getElementById('jcourse-duration').value.trim();
     const status = document.getElementById('jcourse-status').value.trim();
-    const cover = document.getElementById('jcourse-cover-url').value.trim() || 'assets/images/courses/web_dev_cover.png';
+    const cover = document.getElementById('jcourse-cover-url').value.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(title || 'Course')}&background=4F46E5&color=fff&size=400`;
     const description = document.getElementById('jcourse-desc').value.trim();
     const isPaid = document.getElementById('jcourse-is-paid').checked;
 
@@ -595,7 +595,7 @@ const JhomeApp = {
           instructorEmail: instEmail,
           instructorSpecialty: instSpecialty,
           instructorBio: instBio,
-          instructorPhoto: 'assets/images/courses/instructor.png', // Default
+          instructorPhoto: `https://ui-avatars.com/api/?name=${encodeURIComponent(instName || 'Instructor')}&background=1E293B&color=A5B4FC&size=200`,
           createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
 
