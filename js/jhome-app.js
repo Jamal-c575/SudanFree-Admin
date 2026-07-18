@@ -46,6 +46,10 @@ const JhomeApp = {
 
     if (tabId === 'academy-courses') this.renderCourses();
     if (tabId === 'pages') this.loadPageContent('home'); // Default page
+    if (tabId === 'projects') this.loadProjects();
+    if (tabId === 'students') this.loadUsers();
+    if (tabId === 'requests') this.loadEnrollmentRequests();
+    if (tabId === 'bank-accounts') this.loadBankAccounts();
   },
 
   // ── Page Content Management ──
@@ -840,7 +844,319 @@ const JhomeApp = {
             console.error(e);
           }
       }
+  },
+
+  // ============================================
+  // ── Projects ──
+  // ============================================
+  async loadProjects() {
+    try {
+      const snap = await jhomeDb.collection('projects').orderBy('createdAt', 'desc').get();
+      const tbody = document.getElementById('jhome-projects-tbody');
+      
+      if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد مشاريع مضافة</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = snap.docs.map(doc => {
+        const p = doc.data();
+        return `
+          <tr>
+            <td><img src="${p.image || 'https://via.placeholder.com/150'}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;"></td>
+            <td><strong>${p.title}</strong></td>
+            <td><span class="text-muted">${p.description ? p.description.substring(0, 50) + '...' : ''}</span></td>
+            <td><a href="${p.link}" target="_blank" class="btn btn-sm btn-ghost">زيارة</a></td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteProject('${doc.id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      console.error(e);
+      showToast('خطأ في جلب المشاريع', 'error');
+    }
+  },
+
+  showProjectModal() {
+    document.getElementById('jproject-title').value = '';
+    document.getElementById('jproject-desc').value = '';
+    document.getElementById('jproject-link').value = '';
+    document.getElementById('jproject-image').value = '';
+    document.getElementById('jhome-project-modal').style.display = 'flex';
+  },
+
+  async saveProject() {
+    const title = document.getElementById('jproject-title').value.trim();
+    const description = document.getElementById('jproject-desc').value.trim();
+    const link = document.getElementById('jproject-link').value.trim();
+    const image = document.getElementById('jproject-image').value.trim();
+
+    if (!title || !description || !link || !image) {
+      showToast('الرجاء إكمال كافة الحقول', 'error');
+      return;
+    }
+    
+    try {
+      await jhomeDb.collection('projects').add({
+        title, description, link, image,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('تمت إضافة المشروع بنجاح', 'success');
+      AdminApp.closeModal('jhome-project-modal');
+      this.loadProjects();
+    } catch(e) {
+      console.error(e);
+      showToast('حدث خطأ أثناء الإضافة', 'error');
+    }
+  },
+
+  async deleteProject(id) {
+    if(!confirm('حذف هذا المشروع؟')) return;
+    try {
+      await jhomeDb.collection('projects').doc(id).delete();
+      this.loadProjects();
+      showToast('تم الحذف');
+    } catch(e) {
+      console.error(e);
+    }
+  },
+
+  // ============================================
+  // ── Academy Students (Users) ──
+  // ============================================
+  async loadUsers() {
+    try {
+      const snap = await jhomeDb.collection('users').orderBy('createdAt', 'desc').get();
+      const tbody = document.getElementById('jhome-users-tbody');
+      
+      if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد طلاب</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = snap.docs.map(doc => {
+        const u = doc.data();
+        const date = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+        return `
+          <tr>
+            <td><strong>${u.name}</strong></td>
+            <td dir="ltr">${u.email}</td>
+            <td><span class="report-status reviewed">${u.role || 'student'}</span></td>
+            <td>${date}</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteUser('${doc.id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      console.error(e);
+      showToast('خطأ في جلب الطلاب', 'error');
+    }
+  },
+
+  showUserModal() {
+    document.getElementById('juser-name').value = '';
+    document.getElementById('juser-email').value = '';
+    document.getElementById('juser-password').value = '';
+    document.getElementById('jhome-user-modal').style.display = 'flex';
+  },
+
+  async saveUser() {
+    const name = document.getElementById('juser-name').value.trim();
+    const email = document.getElementById('juser-email').value.trim();
+    const password = document.getElementById('juser-password').value.trim();
+
+    if(!name || !email || !password) {
+      showToast('أكمل كافة الحقول', 'error');
+      return;
+    }
+
+    try {
+      // Create user auth account
+      const createUserFn = firebase.app("jhome").functions().httpsCallable('adminCreateUser');
+      const res = await createUserFn({ email, password, displayName: name });
+      
+      if(res.data && res.data.uid) {
+        await jhomeDb.collection('users').doc(res.data.uid).set({
+          name, email, role: 'student',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Also save to credentials for Room Entry Gate
+        await jhomeDb.collection('courses_credentials').doc(res.data.uid).set({
+          username: email, password, role: 'student', realName: name, courseId: 'all'
+        });
+
+        showToast('تم إنشاء حساب الطالب بنجاح', 'success');
+        AdminApp.closeModal('jhome-user-modal');
+        this.loadUsers();
+      } else {
+        showToast('فشل إنشاء الحساب', 'error');
+      }
+    } catch(e) {
+      console.error(e);
+      showToast('خطأ: ' + e.message, 'error');
+    }
+  },
+
+  async deleteUser(id) {
+    if(!confirm('هل أنت متأكد من حذف هذا الطالب بالكامل؟')) return;
+    try {
+      const deleteUserFn = firebase.app("jhome").functions().httpsCallable('adminDeleteUser');
+      await deleteUserFn({ uid: id });
+      await jhomeDb.collection('users').doc(id).delete();
+      await jhomeDb.collection('courses_credentials').doc(id).delete();
+      this.loadUsers();
+      showToast('تم الحذف', 'success');
+    } catch(e) {
+      console.error(e);
+      showToast('خطأ أثناء الحذف: ' + e.message, 'error');
+    }
+  },
+
+  // ============================================
+  // ── Enrollment Requests ──
+  // ============================================
+  async loadEnrollmentRequests() {
+    try {
+      const snap = await jhomeDb.collection('enrollmentRequests').orderBy('createdAt', 'desc').get();
+      const tbody = document.getElementById('jhome-requests-tbody');
+      
+      if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا توجد طلبات انضمام جديدة</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = snap.docs.map(doc => {
+        const r = doc.data();
+        const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+        const isPending = r.status === 'pending';
+        return `
+          <tr>
+            <td><strong>${r.name}</strong></td>
+            <td dir="ltr">${r.email}</td>
+            <td dir="ltr">${r.phone || ''}</td>
+            <td><span class="report-status" style="background:var(--primary); color:#fff">${r.courseId || r.courseName || 'عام'}</span></td>
+            <td>${date}</td>
+            <td><span class="report-status ${isPending ? 'pending' : (r.status === 'approved' ? 'reviewed' : 'dismissed')}">${r.status === 'approved' ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
+            <td>
+              ${isPending ? `
+                <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${r.name}', '${r.email}')">قبول وتوليد حساب</button>
+                <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')">رفض</button>
+              ` : ''}
+              <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')">حذف السجل</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      console.error(e);
+      showToast('خطأ في جلب طلبات الانضمام', 'error');
+    }
+  },
+
+  approveRequest(id, name, email) {
+    this.showUserModal();
+    document.getElementById('juser-name').value = name;
+    document.getElementById('juser-email').value = email;
+    // Mark the request as approved in the background
+    jhomeDb.collection('enrollmentRequests').doc(id).update({ status: 'approved' }).then(() => this.loadEnrollmentRequests());
+  },
+
+  async rejectRequest(id) {
+    if(!confirm('رفض هذا الطلب؟')) return;
+    try {
+      await jhomeDb.collection('enrollmentRequests').doc(id).update({ status: 'rejected' });
+      this.loadEnrollmentRequests();
+    } catch(e){}
+  },
+
+  async deleteRequest(id) {
+    if(!confirm('حذف هذا السجل نهائياً؟')) return;
+    try {
+      await jhomeDb.collection('enrollmentRequests').doc(id).delete();
+      this.loadEnrollmentRequests();
+    } catch(e){}
+  },
+
+  // ============================================
+  // ── Bank Accounts ──
+  // ============================================
+  async loadBankAccounts() {
+    try {
+      const snap = await jhomeDb.collection('bank_accounts').orderBy('bankName').get();
+      const tbody = document.getElementById('jhome-bank-accounts-tbody');
+      
+      if (snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">لا توجد حسابات مضافة</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = snap.docs.map(doc => {
+        const b = doc.data();
+        return `
+          <tr>
+            <td><strong>${b.bankName}</strong></td>
+            <td>${b.accountName}</td>
+            <td dir="ltr">${b.accountNumber}</td>
+            <td>${b.branch || '-'}</td>
+            <td><span class="text-muted">${b.notes || ''}</span></td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteBankAccount('${doc.id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      console.error(e);
+      showToast('خطأ في جلب الحسابات', 'error');
+    }
+  },
+
+  showBankAccountModal() {
+    document.getElementById('jbank-name').value = '';
+    document.getElementById('jbank-account-name').value = '';
+    document.getElementById('jbank-account-number').value = '';
+    document.getElementById('jbank-branch').value = '';
+    document.getElementById('jbank-notes').value = '';
+    document.getElementById('jhome-bank-modal').style.display = 'flex';
+  },
+
+  async saveBankAccount() {
+    const bankName = document.getElementById('jbank-name').value.trim();
+    const accountName = document.getElementById('jbank-account-name').value.trim();
+    const accountNumber = document.getElementById('jbank-account-number').value.trim();
+    const branch = document.getElementById('jbank-branch').value.trim();
+    const notes = document.getElementById('jbank-notes').value.trim();
+
+    if(!bankName || !accountName || !accountNumber) {
+      showToast('يرجى إدخال البيانات الأساسية للحساب', 'error');
+      return;
+    }
+
+    try {
+      await jhomeDb.collection('bank_accounts').add({ bankName, accountName, accountNumber, branch, notes });
+      showToast('تمت إضافة الحساب بنجاح', 'success');
+      AdminApp.closeModal('jhome-bank-modal');
+      this.loadBankAccounts();
+    } catch(e) {
+      console.error(e);
+      showToast('فشل حفظ الحساب', 'error');
+    }
+  },
+
+  async deleteBankAccount(id) {
+    if(!confirm('حذف هذا الحساب؟')) return;
+    try {
+      await jhomeDb.collection('bank_accounts').doc(id).delete();
+      this.loadBankAccounts();
+      showToast('تم الحذف');
+    } catch(e){}
   }
+
 };
 
 // ── Academy Form Listeners ──

@@ -143,13 +143,22 @@
         <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('pages')">
           <span class="material-icons-outlined">web</span><span class="nav-text">محتوى الصفحات</span>
         </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('projects')">
+          <span class="material-icons-outlined">work</span><span class="nav-text">المشاريع</span>
+        </a>
 
         <div class="nav-section-title">أكاديمية Jhome</div>
         <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses')">
           <span class="material-icons-outlined">school</span><span class="nav-text">الدورات التعليمية</span>
         </a>
-        <a href="#" class="nav-item" onclick="AdminApp.navigateTo('payment-settings')">
-          <span class="material-icons-outlined">payments</span><span class="nav-text">حسابات الدفع (عام)</span>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('students')">
+          <span class="material-icons-outlined">groups</span><span class="nav-text">طلاب الأكاديمية</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('requests')">
+          <span class="material-icons-outlined">person_add</span><span class="nav-text">طلبات الانضمام</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('bank-accounts')">
+          <span class="material-icons-outlined">account_balance</span><span class="nav-text">حسابات الدفع Jhome</span>
         </a>
 
         <div class="nav-section-title">العودة للتطبيق</div>
@@ -368,7 +377,70 @@
                     </div>
                 </div>
             </div>
+            </div>
           </div>
+          
+          <!-- Jhome: Projects Tab -->
+          <div id="jhome-tab-projects" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>مشاريع Jhome</h3>
+                <button class="btn btn-primary" onclick="JhomeApp.showProjectModal()"><span class="material-icons-outlined">add</span> مشروع جديد</button>
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr><th>صورة</th><th>الاسم</th><th>الوصف</th><th>الرابط</th><th>الإجراءات</th></tr></thead>
+                  <tbody id="jhome-projects-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jhome: Students Tab -->
+          <div id="jhome-tab-students" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>طلاب الأكاديمية (Users)</h3>
+                <button class="btn btn-primary" onclick="JhomeApp.showUserModal()"><span class="material-icons-outlined">add</span> إضافة طالب</button>
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr><th>الاسم</th><th>البريد</th><th>الدور</th><th>تاريخ الانضمام</th><th>الإجراءات</th></tr></thead>
+                  <tbody id="jhome-users-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jhome: Enrollment Requests Tab -->
+          <div id="jhome-tab-requests" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <h3>طلبات الانضمام للأكاديمية</h3>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr><th>الاسم</th><th>البريد</th><th>الهاتف</th><th>الدورة المطلوبة</th><th>تاريخ الطلب</th><th>الحالة</th><th>الإجراءات</th></tr></thead>
+                  <tbody id="jhome-requests-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Jhome: Bank Accounts Tab -->
+          <div id="jhome-tab-bank-accounts" class="jhome-tab" style="display:none;">
+            <div class="card">
+              <div style="display:flex; justify-content:space-between; margin-bottom:16px;">
+                <h3>حسابات الدفع الخاصة بـ Jhome</h3>
+                <button class="btn btn-primary" onclick="JhomeApp.showBankAccountModal()"><span class="material-icons-outlined">add</span> إضافة حساب</button>
+              </div>
+              <div class="table-container">
+                <table class="data-table">
+                  <thead><tr><th>اسم البنك</th><th>اسم الحساب</th><th>رقم الحساب</th><th>الفرع</th><th>ملاحظات</th><th>الإجراءات</th></tr></thead>
+                  <tbody id="jhome-bank-accounts-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
         </section>
 
         <!-- Dashboard Page -->
@@ -1004,6 +1076,69 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-primary" onclick="JhomeApp.addCourse(event)">حفظ الدورة</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome Project Modal -->
+  <div id="jhome-project-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-project-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3>إضافة مشروع جديد</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-project-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>اسم المشروع</label><input type="text" id="jproject-title" class="text-input" placeholder="اسم المشروع..."></div>
+        <div class="form-group full-width"><label>وصف المشروع</label><textarea id="jproject-desc" class="text-input" rows="4" placeholder="وصف كامل للمشروع..."></textarea></div>
+        <div class="form-group full-width"><label>رابط المشروع</label><input type="url" id="jproject-link" class="text-input" placeholder="https://..." dir="ltr"></div>
+        <div class="form-group full-width">
+          <label>صورة المشروع (رابط)</label>
+          <input type="text" id="jproject-image" class="text-input" placeholder="https://..." dir="ltr">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.saveProject()">حفظ المشروع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome User/Student Modal -->
+  <div id="jhome-user-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-user-modal')"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>إضافة حساب طالب</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-user-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>الاسم الكامل</label><input type="text" id="juser-name" class="text-input" placeholder="الاسم الكامل..."></div>
+        <div class="form-group full-width"><label>البريد الإلكتروني / اسم المستخدم</label><input type="email" id="juser-email" class="text-input" placeholder="student@example.com" dir="ltr"></div>
+        <div class="form-group full-width"><label>كلمة المرور</label><input type="text" id="juser-password" class="text-input" placeholder="كلمة المرور المؤقتة..." dir="ltr"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.saveUser()">توليد حساب الطالب</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Jhome Bank Account Modal -->
+  <div id="jhome-bank-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('jhome-bank-modal')"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>إضافة حساب بنكي لـ Jhome</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('jhome-bank-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group full-width"><label>اسم البنك (مثال: بنك الخرطوم)</label><input type="text" id="jbank-name" class="text-input"></div>
+        <div class="form-group full-width"><label>اسم صاحب الحساب</label><input type="text" id="jbank-account-name" class="text-input"></div>
+        <div class="form-group full-width"><label>رقم الحساب</label><input type="text" id="jbank-account-number" class="text-input" dir="ltr"></div>
+        <div class="form-group full-width"><label>الفرع (اختياري)</label><input type="text" id="jbank-branch" class="text-input"></div>
+        <div class="form-group full-width"><label>ملاحظات (اختياري)</label><input type="text" id="jbank-notes" class="text-input"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" onclick="JhomeApp.saveBankAccount()">حفظ الحساب</button>
       </div>
     </div>
   </div>
