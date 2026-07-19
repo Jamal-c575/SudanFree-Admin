@@ -39,7 +39,7 @@ const AdminApp = {
       const doc = await db.collection('users').doc(cred.user.uid).get();
       if (!doc.exists || doc.data().role !== 'admin') {
         errEl.textContent = 'ليس لديك صلاحية الوصول';
-        errEl.style.display = 'block';
+        errEl.style.display = 'flex';
         await auth.signOut();
         try { await firebase.app('jhome').auth().signOut(); } catch(e){}
         return;
@@ -47,7 +47,7 @@ const AdminApp = {
       this.showDashboard(doc.data().name || 'المشرف');
     } catch (e) {
       errEl.textContent = 'خطأ في تسجيل الدخول: ' + e.message;
-      errEl.style.display = 'block';
+      errEl.style.display = 'flex';
     }
   },
 
@@ -239,10 +239,10 @@ const AdminApp = {
         const mainNav = document.getElementById('main-sidebar-nav');
         if(mainNav) mainNav.style.display = 'none';
         const jhomeNav = document.getElementById('jhome-sidebar-nav');
-        if(jhomeNav) jhomeNav.style.display = 'block';
+        if(jhomeNav) jhomeNav.style.display = 'flex';
     } else {
         const mainNav = document.getElementById('main-sidebar-nav');
-        if(mainNav) mainNav.style.display = 'block';
+        if(mainNav) mainNav.style.display = 'flex';
         const jhomeNav = document.getElementById('jhome-sidebar-nav');
         if(jhomeNav) jhomeNav.style.display = 'none';
         
