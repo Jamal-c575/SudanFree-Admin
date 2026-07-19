@@ -694,9 +694,10 @@ const JhomeApp = {
             tbody.innerHTML += `
                 <tr style="border-bottom: 1px solid var(--border);">
                     <td style="padding: 0.5rem;">${req.studentName}</td>
-                    <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId}</td>
+                    <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId || '-'}</td>
                     <td style="padding: 0.5rem;" dir="ltr">${req.phone}</td>
                     <td style="padding: 0.5rem;">
+                        <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showCourseRequestDetails('${doc.id}')"><span class="material-icons-outlined">visibility</span> عرض التفاصيل</button>
                         <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${doc.id}', '${req.studentName}')">قبول وتوليد حساب</button>
                         <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${doc.id}')">رفض</button>
                     </td>
@@ -705,6 +706,37 @@ const JhomeApp = {
         });
       } catch(e) {
         console.error(e);
+      }
+  },
+
+  async showCourseRequestDetails(reqId) {
+      try {
+          const doc = await jhomeDb.collection('enrollmentRequests').doc(reqId).get();
+          if (!doc.exists) return;
+          const data = doc.data();
+          
+          let html = `
+            <div style="display: flex; flex-direction: column; gap: 15px; text-align: right;">
+                <div><strong>اسم الطالب:</strong> ${data.studentName || '-'}</div>
+                <div><strong>رقم الواتساب:</strong> <span dir="ltr">${data.phone || '-'}</span></div>
+                <div><strong>البريد الإلكتروني:</strong> ${data.email || '-'}</div>
+                <div><strong>الموقع (المدينة/الدولة):</strong> ${data.location || '-'}</div>
+                <div><strong>المستوى التعليمي:</strong> ${data.educationLevel || '-'}</div>
+                <div><strong>سبب الانضمام:</strong><br><p style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 5px;">${data.reason || '-'}</p></div>
+                <div><strong>رقم إيصال الدفع:</strong> <span style="font-family: monospace;">${data.receiptId || '-'}</span></div>
+          `;
+          
+          if (data.receiptImage) {
+              html += `<div><strong>صورة الإيصال:</strong><br><img src="${data.receiptImage}" style="max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer;" onclick="AdminApp.previewImage('${data.receiptImage}')" alt="الإيصال"></div>`;
+          }
+          
+          html += `</div>`;
+          
+          document.getElementById('course-request-modal-body').innerHTML = html;
+          document.getElementById('course-request-modal').style.display = 'flex';
+      } catch (e) {
+          console.error("Error fetching request details:", e);
+          showToast('حدث خطأ أثناء جلب التفاصيل', 'error');
       }
   },
 
