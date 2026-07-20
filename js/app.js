@@ -254,6 +254,7 @@ const AdminApp = {
     if (page === 'promotions') this.loadPromotions();
     if (page === 'contracts') this.loadContracts();
     if (page === 'settings') this.loadSettings();
+    if (page === 'users') this.loadUsers();
     if (page === 'success-stories') this.loadSuccessStories();
     if (page === 'banned') this.loadBannedUsers();
     if (page === 'subscriptions') SubscriptionAdminApp.loadSubscriptions();
@@ -318,17 +319,17 @@ const AdminApp = {
     const verifiedEl = document.getElementById('global-verified-count');
     
     try {
-      const fiveMinutesAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
+      const fiveMinutesAgo = new Date(Date.now() - 300000);
       
-      this.getCount(db.collection('users'))
+      AdminApp.getCount(db.collection('users'))
         .then(count => { if (totalEl) totalEl.textContent = count; })
         .catch(e => { console.error("Error total count:", e); if (totalEl) totalEl.textContent = "Error"; });
 
-      this.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo))
+      AdminApp.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo))
         .then(count => { if (onlineEl) onlineEl.textContent = count; })
         .catch(e => { console.error("Error online count:", e); if (onlineEl) onlineEl.textContent = "Error"; });
 
-      this.getCount(db.collection('users').where('isVerified', '==', true))
+      AdminApp.getCount(db.collection('users').where('isVerified', '==', true))
         .then(count => { if (verifiedEl) verifiedEl.textContent = count; })
         .catch(e => { console.error("Error verified count:", e); if (verifiedEl) verifiedEl.textContent = "Error"; });
 
@@ -457,8 +458,14 @@ const AdminApp = {
     const filter = document.getElementById('success-stories-filter').value;
     try {
       document.getElementById('success-stories-tbody').innerHTML = '<tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
-      const snap = await db.collection('success_stories').where('status', '==', filter).orderBy('createdAt', 'desc').limit(50).get();
+      const snap = await db.collection('success_stories').where('status', '==', filter).limit(50).get();
       const stories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sort in memory to avoid requiring a composite index
+      stories.sort((a, b) => {
+        const da = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(0);
+        const db = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(0);
+        return db - da;
+      });
       const tbody = document.getElementById('success-stories-tbody');
       if (!stories.length) {
         tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد قصص لعرضها</td></tr>';
@@ -1502,15 +1509,13 @@ const AdminApp = {
   async loadStatistics() {
     try {
       // 1. Total users
-      const totalSnap = await db.collection('users').count().get();
-      const total = totalSnap.data().count;
+      const total = await AdminApp.getCount(db.collection('users'));
 
       // 2. Roles distribution
       const rolesToCount = ['client', 'freelancer', 'techService', 'privateService', 'shop', 'admin'];
       const byRole = {};
       await Promise.all(rolesToCount.map(async (role) => {
-        const snap = await db.collection('users').where('role', '==', role).count().get();
-        byRole[role] = snap.data().count;
+        byRole[role] = await AdminApp.getCount(db.collection('users').where('role', '==', role));
       }));
 
       // Render Role Chart
@@ -1545,13 +1550,14 @@ const AdminApp = {
         const nextDay = new Date(d);
         nextDay.setDate(nextDay.getDate() + 1);
 
-        const promise = db.collection('users')
-          .where('createdAt', '>=', d)
-          .where('createdAt', '<', nextDay)
-          .count().get().then(snap => ({
+        const promise = AdminApp.getCount(
+          db.collection('users')
+            .where('createdAt', '>=', d)
+            .where('createdAt', '<', nextDay)
+        ).then(count => ({
             index: i,
             dateStr: d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}),
-            count: snap.data().count
+            count: count
           }));
         dayPromises.push(promise);
       }
@@ -1589,8 +1595,8 @@ const AdminApp = {
       const states = ['ولاية الخرطوم', 'ولاية الجزيرة', 'ولاية البحر الأحمر', 'ولاية نهر النيل', 'ولاية شمال كردفان'];
       const byState = {};
       await Promise.all(states.map(async (state) => {
-         const snap = await db.collection('users').where('state', '==', state).count().get();
-         if (snap.data().count > 0) byState[state] = snap.data().count;
+         const count = await AdminApp.getCount(db.collection('users').where('state', '==', state));
+         if (count > 0) byState[state] = count;
       }));
 
       const stateEl = document.getElementById('stats-by-region');
@@ -1604,12 +1610,10 @@ const AdminApp = {
       }
 
       // 5. Detailed stats
-      const verifiedSnap = await db.collection('users').where('isVerified', '==', true).count().get();
-      const verified = verifiedSnap.data().count;
+      const verified = await AdminApp.getCount(db.collection('users').where('isVerified', '==', true));
       
       const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const onlineSnap = await db.collection('users').where('lastActive', '>=', fiveMinsAgo).count().get();
-      const online = onlineSnap.data().count;
+      const online = await AdminApp.getCount(db.collection('users').where('lastActive', '>=', fiveMinsAgo));
 
       const clients = byRole.client || 0;
       const craftsmen = byRole.freelancer || 0;
