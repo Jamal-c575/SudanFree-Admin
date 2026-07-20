@@ -14,15 +14,6 @@ const AdminApp = {
     const errEl = document.getElementById('login-error');
     errEl.style.display = 'none';
 
-    // Simplified admin login shortcut
-    if (pass === '1') {
-      pass = 'Jamal@www20';
-      if (!email) {
-        email = 'ja5009006@gmail.com';
-        document.getElementById('login-email').value = email;
-      }
-    }
-
     // Primary admin accounts must be provisioned securely through a trusted backend or Firebase Console.
     // Removing hard-coded credentials from the client improves security.
     try {

@@ -1,3 +1,9 @@
+import { projectsView } from './ui/ProjectsView.js';
+import { storiesView } from './ui/StoriesView.js';
+import { blogView } from './ui/BlogView.js';
+import { academyView } from './ui/AcademyView.js';
+import { adminSystemView } from './ui/AdminSystemView.js';
+
 // Jhome App Management Logic
 const JhomeApp = {
   currentTab: 'blog',
@@ -25,14 +31,22 @@ const JhomeApp = {
     // Check if Jhome is authenticated and auto-login if needed
     if (!firebase.app('jhome').auth().currentUser) {
       const mainUser = firebase.auth().currentUser;
-      if (mainUser && mainUser.email === 'ja5009006@gmail.com') {
-        firebase.app('jhome').auth().signInWithEmailAndPassword('ja5009006@gmail.com', 'Jamal@www20')
-          .then(() => {
-            console.log("Jhome auto-login successful.");
-          })
-          .catch(err => {
-            showToast('⚠️ تحذير: فشل الاتصال بحساب Jhome تلقائياً.', 'error');
-          });
+      if (mainUser) {
+        // Secure Phase 0: Prompt for password instead of hardcoding it in the JS bundle.
+        const jhomePass = prompt("مطلوب مصادقة Jhome: يرجى إدخال كلمة مرور Jhome Admin للاتصال بقاعدة البيانات المركزية:");
+        if (jhomePass) {
+          firebase.app('jhome').auth().signInWithEmailAndPassword(mainUser.email, jhomePass)
+            .then(() => {
+              console.log("Jhome manual login successful.");
+              showToast('تم الاتصال بنجاح بقاعدة بيانات Jhome', 'success');
+              // Reload the current tab data after successful auth
+              JhomeApp.switchTab(tabId);
+            })
+            .catch(err => {
+              console.error(err);
+              showToast('⚠️ فشل الاتصال: كلمة المرور غير صحيحة.', 'error');
+            });
+        }
       } else {
         showToast('⚠️ تحذير: حساب Jhome غير متصل! يرجى تسجيل الخروج بالكامل ثم الدخول مجدداً.', 'error');
       }
@@ -175,10 +189,15 @@ const JhomeApp = {
       document.getElementById('jhome-page-editor-actions').style.opacity = '0.5';
       document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'none';
       
-      const updatePageFn = firebase.app("jhome").functions().httpsCallable('adminUpdatePageContent');
+      const updatePageFn = firebase.app("jhome").functions().httpsCallable('api_v1_cms_content');
       await updatePageFn({
-        pageKey: this.currentPageKey,
-        sections: sections
+        apiVersion: 'v1',
+        action: 'save',
+        entity: 'page',
+        payload: {
+          id: this.currentPageKey,
+          ...sections
+        }
       });
 
       showToast('تم حفظ التعديلات بنجاح!', 'success');
@@ -189,6 +208,49 @@ const JhomeApp = {
       document.getElementById('jhome-page-editor-actions').style.opacity = '1';
       document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'auto';
     }
+  },
+
+  // ============================================
+  // ── Jhome Academy (Courses) ──
+  // ============================================
+  async renderCourses() {
+    await academyView.renderCourses();
+  },
+
+  async addCourse(e) {
+    await academyView.addCourse(e);
+  },
+
+  async deleteCourse(id) {
+    await academyView.deleteCourse(id);
+  },
+
+  openCourse(id) {
+    academyView.openCourse(id);
+  },
+
+  async renderCourseRequests() {
+    await academyView.renderRequests();
+  },
+
+  async approveCourseRequest(reqId, studentName) {
+    await academyView.approveCourseRequest(reqId, studentName);
+  },
+
+  async rejectCourseRequest(reqId) {
+    await academyView.rejectCourseRequest(reqId);
+  },
+
+  async renderCourseUsers() {
+    await academyView.renderUsers();
+  },
+
+  async addCourseInstructor(e) {
+    await academyView.addCourseInstructor(e);
+  },
+
+  async deleteCourseUser(userId) {
+    await academyView.deleteCourseUser(userId);
   },
 
   // ── Blog / Posts ──
@@ -440,754 +502,29 @@ const JhomeApp = {
   },
 
   // ── Messages ──
-  async loadMessages() {
-    try {
-      const snap = await jhomeDb.collection('contactMessages').orderBy('createdAt', 'desc').get();
-      const list = document.getElementById('jhome-messages-list');
-      
-      if (snap.empty) {
-        list.innerHTML = '<p class="empty-state">لا توجد رسائل تواصل جديدة</p>';
-        return;
-      }
-
-      list.innerHTML = snap.docs.map(doc => {
-        const m = doc.data();
-        const isNew = m.status === 'new' || !m.status;
-        return `
-          <div class="verify-card" style="padding:15px; margin-bottom:15px; border-left: 4px solid ${isNew ? 'var(--primary)' : 'var(--border)'}">
-            <div style="display:flex; justify-content:space-between;">
-              <h4 style="margin:0;">${m.subject || 'بدون عنوان'} ${isNew ? '<span class="report-status pending">جديد</span>' : ''}</h4>
-              <small style="color:var(--text-muted)">${m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('ar-EG') : ''}</small>
-            </div>
-            <p style="margin:8px 0; font-size:13px;"><strong>من:</strong> ${m.name} &lt;${m.email}&gt; | 📞 ${m.phone || 'غير محدد'}</p>
-            <p style="background:var(--bg-body); padding:10px; border-radius:8px;">${m.message}</p>
-            <div style="margin-top:10px; display:flex; gap:10px;">
-              ${isNew ? `<button class="btn btn-sm btn-success" onclick="JhomeApp.markMessageRead('${doc.id}')">تعليم كمقروء</button>` : ''}
-              <a href="mailto:${m.email}?subject=رد بخصوص رسالتك لمؤسسة Jhome" class="btn btn-sm btn-primary">الرد عبر الإيميل</a>
-            </div>
-          </div>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error('Error loading messages:', e);
-      showToast('خطأ في جلب الرسائل: ' + e.message, 'error');
-    }
-  },
-
-  async markMessageRead(id) {
-    try {
-      await jhomeDb.collection('contactMessages').doc(id).update({ status: 'read' });
-      this.loadMessages();
-    } catch(e) {}
-  },
+  async loadMessages() { await adminSystemView.loadMessages(); },
+  async markMessageRead(id) { await adminSystemView.markMessageRead(id); },
 
   // ── Newsletter ──
-  async loadNewsletter() {
-    try {
-      const snap = await jhomeDb.collection('newsletter').get();
-      const tbody = document.getElementById('jhome-newsletter-tbody');
-      
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">لا يوجد مشتركون بعد</td></tr>';
-        return;
-      }
+  async loadNewsletter() { await adminSystemView.loadNewsletter(); },
 
-      tbody.innerHTML = snap.docs.map(doc => {
-        const n = doc.data();
-        return `
-          <tr>
-            <td><strong>${n.email}</strong></td>
-            <td>${n.name || '—'}</td>
-            <td><span class="report-status ${(n.isActive !== false) ? 'reviewed' : 'dismissed'}">${(n.isActive !== false) ? 'نشط' : 'ملغى'}</span></td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error('Error loading newsletter:', e);
-      showToast('خطأ في جلب القائمة البريدية', 'error');
-    }
-  },
-
-
-  // ── Academy Course Management ──
-  currentCourseId: null,
-  currentCourseData: null,
-
-  async renderCourses() {
-    const list = document.getElementById('courses-list-tbody');
-    if (!list) return;
-    list.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
-    
-    try {
-      const snap = await jhomeDb.collection('courses').orderBy('createdAt', 'desc').get();
-      list.innerHTML = '';
-      
-      if (snap.empty) {
-          list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد دورات حالياً</td></tr>';
-          return;
-      }
-
-      const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
-      const statusColor = { 'open': 'var(--primary)', 'ongoing': 'var(--warning)', 'closed': 'var(--danger)' };
-
-      snap.docs.forEach(doc => {
-          const course = doc.data();
-          course.id = doc.id;
-          list.innerHTML += `
-              <tr style="border-bottom: 1px solid var(--border);">
-                  <td style="padding: 1rem;">${course.title}</td>
-                  <td style="padding: 1rem;">${course.duration || ''}</td>
-                  <td style="padding: 1rem;">
-                      <span style="color: ${statusColor[course.status] || '#fff'}; font-weight: bold;">
-                          ${statusMap[course.status] || course.status}
-                      </span>
-                  </td>
-                  <td style="padding: 1rem;">
-                      <button class="btn btn-sm btn-secondary" onclick="JhomeApp.openCourse('${course.id}')">إدارة الدورة</button>
-                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${course.id}')">حذف</button>
-                  </td>
-              </tr>
-          `;
-      });
-    } catch(e) {
-      console.error(e);
-      list.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--danger);">حدث خطأ أثناء جلب الدورات</td></tr>';
-    }
-  },
-
-  showCourseModal() {
-    document.getElementById('jcourse-title').value = '';
-    document.getElementById('jcourse-duration').value = '';
-    document.getElementById('jcourse-status').value = 'open';
-    document.getElementById('jcourse-cover-url').value = '';
-    document.getElementById('jcourse-desc').value = '';
-    document.getElementById('jcourse-is-paid').checked = true;
-    document.getElementById('jhome-course-modal').style.display = 'flex';
-  },
-
-  async addCourse(e) {
-    if (e) e.preventDefault();
-    const title = document.getElementById('jcourse-title').value.trim();
-    const duration = document.getElementById('jcourse-duration').value.trim();
-    const status = document.getElementById('jcourse-status').value.trim();
-    const cover = document.getElementById('jcourse-cover-url').value.trim() || `https://ui-avatars.com/api/?name=${encodeURIComponent(title || 'Course')}&background=4F46E5&color=fff&size=400`;
-    const description = document.getElementById('jcourse-desc').value.trim();
-    const isPaid = document.getElementById('jcourse-is-paid').checked;
-
-    const instName = document.getElementById('jcourse-instructor-name').value.trim();
-    const instEmail = document.getElementById('jcourse-instructor-email').value.trim();
-    const instSpecialty = document.getElementById('jcourse-instructor-specialty').value.trim();
-    const instBio = document.getElementById('jcourse-instructor-bio').value.trim();
-    
-    if (!title || !duration || !instEmail) {
-        showToast('الرجاء إدخال اسم الدورة، المدة، والبريد الإلكتروني للمدرب', 'error');
-        return;
-    }
-
-    try {
-      // 1. Add the course
-      const courseRef = await jhomeDb.collection('courses').add({
-          title,
-          duration,
-          status,
-          isPaid,
-          color: '#4F46E5',
-          icon: 'fa-book',
-          cover,
-          description,
-          instructor: instName,
-          instructorEmail: instEmail,
-          instructorSpecialty: instSpecialty,
-          instructorBio: instBio,
-          instructorPhoto: `https://ui-avatars.com/api/?name=${encodeURIComponent(instName || 'Instructor')}&background=1E293B&color=A5B4FC&size=200`,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // 2. Generate and save instructor credentials
-      const baseStr = instName.replace(/\s+/g, '').toLowerCase();
-      const base = (baseStr || 'instructor') + Math.floor(Math.random() * 10000);
-      const instUsername = `${base}`;
-      const password = Math.random().toString(36).slice(-8);
-      await jhomeDb.collection('courses_credentials').doc(instUsername).set({
-          password: password,
-          courseId: courseRef.id,
-          role: 'instructor'
-      });
-
-      AdminApp.closeModal('jhome-course-modal');
-      this.renderCourses();
-      
-      // Alert with credentials to send to the instructor
-      alert(`تم إضافة الدورة بنجاح!\n\nبيانات دخول المدرب:\nاسم المستخدم: ${instUsername}\nكلمة المرور: ${password}\n\nيرجى نسخها وإرسالها للمدرب.`);
-      showToast('تم إنشاء الدورة وتوليد حساب المدرب');
-    } catch(err) {
-      console.error(err);
-      showToast('حدث خطأ أثناء إضافة الدورة', 'error');
-    }
-  },
-
-  async deleteCourse(id) {
-    if (confirm('هل أنت متأكد من حذف هذه الدورة بالكامل مع بياناتها؟')) {
-      try {
-        await jhomeDb.collection('courses').doc(id).delete();
-        this.renderCourses();
-        showToast('تم الحذف بنجاح');
-      } catch(e) {
-        showToast('حدث خطأ أثناء الحذف', 'error');
-      }
-    }
-  },
-
-  async openCourse(id) {
-      this.currentCourseId = id;
-      try {
-        const doc = await jhomeDb.collection('courses').doc(id).get();
-        if (!doc.exists) return;
-        const course = doc.data();
-        course.id = doc.id;
-        this.currentCourseData = course;
-
-        document.getElementById('academy-courses-list').style.display = 'none';
-        document.getElementById('academy-course-details').style.display = 'block';
-
-        const statusMap = { 'open': 'مفتوحة للتسجيل', 'ongoing': 'جارية', 'closed': 'مغلقة' };
-        document.getElementById('detail-course-title').textContent = course.title;
-        document.getElementById('detail-course-status').textContent = `المدة: ${course.duration} | الحالة: ${statusMap[course.status] || course.status}`;
-
-        this.renderCourseRequests();
-        this.renderCourseRooms();
-        this.renderCourseUsers();
-      } catch(e) {
-        console.error(e);
-      }
-  },
-
-  closeCourseDetails() {
-      this.currentCourseId = null;
-      this.currentCourseData = null;
-      document.getElementById('academy-course-details').style.display = 'none';
-      document.getElementById('academy-courses-list').style.display = 'block';
-      this.renderCourses();
-  },
-
-  // Requests
-  async renderCourseRequests() {
-      const courseId = this.currentCourseId;
-      if (!courseId) return;
-      const tbody = document.getElementById('course-requests-tbody');
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
-      
-      try {
-        const snap = await jhomeDb.collection('enrollmentRequests')
-            .where('courseId', '==', courseId)
-            .where('status', '==', 'pending')
-            .get();
-            
-        tbody.innerHTML = '';
-        if (snap.empty) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد طلبات جديدة</td></tr>';
-            return;
-        }
-        
-        snap.docs.forEach(doc => {
-            const req = doc.data();
-            tbody.innerHTML += `
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.5rem;">${req.studentName}</td>
-                    <td style="padding: 0.5rem; font-family: monospace;">${req.receiptId || '-'}</td>
-                    <td style="padding: 0.5rem;" dir="ltr">${req.phone}</td>
-                    <td style="padding: 0.5rem;">
-                        <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showCourseRequestDetails('${doc.id}')"><span class="material-icons-outlined">visibility</span> عرض التفاصيل</button>
-                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${doc.id}', '${req.studentName}')">قبول وتوليد حساب</button>
-                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${doc.id}')">رفض</button>
-                    </td>
-                </tr>
-            `;
-        });
-      } catch(e) {
-        console.error(e);
-      }
-  },
-
-  async showCourseRequestDetails(reqId) {
-      try {
-          const doc = await jhomeDb.collection('enrollmentRequests').doc(reqId).get();
-          if (!doc.exists) return;
-          const data = doc.data();
-          
-          let html = `
-            <div style="display: flex; flex-direction: column; gap: 15px; text-align: right;">
-                <div><strong>اسم الطالب:</strong> ${data.studentName || '-'}</div>
-                <div><strong>رقم الواتساب:</strong> <span dir="ltr">${data.phone || '-'}</span></div>
-                <div><strong>البريد الإلكتروني:</strong> ${data.email || '-'}</div>
-                <div><strong>الموقع (المدينة/الدولة):</strong> ${data.location || '-'}</div>
-                <div><strong>المستوى التعليمي:</strong> ${data.educationLevel || '-'}</div>
-                <div><strong>سبب الانضمام:</strong><br><p style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 5px;">${data.reason || '-'}</p></div>
-                <div><strong>رقم إيصال الدفع:</strong> <span style="font-family: monospace;">${data.receiptId || '-'}</span></div>
-          `;
-          
-          if (data.receiptImage) {
-              html += `<div><strong>صورة الإيصال:</strong><br><img src="${data.receiptImage}" style="max-width: 100%; border-radius: 8px; margin-top: 5px; cursor: pointer;" onclick="AdminApp.previewImage('${data.receiptImage}')" alt="الإيصال"></div>`;
-          }
-          
-          html += `</div>`;
-          
-          document.getElementById('course-request-modal-body').innerHTML = html;
-          document.getElementById('course-request-modal').style.display = 'flex';
-      } catch (e) {
-          console.error("Error fetching request details:", e);
-          showToast('حدث خطأ أثناء جلب التفاصيل', 'error');
-      }
-  },
-
-  async approveCourseRequest(reqId, studentName) {
-      try {
-        // Generate credentials
-        const baseStr = studentName.replace(/\s+/g, '').toLowerCase();
-        const base = (baseStr || 'student') + Math.floor(Math.random() * 10000);
-        const username = `${base}`; // Using simple username instead of email for students
-        const password = Math.random().toString(36).slice(-8); // 8 char random password
-        
-        showToast('جاري إنشاء الحساب...', 'info');
-
-        // Add to courses_credentials collection instead of Firebase Auth
-        await jhomeDb.collection('courses_credentials').doc(username).set({
-            password: password,
-            fullname: studentName,
-            role: 'student',
-            courseId: this.currentCourseId,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        // Update request status
-        await jhomeDb.collection('enrollmentRequests').doc(reqId).update({ status: 'approved' });
-        
-        // Show credentials to admin
-        alert(`تم قبول الطالب بنجاح!\n\nبيانات دخول الطالب:\nاسم المستخدم: ${username}\nكلمة المرور: ${password}\n\nيرجى إرسالها للطالب.`);
-
-        showToast('تم قبول الطالب وتوليد الحساب بنجاح!');
-        this.renderCourseRequests();
-        this.renderCourseUsers();
-      } catch(e) {
-        showToast('حدث خطأ', 'error');
-        console.error(e);
-      }
-  },
-
-  async rejectCourseRequest(reqId) {
-      if(confirm('رفض وحذف هذا الطلب؟')) {
-          try {
-              await jhomeDb.collection('enrollmentRequests').doc(reqId).update({ status: 'rejected' });
-              this.renderCourseRequests();
-              showToast('تم الرفض');
-          } catch(e) {
-              console.error(e);
-          }
-      }
-  },
-
-
-  // Users
-  async renderCourseUsers() {
-      const courseId = this.currentCourseId;
-      if (!courseId) return;
-      const tbody = document.getElementById('course-users-tbody');
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">جاري التحميل...</td></tr>';
-      
-      try {
-        const snap = await jhomeDb.collection('courses_credentials').where('courseId', '==', courseId).get();
-        tbody.innerHTML = '';
-        if (snap.empty) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
-            return;
-        }
-        
-        snap.docs.forEach(doc => {
-            const user = doc.data();
-            const roleBadge = user.role === 'instructor' 
-                ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مشرف</span>'
-                : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
-            const displayName = user.fullname || doc.id;
-            tbody.innerHTML += `
-                <tr style="border-bottom: 1px solid var(--border);">
-                    <td style="padding: 0.5rem;">${displayName}</td>
-                    <td style="padding: 0.5rem; font-family: monospace; color: var(--primary);">${doc.id}</td>
-                    <td style="padding: 0.5rem; font-family: monospace;">${user.password}</td>
-                    <td style="padding: 0.5rem;">${roleBadge}</td>
-                    <td style="padding: 0.5rem;">
-                        <button class="btn btn-sm btn-danger jhome-delete-user-btn" data-userid="${doc.id}">حذف</button>
-                    </td>
-                </tr>
-            `;
-        });
-
-        // Attach delete event listeners after rendering (avoids special char issues in onclick)
-        tbody.querySelectorAll('.jhome-delete-user-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                JhomeApp.deleteCourseUser(btn.getAttribute('data-userid'));
-            });
-        });
-      } catch(e) {
-        console.error(e);
-      }
-  },
-
-    async addCourseInstructor(e) {
-      e.preventDefault();
-      const courseId = this.currentCourseId;
-      if (!courseId) return;
-      const fullname = document.getElementById('new-instructor-name').value;
-      const baseStr = fullname.replace(/\s+/g, '').toLowerCase();
-      const base = (baseStr || 'instructor') + Math.floor(Math.random() * 10000);
-      const username = `${base}`;
-      const password = Math.random().toString(36).slice(-8);
-      
-      try {
-        showToast('جاري إنشاء الحساب...', 'info');
-        
-        // Add to courses_credentials collection directly
-        await jhomeDb.collection('courses_credentials').doc(username).set({
-            fullname,
-            password: password,
-            role: 'instructor',
-            courseId: courseId,
-            createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-
-        document.getElementById('add-instructor-form').reset();
-        
-        // Let the user know the generated credentials
-        alert(`تم إضافة المشرف بنجاح!\n\nبيانات الدخول:\nاسم المستخدم: ${username}\nكلمة المرور: ${password}\n\nيرجى إرسالها للمشرف.`);
-
-        this.renderCourseUsers();
-        showToast('تم توليد حساب المشرف');
-      } catch(e) {
-        console.error(e);
-      }
-  },
-
-  async deleteCourseUser(userId) {
-      if(confirm('حذف هذا المستخدم من الدورة؟')) {
-          try {
-            await jhomeDb.collection('courses_credentials').doc(userId).delete();
-            this.renderCourseUsers();
-            showToast('تم الحذف');
-          } catch(e) {
-            console.error(e);
-          }
-      }
-  },
-
-  // ============================================
-  // ── Projects ──
-  // ============================================
-  async loadProjects() {
-    try {
-      const snap = await jhomeDb.collection('projects').orderBy('createdAt', 'desc').get();
-      const tbody = document.getElementById('jhome-projects-tbody');
-      
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد مشاريع مضافة</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = snap.docs.map(doc => {
-        const p = doc.data();
-        return `
-          <tr>
-            <td><img src="${p.image || 'https://via.placeholder.com/150'}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;"></td>
-            <td><strong>${p.title}</strong></td>
-            <td><span class="text-muted">${p.description ? p.description.substring(0, 50) + '...' : ''}</span></td>
-            <td><a href="${p.link}" target="_blank" class="btn btn-sm btn-ghost">زيارة</a></td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteProject('${doc.id}')">حذف</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      showToast('خطأ في جلب المشاريع', 'error');
-    }
-  },
-
-  showProjectModal() {
-    document.getElementById('jproject-title').value = '';
-    document.getElementById('jproject-desc').value = '';
-    document.getElementById('jproject-link').value = '';
-    document.getElementById('jproject-image').value = '';
-    document.getElementById('jhome-project-modal').style.display = 'flex';
-  },
-
-  async saveProject() {
-    const title = document.getElementById('jproject-title').value.trim();
-    const description = document.getElementById('jproject-desc').value.trim();
-    const link = document.getElementById('jproject-link').value.trim();
-    const image = document.getElementById('jproject-image').value.trim();
-
-    if (!title || !description || !link || !image) {
-      showToast('الرجاء إكمال كافة الحقول', 'error');
-      return;
-    }
-    
-    try {
-      await jhomeDb.collection('projects').add({
-        title, description, link, image,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      showToast('تمت إضافة المشروع بنجاح', 'success');
-      AdminApp.closeModal('jhome-project-modal');
-      this.loadProjects();
-    } catch(e) {
-      console.error(e);
-      showToast('حدث خطأ أثناء الإضافة', 'error');
-    }
-  },
-
-  async deleteProject(id) {
-    if(!confirm('حذف هذا المشروع؟')) return;
-    try {
-      await jhomeDb.collection('projects').doc(id).delete();
-      this.loadProjects();
-      showToast('تم الحذف');
-    } catch(e) {
-      console.error(e);
-    }
-  },
-
-  // ============================================
   // ── Academy Students (Users) ──
-  // ============================================
-  async loadUsers() {
-    try {
-      const snap = await jhomeDb.collection('users').orderBy('createdAt', 'desc').get();
-      const tbody = document.getElementById('jhome-users-tbody');
-      
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد طلاب</td></tr>';
-        return;
-      }
+  async loadUsers() { await adminSystemView.loadUsers(); },
+  showUserModal() { adminSystemView.showUserModal(); },
+  async saveUser() { await adminSystemView.saveUser(); },
+  async deleteUser(id) { await adminSystemView.deleteUser(id); },
 
-      tbody.innerHTML = snap.docs.map(doc => {
-        const u = doc.data();
-        const date = u.createdAt?.toDate ? u.createdAt.toDate().toLocaleDateString('ar-EG') : '';
-        return `
-          <tr>
-            <td><strong>${u.name}</strong></td>
-            <td dir="ltr">${u.email}</td>
-            <td><span class="report-status reviewed">${u.role || 'student'}</span></td>
-            <td>${date}</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteUser('${doc.id}')">حذف</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      showToast('خطأ في جلب الطلاب', 'error');
-    }
-  },
-
-  showUserModal() {
-    document.getElementById('juser-name').value = '';
-    document.getElementById('juser-email').value = '';
-    document.getElementById('juser-password').value = '';
-    document.getElementById('jhome-user-modal').style.display = 'flex';
-  },
-
-  async saveUser() {
-    const name = document.getElementById('juser-name').value.trim();
-    const email = document.getElementById('juser-email').value.trim();
-    const password = document.getElementById('juser-password').value.trim();
-
-    if(!name || !email || !password) {
-      showToast('أكمل كافة الحقول', 'error');
-      return;
-    }
-
-    try {
-      // Create user auth account
-      const createUserFn = firebase.app("jhome").functions().httpsCallable('adminCreateUser');
-      const res = await createUserFn({ email, password, displayName: name });
-      
-      if(res.data && res.data.uid) {
-        await jhomeDb.collection('users').doc(res.data.uid).set({
-          name, email, role: 'student',
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
-        
-        // Also save to credentials for Room Entry Gate
-        await jhomeDb.collection('courses_credentials').doc(res.data.uid).set({
-          username: email, password, role: 'student', realName: name, courseId: 'all'
-        });
-
-        showToast('تم إنشاء حساب الطالب بنجاح', 'success');
-        AdminApp.closeModal('jhome-user-modal');
-        this.loadUsers();
-      } else {
-        showToast('فشل إنشاء الحساب', 'error');
-      }
-    } catch(e) {
-      console.error(e);
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  async deleteUser(id) {
-    if(!confirm('هل أنت متأكد من حذف هذا الطالب بالكامل؟')) return;
-    try {
-      const deleteUserFn = firebase.app("jhome").functions().httpsCallable('adminDeleteUser');
-      await deleteUserFn({ uid: id });
-      await jhomeDb.collection('users').doc(id).delete();
-      await jhomeDb.collection('courses_credentials').doc(id).delete();
-      this.loadUsers();
-      showToast('تم الحذف', 'success');
-    } catch(e) {
-      console.error(e);
-      showToast('خطأ أثناء الحذف: ' + e.message, 'error');
-    }
-  },
-
-  // ============================================
   // ── Enrollment Requests ──
-  // ============================================
-  async loadEnrollmentRequests() {
-    try {
-      const snap = await jhomeDb.collection('enrollmentRequests').orderBy('createdAt', 'desc').get();
-      const tbody = document.getElementById('jhome-requests-tbody');
-      
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا توجد طلبات انضمام جديدة</td></tr>';
-        return;
-      }
+  async loadEnrollmentRequests() { await adminSystemView.loadEnrollmentRequests(); },
+  approveRequest(id, name, email) { adminSystemView.approveRequest(id, name, email); },
+  async rejectRequest(id) { await adminSystemView.rejectRequest(id); },
+  async deleteRequest(id) { await adminSystemView.deleteRequest(id); },
 
-      tbody.innerHTML = snap.docs.map(doc => {
-        const r = doc.data();
-        const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ar-EG') : '';
-        const isPending = r.status === 'pending';
-        return `
-          <tr>
-            <td><strong>${r.name}</strong></td>
-            <td dir="ltr">${r.email}</td>
-            <td dir="ltr">${r.phone || ''}</td>
-            <td><span class="report-status" style="background:var(--primary); color:#fff">${r.courseId || r.courseName || 'عام'}</span></td>
-            <td>${date}</td>
-            <td><span class="report-status ${isPending ? 'pending' : (r.status === 'approved' ? 'reviewed' : 'dismissed')}">${r.status === 'approved' ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
-            <td>
-              ${isPending ? `
-                <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${r.name}', '${r.email}')">قبول وتوليد حساب</button>
-                <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')">رفض</button>
-              ` : ''}
-              <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')">حذف السجل</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      showToast('خطأ في جلب طلبات الانضمام', 'error');
-    }
-  },
-
-  approveRequest(id, name, email) {
-    this.showUserModal();
-    document.getElementById('juser-name').value = name;
-    document.getElementById('juser-email').value = email;
-    // Mark the request as approved in the background
-    jhomeDb.collection('enrollmentRequests').doc(id).update({ status: 'approved' }).then(() => this.loadEnrollmentRequests());
-  },
-
-  async rejectRequest(id) {
-    if(!confirm('رفض هذا الطلب؟')) return;
-    try {
-      await jhomeDb.collection('enrollmentRequests').doc(id).update({ status: 'rejected' });
-      this.loadEnrollmentRequests();
-    } catch(e){}
-  },
-
-  async deleteRequest(id) {
-    if(!confirm('حذف هذا السجل نهائياً؟')) return;
-    try {
-      await jhomeDb.collection('enrollmentRequests').doc(id).delete();
-      this.loadEnrollmentRequests();
-    } catch(e){}
-  },
-
-  // ============================================
   // ── Bank Accounts ──
-  // ============================================
-  async loadBankAccounts() {
-    try {
-      const snap = await jhomeDb.collection('bank_accounts').orderBy('bankName').get();
-      const tbody = document.getElementById('jhome-bank-accounts-tbody');
-      
-      if (snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">لا توجد حسابات مضافة</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = snap.docs.map(doc => {
-        const b = doc.data();
-        return `
-          <tr>
-            <td><strong>${b.bankName}</strong></td>
-            <td>${b.accountName}</td>
-            <td dir="ltr">${b.accountNumber}</td>
-            <td>${b.branch || '-'}</td>
-            <td><span class="text-muted">${b.notes || ''}</span></td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteBankAccount('${doc.id}')">حذف</button>
-            </td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      showToast('خطأ في جلب الحسابات', 'error');
-    }
-  },
-
-  showBankAccountModal() {
-    document.getElementById('jbank-name').value = '';
-    document.getElementById('jbank-account-name').value = '';
-    document.getElementById('jbank-account-number').value = '';
-    document.getElementById('jbank-branch').value = '';
-    document.getElementById('jbank-notes').value = '';
-    document.getElementById('jhome-bank-modal').style.display = 'flex';
-  },
-
-  async saveBankAccount() {
-    const bankName = document.getElementById('jbank-name').value.trim();
-    const accountName = document.getElementById('jbank-account-name').value.trim();
-    const accountNumber = document.getElementById('jbank-account-number').value.trim();
-    const branch = document.getElementById('jbank-branch').value.trim();
-    const notes = document.getElementById('jbank-notes').value.trim();
-
-    if(!bankName || !accountName || !accountNumber) {
-      showToast('يرجى إدخال البيانات الأساسية للحساب', 'error');
-      return;
-    }
-
-    try {
-      await jhomeDb.collection('bank_accounts').add({ bankName, accountName, accountNumber, branch, notes });
-      showToast('تمت إضافة الحساب بنجاح', 'success');
-      AdminApp.closeModal('jhome-bank-modal');
-      this.loadBankAccounts();
-    } catch(e) {
-      console.error(e);
-      showToast('فشل حفظ الحساب', 'error');
-    }
-  },
-
-  async deleteBankAccount(id) {
-    if(!confirm('حذف هذا الحساب؟')) return;
-    try {
-      await jhomeDb.collection('bank_accounts').doc(id).delete();
-      this.loadBankAccounts();
-      showToast('تم الحذف');
-    } catch(e){}
-  }
+  async loadBankAccounts() { await adminSystemView.loadBankAccounts(); },
+  showBankAccountModal() { adminSystemView.showBankAccountModal(); },
+  async saveBankAccount() { await adminSystemView.saveBankAccount(); },
+  async deleteBankAccount(id) { await adminSystemView.deleteBankAccount(id); }
 
 };
 
@@ -1196,10 +533,12 @@ const JhomeApp = {
 
 // Initialize by loading the default tab when Jhome page opens
 // We hook into the AdminApp's navigation logic
-const originalNavigateTo = AdminApp.navigateTo;
-AdminApp.navigateTo = function(page) {
+const originalNavigateTo = window.AdminApp.navigateTo;
+window.AdminApp.navigateTo = function(page) {
   originalNavigateTo.call(this, page);
   if (page === 'jhome') {
     JhomeApp.showTab(JhomeApp.currentTab);
   }
 };
+
+window.JhomeApp = JhomeApp;

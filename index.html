@@ -990,11 +990,15 @@
         <div class="form-group full-width"><label>مقتطف قصير (وصف)</label><textarea id="jpost-excerpt" class="text-input" rows="2" placeholder="وصف يظهر في قائمة المقالات"></textarea></div>
         <div class="form-group full-width"><label>محتوى المقال الكامل</label><textarea id="jpost-content" class="text-input" rows="6" placeholder="محتوى المقال هنا..."></textarea></div>
         <div class="form-group full-width">
-          <label>صورة الغلاف (رفع صورة أو لصق رابط)</label>
-          <div style="display:flex; gap:10px;">
-            <input type="file" id="jpost-cover-file" class="text-input" accept="image/*" style="flex:1;">
-            <input type="text" id="jpost-cover-url" class="text-input" placeholder="أو رابط: https://..." dir="ltr" style="flex:1;">
+          <label>صورة الغلاف</label>
+          <div class="img-upload-zone" onclick="document.getElementById('jpost-cover-file').click()" id="jpost-upload-zone">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted);">add_photo_alternate</span>
+            <p style="margin:8px 0 4px;font-weight:bold;">اضغط لرفع صورة الغلاف</p>
+            <p style="font-size:12px;color:var(--text-muted);">PNG، JPG، WEBP — الحد الأقصى 10 ميغا</p>
+            <input type="file" id="jpost-cover-file" accept="image/*" style="display:none" onchange="AdminHelpers.previewSingleImg('jpost-cover-file','jpost-img-preview','jpost-upload-zone')">
           </div>
+          <div id="jpost-img-preview" style="display:none; margin-top:10px; position:relative;"></div>
+          <input type="hidden" id="jpost-cover-url" value="">
         </div>
         <div style="display:flex; gap:15px; margin-top:10px;">
           <div class="form-group" style="flex:1;"><label>التصنيف</label><input type="text" id="jpost-category" class="text-input" placeholder="أخبار، تقنية، مشاريع..."></div>
@@ -1022,11 +1026,15 @@
         <div class="form-group full-width"><label>تفاصيل قصة النجاح</label><textarea id="jstory-content" class="text-input" rows="5" placeholder="تفاصيل القصة كاملة..."></textarea></div>
         <div class="form-group full-width"><label>رابط ملف الحرفي في التطبيق (اختياري)</label><input type="url" id="jstory-freelancer-link" class="text-input" placeholder="https://app.sudanfree.com/user/123..." dir="ltr"></div>
         <div class="form-group full-width">
-          <label>الصورة الشخصية (رفع صورة أو لصق رابط)</label>
-          <div style="display:flex; gap:10px;">
-            <input type="file" id="jstory-cover-file" class="text-input" accept="image/*" style="flex:1;">
-            <input type="text" id="jstory-cover-url" class="text-input" placeholder="أو رابط: https://..." dir="ltr" style="flex:1;">
+          <label>الصورة الشخصية</label>
+          <div class="img-upload-zone" onclick="document.getElementById('jstory-cover-file').click()" id="jstory-upload-zone">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted);">person</span>
+            <p style="margin:8px 0 4px;font-weight:bold;">اضغط لرفع الصورة الشخصية</p>
+            <p style="font-size:12px;color:var(--text-muted);">PNG، JPG، WEBP</p>
+            <input type="file" id="jstory-cover-file" accept="image/*" style="display:none" onchange="AdminHelpers.previewSingleImg('jstory-cover-file','jstory-img-preview','jstory-upload-zone')">
           </div>
+          <div id="jstory-img-preview" style="display:none; margin-top:10px; position:relative;"></div>
+          <input type="hidden" id="jstory-cover-url" value="">
         </div>
       </div>
       <div class="modal-footer">
@@ -1057,8 +1065,15 @@
           </div>
         </div>
         <div class="form-group full-width">
-          <label>غلاف الدورة (رابط صورة)</label>
-          <input type="text" id="jcourse-cover-url" class="text-input" placeholder="https://..." dir="ltr">
+          <label>غلاف الدورة</label>
+          <div class="img-upload-zone" onclick="document.getElementById('jcourse-cover-file').click()" id="jcourse-upload-zone">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted);">school</span>
+            <p style="margin:8px 0 4px;font-weight:bold;">اضغط لرفع صورة الدورة</p>
+            <p style="font-size:12px;color:var(--text-muted);">PNG، JPG، WEBP</p>
+            <input type="file" id="jcourse-cover-file" accept="image/*" style="display:none" onchange="AdminHelpers.previewSingleImg('jcourse-cover-file','jcourse-img-preview','jcourse-upload-zone')">
+          </div>
+          <div id="jcourse-img-preview" style="display:none; margin-top:10px; position:relative;"></div>
+          <input type="hidden" id="jcourse-cover-url" value="">
         </div>
         <div class="form-group full-width"><label>وصف الدورة</label><textarea id="jcourse-desc" class="text-input" rows="4" placeholder="وصف كامل للدورة..."></textarea></div>
         <div class="form-group full-width" style="display: flex; align-items: center; gap: 10px;">
@@ -1093,8 +1108,15 @@
         <div class="form-group full-width"><label>وصف المشروع</label><textarea id="jproject-desc" class="text-input" rows="4" placeholder="وصف كامل للمشروع..."></textarea></div>
         <div class="form-group full-width"><label>رابط المشروع</label><input type="url" id="jproject-link" class="text-input" placeholder="https://..." dir="ltr"></div>
         <div class="form-group full-width">
-          <label>صورة المشروع (رابط)</label>
-          <input type="text" id="jproject-image" class="text-input" placeholder="https://..." dir="ltr">
+          <label>صورة المشروع</label>
+          <div class="img-upload-zone" onclick="document.getElementById('jproject-image-file').click()" id="jproject-upload-zone">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted);">image</span>
+            <p style="margin:8px 0 4px;font-weight:bold;">اضغط لرفع صورة المشروع</p>
+            <p style="font-size:12px;color:var(--text-muted);">PNG، JPG، WEBP</p>
+            <input type="file" id="jproject-image-file" accept="image/*" style="display:none" onchange="AdminHelpers.previewSingleImg('jproject-image-file','jproject-img-preview','jproject-upload-zone')">
+          </div>
+          <div id="jproject-img-preview" style="display:none; margin-top:10px; position:relative;"></div>
+          <input type="hidden" id="jproject-image" value="">
         </div>
       </div>
       <div class="modal-footer">
@@ -1167,6 +1189,25 @@
 
   <div id="toast-container" class="toast-container"></div>
 
+  <!-- Course Request Details Modal -->
+  <div id="course-request-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('course-request-modal')"></div>
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 id="course-request-modal-title">تفاصيل طلب التسجيل</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('course-request-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body" id="course-request-modal-body">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" onclick="AdminApp.closeModal('course-request-modal')">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden legacy input for ads backwards compat -->
+  <input type="hidden" id="ad-image" value="">
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -1176,9 +1217,10 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
   <script src="js/firebase-config.js?v=3"></script>
+  <script src="js/AdminHelpers.js?v=1"></script>
   <script src="js/extras.js?v=3"></script>
   <script src="js/app.js?v=5"></script>
-  <script src="js/jhome-app.js?v=6"></script>
+  <script type="module" src="js/jhome-app.js?v=7"></script>
   <script>
     const SiteControl = {
       init: async function() {
@@ -1237,19 +1279,3 @@
   </script>
 </body>
 </html>
-
-  <!-- Course Request Details Modal -->
-  <div id="course-request-modal" class="modal" style="display:none;">
-    <div class="modal-overlay" onclick="AdminApp.closeModal('course-request-modal')"></div>
-    <div class="modal-content modal-lg">
-      <div class="modal-header">
-        <h3 id="course-request-modal-title">تفاصيل طلب التسجيل</h3>
-        <button class="modal-close" onclick="AdminApp.closeModal('course-request-modal')"><span class="material-icons-outlined">close</span></button>
-      </div>
-      <div class="modal-body" id="course-request-modal-body">
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-ghost" onclick="AdminApp.closeModal('course-request-modal')">إغلاق</button>
-      </div>
-    </div>
-  </div>
