@@ -4,6 +4,9 @@ import { blogView } from './ui/BlogView.js?v=2';
 import { academyView } from './ui/AcademyView.js?v=2';
 import { adminSystemView } from './ui/AdminSystemView.js?v=2';
 
+// Explicitly reference the global Firebase app to prevent module isolation ReferenceErrors
+const jhomeDb = window.firebase.app('jhome').firestore();
+
 // Jhome App Management Logic
 const JhomeApp = {
   currentTab: 'blog',
@@ -173,10 +176,10 @@ const JhomeApp = {
         }
       });
 
-      showToast('تم حفظ التعديلات بنجاح!', 'success');
+      window.AdminApp.showToast('تم حفظ التعديلات بنجاح!', 'success');
     } catch(e) {
       console.error('Error saving page content:', e);
-      showToast('فشل حفظ التعديلات. تأكد من الصلاحيات.', 'error');
+      window.AdminApp.showToast('فشل حفظ التعديلات. تأكد من الصلاحيات.', 'error');
     } finally {
       document.getElementById('jhome-page-editor-actions').style.opacity = '1';
       document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'auto';
@@ -280,10 +283,10 @@ const JhomeApp = {
     if (!confirm('هل أنت متأكد من حذف هذا المقال نهائياً؟')) return;
     try {
       await jhomeDb.collection('posts').doc(id).delete();
-      showToast('تم الحذف بنجاح', 'success');
+      window.AdminApp.showToast('تم الحذف بنجاح', 'success');
       this.loadPosts();
     } catch (e) {
-      showToast('حدث خطأ أثناء الحذف', 'error');
+      window.AdminApp.showToast('حدث خطأ أثناء الحذف', 'error');
     }
   },
 
@@ -319,12 +322,12 @@ const JhomeApp = {
     const file = fileInput.files[0];
 
     if (!title || !slug || !content) {
-      showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
+      window.AdminApp.showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
       return;
     }
 
     try {
-      showToast('جاري حفظ المقال...', 'success');
+      window.AdminApp.showToast('جاري حفظ المقال...', 'success');
       if (file) {
         coverImage = await this.uploadJhomeImage(file, 'posts');
       }
@@ -342,12 +345,12 @@ const JhomeApp = {
         publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('تم نشر المقال بنجاح!', 'success');
+      window.AdminApp.showToast('تم نشر المقال بنجاح!', 'success');
       AdminApp.closeModal('jhome-post-modal');
       this.loadPosts();
     } catch (e) {
       console.error('Error saving post:', e);
-      showToast('خطأ أثناء حفظ المقال: ' + e.message, 'error');
+      window.AdminApp.showToast('خطأ أثناء حفظ المقال: ' + e.message, 'error');
     }
   },
 
@@ -402,7 +405,7 @@ const JhomeApp = {
       }
     } catch (e) {
       console.error('Error loading stories:', e);
-      showToast('خطأ في جلب القصص: ' + e.message, 'error');
+      window.AdminApp.showToast('خطأ في جلب القصص: ' + e.message, 'error');
     }
   },
 
@@ -412,10 +415,10 @@ const JhomeApp = {
       // In a real app, you might want a modal to let admin edit before publishing.
       // For now, we update status to approved.
       await jhomeDb.collection('storySubmissions').doc(id).update({ status: 'approved' });
-      showToast('تم الموافقة على القصة', 'success');
+      window.AdminApp.showToast('تم الموافقة على القصة', 'success');
       this.loadStories();
     } catch(e) {
-      showToast('خطأ', 'error');
+      window.AdminApp.showToast('خطأ', 'error');
     }
   },
 
@@ -423,10 +426,10 @@ const JhomeApp = {
     if (!confirm('هل تريد رفض وحذف هذا التقديم؟')) return;
     try {
       await jhomeDb.collection('storySubmissions').doc(id).update({ status: 'rejected' });
-      showToast('تم الرفض', 'success');
+      window.AdminApp.showToast('تم الرفض', 'success');
       this.loadStories();
     } catch(e) {
-      showToast('خطأ', 'error');
+      window.AdminApp.showToast('خطأ', 'error');
     }
   },
 
@@ -465,12 +468,12 @@ const JhomeApp = {
     const file = fileInput.files[0];
 
     if (!title || !story) {
-      showToast('الرجاء إدخال اسم الشخص وتفاصيل القصة', 'error');
+      window.AdminApp.showToast('الرجاء إدخال اسم الشخص وتفاصيل القصة', 'error');
       return;
     }
 
     try {
-      showToast('جاري الحفظ والرفع...', 'success');
+      window.AdminApp.showToast('جاري الحفظ والرفع...', 'success');
       if (file) {
         coverImage = await this.uploadJhomeImage(file, 'successStories');
       }
@@ -493,12 +496,12 @@ const JhomeApp = {
         category: 'general',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      showToast('تم نشر قصة النجاح بنجاح!', 'success');
+      window.AdminApp.showToast('تم نشر قصة النجاح بنجاح!', 'success');
       AdminApp.closeModal('jhome-story-modal');
       this.loadStories();
     } catch (e) {
       console.error('Error saving story:', e);
-      showToast('خطأ أثناء حفظ القصة: ' + e.message, 'error');
+      window.AdminApp.showToast('خطأ أثناء حفظ القصة: ' + e.message, 'error');
     }
   },
 
@@ -593,6 +596,7 @@ function hookJhomeNavigation() {
   };
 }
 
-document.addEventListener('DOMContentLoaded', hookJhomeNavigation);
+// Start the hook immediately. The polling mechanism will wait for AdminApp to be ready.
+hookJhomeNavigation();
 
 window.JhomeApp = JhomeApp;
