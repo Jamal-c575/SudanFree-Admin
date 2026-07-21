@@ -520,6 +520,47 @@ const JhomeApp = {
 
   // ── Enrollment Requests ──
   async loadEnrollmentRequests() { await adminSystemView.loadEnrollmentRequests(); },
+  showRequestDetails(id, detailsJson) {
+    try {
+      const data = JSON.parse(decodeURIComponent(detailsJson));
+      const sName = (data.student && data.student.name) ? data.student.name : (data.name || '—');
+      const sEmail = (data.student && data.student.email) ? data.student.email : (data.email || '—');
+      const sPhone = (data.student && data.student.phone) ? data.student.phone : (data.phone || '—');
+      const sCity = (data.student && data.student.city) ? data.student.city : '—';
+      const sEdu = (data.student && data.student.education) ? data.student.education : '—';
+      const sReason = (data.student && data.student.reason) ? data.student.reason : '—';
+      const cTitle = data.courseTitle || data.courseName || data.courseId || 'عام';
+      const receipt = (data.payment && data.payment.receiptUrl) ? data.payment.receiptUrl : data.receiptUrl;
+
+      const modal = document.createElement('div');
+      modal.className = 'modal';
+      modal.style.display = 'flex';
+      modal.innerHTML = `
+        <div class="modal-content" style="max-width: 500px; text-align: right;">
+          <div class="modal-header">
+            <h3>تفاصيل طلب الانضمام</h3>
+            <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+          </div>
+          <div class="modal-body" style="line-height: 1.8;">
+            <p><strong>اسم الطالب:</strong> ${sName}</p>
+            <p><strong>رقم الهاتف:</strong> <span dir="ltr">${sPhone}</span></p>
+            <p><strong>البريد الإلكتروني:</strong> <span dir="ltr">${sEmail}</span></p>
+            <p><strong>المدينة:</strong> ${sCity}</p>
+            <p><strong>المستوى التعليمي:</strong> ${sEdu}</p>
+            <p><strong>سبب الانضمام:</strong> ${sReason}</p>
+            <hr>
+            <p><strong>الدورة المطلوبة:</strong> ${cTitle}</p>
+            <p><strong>طبيعة الدورة:</strong> ${data.type === 'paid' ? 'مدفوعة' : 'مجانية'}</p>
+            ${receipt ? `<p><strong>إيصال الدفع:</strong> <br><a href="${receipt}" target="_blank"><img src="${receipt}" style="max-width: 100%; max-height: 300px; border-radius: 8px; margin-top: 10px;" alt="الإيصال"/></a></p>` : ''}
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    } catch(e) {
+      console.error(e);
+      alert('خطأ في عرض التفاصيل');
+    }
+  },
   approveRequest(id, name, email) { adminSystemView.approveRequest(id, name, email); },
   async rejectRequest(id) { await adminSystemView.rejectRequest(id); },
   async deleteRequest(id) { await adminSystemView.deleteRequest(id); },

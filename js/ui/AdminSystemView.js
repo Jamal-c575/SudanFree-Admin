@@ -271,20 +271,30 @@ export class AdminSystemView {
                 const r = doc.data();
                 const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ar-EG') : '';
                 const isPending = r.status === 'pending';
+                
+                const sName = (r.student && r.student.name) ? r.student.name : (r.name || '—');
+                const sEmail = (r.student && r.student.email) ? r.student.email : (r.email || '—');
+                const sPhone = (r.student && r.student.phone) ? r.student.phone : (r.phone || '—');
+                const cTitle = r.courseTitle || r.courseName || r.courseId || 'عام';
+                const receipt = (r.payment && r.payment.receiptUrl) ? r.payment.receiptUrl : r.receiptUrl;
+                const detailsJson = encodeURIComponent(JSON.stringify(r));
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td><strong>${r.name}</strong></td>
-                    <td dir="ltr">${r.email}</td>
-                    <td dir="ltr">${r.phone || ''}</td>
-                    <td><span class="report-status" style="background:var(--primary); color:#fff">${r.courseId || r.courseName || 'عام'}</span></td>
+                    <td><strong>${sName}</strong></td>
+                    <td dir="ltr">${sEmail}</td>
+                    <td dir="ltr">${sPhone}</td>
+                    <td><span class="report-status" style="background:var(--primary); color:#fff">${cTitle}</span></td>
                     <td>${date}</td>
                     <td><span class="report-status ${isPending ? 'pending' : (r.status === 'approved' ? 'reviewed' : 'dismissed')}">${r.status === 'approved' ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
                     <td>
+                      ${receipt ? `<a href="${receipt}" target="_blank" class="btn btn-sm btn-ghost" style="margin-bottom:5px;display:inline-block;">إيصال الدفع</a>` : ''}
+                      <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showRequestDetails('${doc.id}', '${detailsJson}')" style="margin-bottom:5px;display:inline-block;">التفاصيل</button>
                       ${isPending ? `
-                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${r.name}', '${r.email}')">قبول وتوليد حساب</button>
-                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')">رفض</button>
+                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
+                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">رفض</button>
                       ` : ''}
-                      <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')">حذف السجل</button>
+                      <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">حذف</button>
                     </td>
                 `;
                 fragment.appendChild(tr);
