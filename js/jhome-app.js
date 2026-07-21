@@ -1,8 +1,8 @@
-import { projectsView } from './ui/ProjectsView.js';
-import { storiesView } from './ui/StoriesView.js';
-import { blogView } from './ui/BlogView.js';
-import { academyView } from './ui/AcademyView.js';
-import { adminSystemView } from './ui/AdminSystemView.js';
+import { projectsView } from './ui/ProjectsView.js?v=2';
+import { storiesView } from './ui/StoriesView.js?v=2';
+import { blogView } from './ui/BlogView.js?v=2';
+import { academyView } from './ui/AcademyView.js?v=2';
+import { adminSystemView } from './ui/AdminSystemView.js?v=2';
 
 // Jhome App Management Logic
 const JhomeApp = {

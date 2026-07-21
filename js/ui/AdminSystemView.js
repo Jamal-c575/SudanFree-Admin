@@ -276,7 +276,10 @@ export class AdminSystemView {
             }
 
             const fragment = document.createDocumentFragment();
-            const escapeQuote = str => (str ? String(str).replace(/'/g, "&apos;") : '');
+            const escapeQuote = str => {
+                if (!str) return '';
+                return String(str).replace(/'/g, "&apos;").replace(/"/g, "&quot;").replace(/\\/g, "\\\\");
+            };
 
             snap.docs.forEach(doc => {
                 const r = doc.data();
