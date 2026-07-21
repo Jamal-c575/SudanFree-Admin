@@ -560,17 +560,29 @@ const JhomeApp = {
 
 };
 
-// ── Academy Form Listeners ──
-// Handled directly via onsubmit in HTML
-
-// Initialize by loading the default tab when Jhome page opens
-// We hook into the AdminApp's navigation logic
-const originalNavigateTo = window.AdminApp.navigateTo;
-window.AdminApp.navigateTo = function(page) {
-  originalNavigateTo.call(this, page);
-  if (page === 'jhome') {
-    JhomeApp.showTab(JhomeApp.currentTab);
+// ── Hook into AdminApp navigation — safe version ──
+// jhome-app.js is a module (loads async). We must wait for AdminApp to be ready.
+function hookJhomeNavigation() {
+  if (!window.AdminApp || typeof window.AdminApp.navigateTo !== 'function') {
+    // AdminApp not ready yet — retry after a short delay
+    setTimeout(hookJhomeNavigation, 100);
+    return;
   }
-};
+
+  // Only patch once
+  if (window.AdminApp._jhomePatched) return;
+  window.AdminApp._jhomePatched = true;
+
+  const _orig = window.AdminApp.navigateTo.bind(window.AdminApp);
+  window.AdminApp.navigateTo = function(page) {
+    _orig(page);
+    if (page === 'jhome') {
+      // Load the default or current tab when entering Jhome section
+      setTimeout(() => JhomeApp.showTab(JhomeApp.currentTab), 50);
+    }
+  };
+}
+
+document.addEventListener('DOMContentLoaded', hookJhomeNavigation);
 
 window.JhomeApp = JhomeApp;

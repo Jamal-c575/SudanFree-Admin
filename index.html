@@ -1221,9 +1221,9 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
   <script src="js/firebase-config.js?v=3"></script>
   <script src="js/AdminHelpers.js?v=1"></script>
-  <script src="js/extras.js?v=3"></script>
-  <script src="js/app.js?v=5"></script>
-  <script type="module" src="js/jhome-app.js?v=8"></script>
+  <script src="js/extras.js?v=4"></script>
+  <script src="js/app.js?v=6"></script>
+  <script type="module" src="js/jhome-app.js?v=9"></script>
   <script>
     const SiteControl = {
       init: async function() {
@@ -1272,13 +1272,23 @@
     };
 
     // Hook into AdminApp navigation to load settings when tab is opened
-    const originalNavigate = AdminApp.navigateTo;
-    AdminApp.navigateTo = function(pageId) {
-      originalNavigate.call(AdminApp, pageId);
-      if (pageId === 'site-control') {
-        SiteControl.init();
+    // Use a polling approach to wait for AdminApp to be fully ready
+    (function hookSiteControl() {
+      if (!window.AdminApp || typeof window.AdminApp.navigateTo !== 'function') {
+        setTimeout(hookSiteControl, 150);
+        return;
       }
-    };
+      if (window.AdminApp._siteControlPatched) return;
+      window.AdminApp._siteControlPatched = true;
+
+      const _origSC = window.AdminApp.navigateTo.bind(window.AdminApp);
+      window.AdminApp.navigateTo = function(pageId) {
+        _origSC(pageId);
+        if (pageId === 'site-control') {
+          SiteControl.init();
+        }
+      };
+    })();
   </script>
   </div>
 </body>
