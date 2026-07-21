@@ -299,7 +299,7 @@ export class AdminSystemView {
                     <td>
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showRequestDetails('${doc.id}', '${detailsJson}')" style="margin-bottom:5px;display:inline-block;">التفاصيل</button>
                       ${isPending ? `
-                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}', '${r.courseId || 'all'}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
+                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}', '${r.courseId || 'all'}', '${sPhone}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
                         <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">رفض</button>
                       ` : ''}
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">حذف</button>
@@ -314,12 +314,24 @@ export class AdminSystemView {
         }
     }
 
-    approveRequest(id, name, email, courseId) {
+    approveRequest(id, name, email, courseId, phone) {
         this.showUserModal();
         const nInput = document.getElementById('juser-name');
         const eInput = document.getElementById('juser-email');
+        const pInput = document.getElementById('juser-password');
+
         if (nInput) nInput.value = name !== 'undefined' ? name : '';
-        if (eInput) eInput.value = email !== 'undefined' ? email : '';
+        
+        let finalEmail = (email !== 'undefined' && email !== '—' && email) ? email : '';
+        if (!finalEmail) {
+            const safePhone = (phone && phone !== '—' && phone !== 'undefined') ? phone.replace(/\\D/g, '') : Math.floor(Math.random() * 1000000);
+            finalEmail = \`student${safePhone}@sudanfree.com\`;
+        }
+        if (eInput) eInput.value = finalEmail;
+
+        const randomPassword = Math.random().toString(36).slice(-8);
+        if (pInput) pInput.value = randomPassword;
+
         window._currentPendingRequestId = id;
         window._currentPendingCourseId = courseId;
     }
