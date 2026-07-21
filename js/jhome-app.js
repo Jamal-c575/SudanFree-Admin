@@ -28,38 +28,14 @@ const JhomeApp = {
     // Show selected tab
     document.getElementById(`jhome-tab-${tabId}`).style.display = 'block';
 
-    // Check if Jhome is authenticated and auto-login if needed
-    if (!firebase.app('jhome').auth().currentUser) {
-      const mainUser = firebase.auth().currentUser;
-      if (mainUser) {
-        // Secure Phase 0: Prompt for password instead of hardcoding it in the JS bundle.
-        const jhomePass = prompt("مطلوب مصادقة Jhome: يرجى إدخال كلمة مرور Jhome Admin للاتصال بقاعدة البيانات المركزية:");
-        if (jhomePass) {
-          firebase.app('jhome').auth().signInWithEmailAndPassword(mainUser.email, jhomePass)
-            .then(() => {
-              console.log("Jhome manual login successful.");
-              showToast('تم الاتصال بنجاح بقاعدة بيانات Jhome', 'success');
-              // Reload the current tab data after successful auth
-              JhomeApp.switchTab(tabId);
-            })
-            .catch(err => {
-              console.error(err);
-              showToast('⚠️ فشل الاتصال: كلمة المرور غير صحيحة.', 'error');
-            });
-        }
-      } else {
-        showToast('⚠️ تحذير: حساب Jhome غير متصل! يرجى تسجيل الخروج بالكامل ثم الدخول مجدداً.', 'error');
-      }
-    }
-
-    // Load data based on tab
+    // Load data based on tab (no blocking auth prompt — Firestore rules handle access)
     if (tabId === 'blog') this.loadPosts();
     if (tabId === 'stories') this.loadStories();
     if (tabId === 'messages') this.loadMessages();
     if (tabId === 'newsletter') this.loadNewsletter();
 
     if (tabId === 'academy-courses') this.renderCourses();
-    if (tabId === 'pages') this.loadPageContent('home'); // Default page
+    if (tabId === 'pages') this.loadPageContent('home');
     if (tabId === 'projects') this.loadProjects();
     if (tabId === 'students') this.loadUsers();
     if (tabId === 'requests') this.loadEnrollmentRequests();
