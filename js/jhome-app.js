@@ -8,38 +8,35 @@ import { adminSystemView } from './ui/AdminSystemView.js?v=2';
 const JhomeApp = {
   currentTab: 'blog',
 
-  showTab(tabId) {
+  showTab(tabId, clickedEl) {
     this.currentTab = tabId;
-    
-    // Update active button state
+
+    // Update active button state — safely without relying on global 'event'
     document.querySelectorAll('.jhome-tab-btn').forEach(btn => btn.classList.remove('active'));
-    try {
-        if (typeof event !== 'undefined' && event && event.currentTarget) {
-            event.currentTarget.classList.add('active');
-        } else {
-            const activeBtn = document.querySelector(`.jhome-tab-btn[onclick*="'${tabId}'"]`);
-            if (activeBtn) activeBtn.classList.add('active');
-        }
-    } catch (e) {}
-    
-    // Hide all tabs
+    if (clickedEl) {
+      clickedEl.classList.add('active');
+    } else {
+      const activeBtn = document.querySelector(`.jhome-tab-btn[onclick*="'${tabId}'"]`);
+      if (activeBtn) activeBtn.classList.add('active');
+    }
+
+    // Hide all tabs then show the selected one
     document.querySelectorAll('.jhome-tab').forEach(tab => tab.style.display = 'none');
-    
-    // Show selected tab
-    document.getElementById(`jhome-tab-${tabId}`).style.display = 'block';
+    const tabEl = document.getElementById(`jhome-tab-${tabId}`);
+    if (tabEl) tabEl.style.display = 'block';
+    else { console.warn('Tab not found: jhome-tab-' + tabId); return; }
 
-    // Load data based on tab (no blocking auth prompt — Firestore rules handle access)
-    if (tabId === 'blog') this.loadPosts();
-    if (tabId === 'stories') this.loadStories();
-    if (tabId === 'messages') this.loadMessages();
-    if (tabId === 'newsletter') this.loadNewsletter();
-
+    // Load data based on tab
+    if (tabId === 'blog')           this.loadPosts();
+    if (tabId === 'stories')        this.loadStories();
+    if (tabId === 'messages')       this.loadMessages();
+    if (tabId === 'newsletter')     this.loadNewsletter();
     if (tabId === 'academy-courses') this.renderCourses();
-    if (tabId === 'pages') this.loadPageContent('home');
-    if (tabId === 'projects') this.loadProjects();
-    if (tabId === 'students') this.loadUsers();
-    if (tabId === 'requests') this.loadEnrollmentRequests();
-    if (tabId === 'bank-accounts') this.loadBankAccounts();
+    if (tabId === 'pages')          this.loadPageContent('home');
+    if (tabId === 'projects')       this.loadProjects();
+    if (tabId === 'students')       this.loadUsers();
+    if (tabId === 'requests')       this.loadEnrollmentRequests();
+    if (tabId === 'bank-accounts')  this.loadBankAccounts();
   },
 
   // ── Page Content Management ──
@@ -235,34 +232,47 @@ const JhomeApp = {
 
   // ── Blog / Posts ──
   async loadPosts() {
+    const tbody = document.getElementById('jhome-posts-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">⏳ جاري التحميل...</td></tr>';
     try {
-      const snap = await jhomeDb.collection('posts').orderBy('publishedAt', 'desc').get();
-      const tbody = document.getElementById('jhome-posts-tbody');
-      
+      // Use a simple get() without orderBy to avoid requiring a composite index
+      const snap = await jhomeDb.collection('posts').get();
+
       if (snap.empty) {
         tbody.innerHTML = '<tr><td colspan="6" class="empty-state">لا توجد مقالات منشورة حتى الآن</td></tr>';
         return;
       }
 
-      tbody.innerHTML = snap.docs.map(doc => {
-        const p = doc.data();
-        const date = p.publishedAt ? (p.publishedAt.toDate ? p.publishedAt.toDate().toLocaleDateString('ar-EG') : new Date(p.publishedAt).toLocaleDateString('ar-EG')) : '—';
+      // Sort client-side by publishedAt descending
+      const docs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      docs.sort((a, b) => {
+        const aT = a.publishedAt?.toDate ? a.publishedAt.toDate().getTime() : (a.publishedAt ? new Date(a.publishedAt).getTime() : 0);
+        const bT = b.publishedAt?.toDate ? b.publishedAt.toDate().getTime() : (b.publishedAt ? new Date(b.publishedAt).getTime() : 0);
+        return bT - aT;
+      });
+
+      tbody.innerHTML = docs.map(p => {
+        const date = p.publishedAt
+          ? (p.publishedAt.toDate ? p.publishedAt.toDate().toLocaleDateString('ar-EG') : new Date(p.publishedAt).toLocaleDateString('ar-EG'))
+          : '—';
+        const cover = p.coverImage
+          ? `<img src="${p.coverImage}" style="width:50px;height:50px;border-radius:8px;object-fit:cover;">`
+          : `<div style="width:50px;height:50px;border-radius:8px;background:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:bold;color:#fff;">J</div>`;
         return `
           <tr>
-            <td><img src="${p.coverImage || 'https://via.placeholder.com/150'}" style="width:50px; height:50px; border-radius:8px; object-fit:cover;"></td>
-            <td><strong>${p.title}</strong><br><small style="color:var(--text-muted)">${p.authorName || 'إدارة Jhome'}</small></td>
+            <td>${cover}</td>
+            <td><strong>${p.title || '—'}</strong><br><small style="color:var(--text-muted)">${p.authorName || 'إدارة Jhome'}</small></td>
             <td><span class="role-badge role-freelancer">${p.category || 'عام'}</span></td>
             <td><span class="report-status ${p.status === 'published' ? 'reviewed' : 'pending'}">${p.status === 'published' ? 'منشور' : 'مسودة'}</span></td>
             <td>${date}</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="JhomeApp.deletePost('${doc.id}')">حذف</button>
-            </td>
+            <td><button class="btn btn-sm btn-danger" onclick="JhomeApp.deletePost('${p.id}')">حذف</button></td>
           </tr>
         `;
       }).join('');
     } catch (e) {
       console.error('Error loading posts:', e);
-      showToast('خطأ في جلب المقالات: ' + e.message, 'error');
+      if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="empty-state" style="color:red;">⚠️ خطأ في التحميل: ${e.message}</td></tr>`;
     }
   },
 

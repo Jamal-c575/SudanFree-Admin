@@ -128,36 +128,36 @@
       <!-- Jhome Sidebar Nav -->
       <nav class="sidebar-nav" id="jhome-sidebar-nav" style="display:none;">
         <div class="nav-section-title">إدارة موقع Jhome</div>
-        <a href="#" class="nav-item jhome-tab-btn active" onclick="JhomeApp.showTab('blog')">
+        <a href="#" class="nav-item jhome-tab-btn active" onclick="JhomeApp.showTab('blog', this)">
           <span class="material-icons-outlined">article</span><span class="nav-text">المقالات</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('stories')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('stories', this)">
           <span class="material-icons-outlined">emoji_events</span><span class="nav-text">قصص النجاح</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('messages')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('messages', this)">
           <span class="material-icons-outlined">mail</span><span class="nav-text">الرسائل</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('newsletter')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('newsletter', this)">
           <span class="material-icons-outlined">forward_to_inbox</span><span class="nav-text">النشرة البريدية</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('pages')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('pages', this)">
           <span class="material-icons-outlined">web</span><span class="nav-text">محتوى الصفحات</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('projects')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('projects', this)">
           <span class="material-icons-outlined">work</span><span class="nav-text">المشاريع</span>
         </a>
 
         <div class="nav-section-title">أكاديمية Jhome</div>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses', this)">
           <span class="material-icons-outlined">school</span><span class="nav-text">الدورات التعليمية</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('students')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('students', this)">
           <span class="material-icons-outlined">groups</span><span class="nav-text">طلاب الأكاديمية</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('requests')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('requests', this)">
           <span class="material-icons-outlined">person_add</span><span class="nav-text">طلبات الانضمام</span>
         </a>
-        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('bank-accounts')">
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('bank-accounts', this)">
           <span class="material-icons-outlined">account_balance</span><span class="nav-text">حسابات الدفع Jhome</span>
         </a>
 
@@ -1223,7 +1223,7 @@
   <script src="js/AdminHelpers.js?v=1"></script>
   <script src="js/extras.js?v=4"></script>
   <script src="js/app.js?v=6"></script>
-  <script type="module" src="js/jhome-app.js?v=9"></script>
+  <script type="module" src="js/jhome-app.js?v=10"></script>
   <script>
     const SiteControl = {
       init: async function() {
