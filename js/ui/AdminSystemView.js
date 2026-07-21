@@ -132,10 +132,10 @@ export class AdminSystemView {
     async saveUser() {
         const name = document.getElementById('juser-name').value.trim();
         const email = document.getElementById('juser-email').value.trim();
-        const password = document.getElementById('juser-password').value.trim();
+        const password = document.getElementById('juser-password').value;
 
         if(!name || !email || !password) {
-            if (typeof window.showToast === 'function') window.showToast('أكمل كافة الحقول', 'error');
+            if (typeof window.showToast === 'function') window.showToast('الرجاء إدخال كافة البيانات', 'error');
             return;
         }
 
@@ -150,18 +150,27 @@ export class AdminSystemView {
             if(res.data && res.data.uid) {
                 await adminDataRepository.saveUser({ name, email, role: 'student' });
                 // Also save to credentials
+                const courseIdToAssign = window._currentPendingCourseId || 'all';
                 await window.firebase.app('jhome').firestore().collection('courses_credentials').doc(res.data.uid).set({
-                    username: email, password, role: 'student', realName: name, courseId: 'all'
+                    username: email, password, role: 'student', realName: name, courseId: courseIdToAssign
                 });
+
+                if (window._currentPendingRequestId) {
+                    await window.firebase.app('jhome').firestore().collection('enrollmentRequests').doc(window._currentPendingRequestId).update({ status: 'approved' });
+                    window._currentPendingRequestId = null;
+                    window._currentPendingCourseId = null;
+                }
 
                 if (typeof window.showToast === 'function') window.showToast('تم إنشاء حساب الطالب بنجاح', 'success');
                 if (window.AdminApp) window.AdminApp.closeModal('jhome-user-modal');
                 await this.loadUsers();
+                await this.loadEnrollmentRequests();
             } else {
                 if (typeof window.showToast === 'function') window.showToast('فشل إنشاء الحساب', 'error');
             }
         } catch(e) {
             console.error(e);
+            if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء الإنشاء', 'error');
         }
     }
 
@@ -291,7 +300,7 @@ export class AdminSystemView {
                       ${receipt ? `<a href="${receipt}" target="_blank" class="btn btn-sm btn-ghost" style="margin-bottom:5px;display:inline-block;">إيصال الدفع</a>` : ''}
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showRequestDetails('${doc.id}', '${detailsJson}')" style="margin-bottom:5px;display:inline-block;">التفاصيل</button>
                       ${isPending ? `
-                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
+                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}', '${r.courseId || 'all'}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
                         <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">رفض</button>
                       ` : ''}
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.deleteRequest('${doc.id}')" style="margin-bottom:5px;display:inline-block;">حذف</button>
@@ -306,11 +315,14 @@ export class AdminSystemView {
         }
     }
 
-    approveRequest(id, name, email) {
+    approveRequest(id, name, email, courseId) {
         this.showUserModal();
-        document.getElementById('juser-name').value = name;
-        document.getElementById('juser-email').value = email;
-        window.firebase.app('jhome').firestore().collection('enrollmentRequests').doc(id).update({ status: 'approved' }).then(() => this.loadEnrollmentRequests());
+        const nInput = document.getElementById('juser-name');
+        const eInput = document.getElementById('juser-email');
+        if (nInput) nInput.value = name !== 'undefined' ? name : '';
+        if (eInput) eInput.value = email !== 'undefined' ? email : '';
+        window._currentPendingRequestId = id;
+        window._currentPendingCourseId = courseId;
     }
 
     async rejectRequest(id) {
