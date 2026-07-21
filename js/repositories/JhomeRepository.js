@@ -71,10 +71,15 @@ export class JhomeRepository {
         });
     }
 
-    // ── Academy ──
     async getCourses() {
-        const snap = await this.db.collection('courses').orderBy('createdAt', 'desc').get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const snap = await this.db.collection('courses').get();
+        let courses = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        courses.sort((a, b) => {
+            const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+            const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+            return timeB - timeA;
+        });
+        return courses;
     }
 
     async addCourse(courseData) {
@@ -89,7 +94,7 @@ export class JhomeRepository {
     }
 
     async getCourseRequests() {
-        const snap = await this.db.collection('course_requests').orderBy('createdAt', 'desc').get();
+        const snap = await this.db.collection('enrollmentRequests').orderBy('createdAt', 'desc').get();
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 
