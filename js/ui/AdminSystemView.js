@@ -297,7 +297,6 @@ export class AdminSystemView {
                     <td>${date}</td>
                     <td><span class="report-status ${isPending ? 'pending' : (r.status === 'approved' ? 'reviewed' : 'dismissed')}">${r.status === 'approved' ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
                     <td>
-                      ${receipt ? `<a href="${receipt}" target="_blank" class="btn btn-sm btn-ghost" style="margin-bottom:5px;display:inline-block;">إيصال الدفع</a>` : ''}
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showRequestDetails('${doc.id}', '${detailsJson}')" style="margin-bottom:5px;display:inline-block;">التفاصيل</button>
                       ${isPending ? `
                         <button class="btn btn-sm btn-success" onclick="JhomeApp.approveRequest('${doc.id}', '${sName}', '${sEmail}', '${r.courseId || 'all'}')" style="margin-bottom:5px;display:inline-block;">قبول وتوليد حساب</button>
