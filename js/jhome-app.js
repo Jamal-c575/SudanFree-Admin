@@ -221,6 +221,10 @@ const JhomeApp = {
     await academyView.addCourse(e);
   },
 
+  showCourseModal() {
+    document.getElementById('jhome-course-modal').style.display = 'flex';
+  },
+
   async deleteCourse(id) {
     await academyView.deleteCourse(id);
   },
