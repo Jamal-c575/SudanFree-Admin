@@ -276,26 +276,27 @@ export class AdminSystemView {
             }
 
             const fragment = document.createDocumentFragment();
+            const escapeQuote = str => (str ? String(str).replace(/'/g, "&apos;") : '');
+
             snap.docs.forEach(doc => {
                 const r = doc.data();
-                const date = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ar-EG') : '';
+                const dateStr = r.createdAt?.toDate ? r.createdAt.toDate().toLocaleDateString('ar-EG') : '';
                 const isPending = r.status === 'pending';
+                const isApproved = r.status === 'approved';
                 
-                const sName = (r.student && r.student.name) ? r.student.name : (r.name || '—');
-                const sEmail = (r.student && r.student.email) ? r.student.email : (r.email || '—');
-                const sPhone = (r.student && r.student.phone) ? r.student.phone : (r.phone || '—');
-                const cTitle = r.courseTitle || r.courseName || r.courseId || 'عام';
-                const receipt = (r.payment && r.payment.receiptUrl) ? r.payment.receiptUrl : r.receiptUrl;
-                const detailsJson = encodeURIComponent(JSON.stringify(r));
+                const sName = escapeQuote(r.student?.name || r.name || 'غير متوفر');
+                const sEmail = escapeQuote(r.student?.email || r.email || '—');
+                const sPhone = escapeQuote(r.student?.phone || r.phone || '—');
+                const detailsJson = encodeURIComponent(JSON.stringify(r)).replace(/'/g, "%27");
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td><strong>${sName}</strong></td>
                     <td dir="ltr">${sEmail}</td>
                     <td dir="ltr">${sPhone}</td>
-                    <td><span class="report-status" style="background:var(--primary); color:#fff">${cTitle}</span></td>
-                    <td>${date}</td>
-                    <td><span class="report-status ${isPending ? 'pending' : (r.status === 'approved' ? 'reviewed' : 'dismissed')}">${r.status === 'approved' ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
+                    <td><span class="report-status" style="background:var(--primary); color:#fff">${r.courseTitle || r.courseName || r.courseId || 'عام'}</span></td>
+                    <td>${dateStr}</td>
+                    <td><span class="report-status ${isPending ? 'pending' : (isApproved ? 'reviewed' : 'dismissed')}">${isApproved ? 'مقبول' : (r.status === 'rejected' ? 'مرفوض' : 'قيد الانتظار')}</span></td>
                     <td>
                       <button class="btn btn-sm btn-ghost" onclick="JhomeApp.showRequestDetails('${doc.id}', '${detailsJson}')" style="margin-bottom:5px;display:inline-block;">التفاصيل</button>
                       ${isPending ? `

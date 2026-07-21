@@ -456,6 +456,9 @@ const JhomeApp = {
     document.getElementById('jstory-achievement').value = '';
     document.getElementById('jstory-content').value = '';
     document.getElementById('jstory-freelancer-link').value = '';
+    document.getElementById('jstory-linkedin-link').value = '';
+    document.getElementById('jstory-twitter-link').value = '';
+    document.getElementById('jstory-github-link').value = '';
     document.getElementById('jstory-cover-url').value = '';
     document.getElementById('jstory-cover-file').value = '';
     document.getElementById('jhome-story-modal').style.display = 'flex';
@@ -467,6 +470,9 @@ const JhomeApp = {
     const keyAchievement = document.getElementById('jstory-achievement').value.trim();
     const story = document.getElementById('jstory-content').value.trim();
     const freelancerLink = document.getElementById('jstory-freelancer-link').value.trim();
+    const linkedinLink = document.getElementById('jstory-linkedin-link').value.trim();
+    const twitterLink = document.getElementById('jstory-twitter-link').value.trim();
+    const githubLink = document.getElementById('jstory-github-link').value.trim();
     let coverImage = document.getElementById('jstory-cover-url').value.trim();
     
     const fileInput = document.getElementById('jstory-cover-file');
@@ -492,6 +498,11 @@ const JhomeApp = {
         coverImage,
         personAvatar: coverImage,
         freelancerLink,
+        socialLinks: {
+            linkedin: linkedinLink,
+            twitter: twitterLink,
+            github: githubLink
+        },
         isPublished: true,
         category: 'general',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
