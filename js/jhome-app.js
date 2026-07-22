@@ -42,6 +42,8 @@ const JhomeApp = {
     if (tabId === 'bank-accounts')  this.loadBankAccounts();
   },
 
+  async loadProjects() { await projectsView.load(); },
+
   // ── Page Content Management ──
   pageSchemas: {
     'home': {

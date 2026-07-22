@@ -67,3 +67,4 @@ function showToast(msg, type = 'success') {
   c.appendChild(t);
   setTimeout(() => t.remove(), 4000);
 }
+window.jhomeDb = jhomeDb;
