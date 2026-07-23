@@ -134,7 +134,7 @@ export class AcademyView {
 
     openCourse(id) {
         if (typeof window.showToast === 'function') window.showToast('سيتم توجيهك لإدارة الدورة...');
-        window.open(`../course-room.html?id=${id}&admin=true`, '_blank');
+        window.open(`https://sudanfree-d04fc.web.app/course-room.html?id=${id}&admin=true`, '_blank');
     }
 
     async renderRequests() {
