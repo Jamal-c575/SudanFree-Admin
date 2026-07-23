@@ -2,9 +2,9 @@ import { jhomeRepository } from '../repositories/JhomeRepository.js';
 
 export class AcademyView {
     constructor() {
-        this.coursesGrid = document.getElementById('jhome-courses-grid');
-        this.requestsTbody = document.getElementById('jhome-course-requests-tbody');
-        this.usersTbody = document.getElementById('jhome-course-users-tbody');
+        this.coursesGrid = document.getElementById('courses-list-tbody');
+        this.requestsTbody = document.getElementById('course-requests-tbody');
+        this.usersTbody = document.getElementById('course-users-tbody');
     }
 
     async load() {
@@ -14,37 +14,48 @@ export class AcademyView {
     }
 
     async renderCourses() {
-        if (!this.coursesGrid) return;
+        const grid = document.getElementById('courses-list-tbody');
+        if (!grid) {
+            console.log("[DEBUG] courses-list-tbody is null in renderCourses!");
+            return;
+        }
         try {
+            console.log("[DEBUG] Fetching courses...");
             const courses = await jhomeRepository.getCourses();
+            console.log("[DEBUG] Fetched courses length:", courses.length);
             if (courses.length === 0) {
-                this.coursesGrid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;">لا توجد دورات حالياً</div>';
+                grid.innerHTML = '<tr><td colspan="4" class="empty-state">لا توجد دورات حالياً</td></tr>';
                 return;
             }
 
             const fragment = document.createDocumentFragment();
             courses.forEach(c => {
-                const div = document.createElement('div');
-                div.className = 'dashboard-card';
-                div.innerHTML = `
-                    <img src="${c.thumbnail || 'https://via.placeholder.com/300'}" style="width:100%; height:150px; object-fit:cover; border-radius:8px; margin-bottom:15px;">
-                    <h3>${c.title}</h3>
-                    <p style="color:var(--text-muted); font-size:14px; margin-bottom:15px;">${c.instructor || 'أكاديمية Jhome'}</p>
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                      <span style="font-weight:bold; color:var(--primary);">${c.price === 0 || c.price === '0' ? 'مجاناً' : c.price + ' SDG'}</span>
-                      <span class="role-badge role-admin">${c.status === 'published' ? 'متاحة' : 'قريباً'}</span>
-                    </div>
-                    <div style="margin-top:15px; display:flex; gap:10px;">
-                      <button class="btn btn-sm btn-ghost" style="flex:1;" onclick="JhomeApp.openCourse('${c.id}')">إدارة</button>
-                      <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${c.id}')">حذف</button>
-                    </div>
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                tr.dataset.id = c.id;
+                tr.innerHTML = `
+                    <td style="padding: 1rem;">
+                      <div style="display:flex; align-items:center; gap:10px;">
+                        <img src="${c.thumbnail || 'https://via.placeholder.com/50'}" style="width:40px; height:40px; border-radius:4px; object-fit:cover;">
+                        <strong>${c.title}</strong>
+                      </div>
+                    </td>
+                    <td style="padding: 1rem;">${c.duration} أيام</td>
+                    <td style="padding: 1rem;">
+                      <span class="badge ${c.status === 'active' ? 'bg-success' : 'bg-warning'}">${c.status === 'active' ? 'نشط' : 'قيد المراجعة'}</span>
+                    </td>
+                    <td style="padding: 1rem; display:flex; gap:10px;">
+                        <button class="btn btn-sm btn-ghost" onclick="JhomeApp.openCourse('${c.id}')"><span class="material-icons-outlined">visibility</span> التفاصيل</button>
+                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.deleteCourse('${c.id}')"><span class="material-icons-outlined">delete</span></button>
+                    </td>
                 `;
-                fragment.appendChild(div);
+                fragment.appendChild(tr);
             });
-            this.coursesGrid.innerHTML = '';
-            this.coursesGrid.appendChild(fragment);
+            grid.innerHTML = '';
+            grid.appendChild(fragment);
+            console.log("[DEBUG] Rendered courses to DOM.");
         } catch(e) {
-            console.error(e);
+            console.error("[DEBUG] Error in renderCourses:", e);
         }
     }
 

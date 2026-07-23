@@ -1,0 +1,3 @@
+const admin = require('firebase-admin');
+const serviceAccount = require('./sudanfree-d04fc-firebase-adminsdk-h4a0j-e9458e65ec.json');
+// Wait, I don't have jhome service account here...

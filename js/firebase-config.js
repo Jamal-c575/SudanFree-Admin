@@ -13,7 +13,7 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+if (window.location.hostname === "localhost" && false) {
   auth.useEmulator("http://localhost:9099");
   db.useEmulator("localhost", 8080);
 }
@@ -32,7 +32,7 @@ const jhomeFirebaseConfig = {
 firebase.initializeApp(jhomeFirebaseConfig, "jhome");
 const jhomeDb = firebase.app("jhome").firestore();
 
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+if (window.location.hostname === "localhost" && false) {
   jhomeDb.useEmulator("localhost", 8080);
   firebase.app("jhome").auth().useEmulator("http://localhost:9099");
 }
@@ -43,7 +43,7 @@ const jhomeAuthCreator = firebase.app("jhomeAuthCreator").auth();
 const storage = firebase.storage();
 const functions = firebase.functions();
 
-if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+if (window.location.hostname === "localhost" && false) {
   jhomeAuthCreator.useEmulator("http://localhost:9099");
   functions.useEmulator("localhost", 5001);
 }
