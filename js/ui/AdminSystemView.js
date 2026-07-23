@@ -329,7 +329,7 @@ export class AdminSystemView {
         let finalEmail = (email !== 'undefined' && email !== '—' && email) ? email : '';
         if (!finalEmail) {
             const safePhone = (phone && phone !== '—' && phone !== 'undefined') ? phone.replace(/\\D/g, '') : Math.floor(Math.random() * 1000000);
-            finalEmail = \`student${safePhone}@sudanfree.com\`;
+            finalEmail = `student${safePhone}@sudanfree.com`;
         }
         if (eInput) eInput.value = finalEmail;
 

@@ -1,0 +1,1755 @@
+[
+  {
+    "id": "TC001",
+    "title": "Sign in to the admin dashboard",
+    "description": "This test verifies that an administrator can sign in and reach the authenticated dashboard view.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify authenticated navigation sections are available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Sign in and reach the dashboard",
+    "description": "This verifies an authenticated user can sign in and land on the admin dashboard successfully.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the main navigation is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC003",
+    "title": "Keep the dashboard accessible after refresh",
+    "description": "This verifies an authenticated user can refresh the dashboard and remain on the protected admin interface.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the dashboard to load"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is still displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the authenticated navigation remains available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC004",
+    "title": "Remain signed in after refreshing the dashboard",
+    "description": "This test verifies that an administrator stays signed in and can still access the dashboard after refreshing the page.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Wait for the dashboard to load"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is still displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify authenticated navigation sections are still available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC005",
+    "title": "Keep the dashboard available after refresh",
+    "description": "Verifies that an authenticated admin remains on the dashboard after refreshing the page.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Refresh the page"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is still displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify authenticated navigation sections remain available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC006",
+    "title": "Return to the login state after signing out",
+    "description": "This verifies a signed-in user can sign out and is returned to the login state afterward.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the account menu"
+      },
+      {
+        "type": "action",
+        "description": "Sign out of the application"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is no longer accessible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC007",
+    "title": "Stay signed out after leaving the dashboard",
+    "description": "Verifies that returning to the app without a session shows the sign-in screen instead of authenticated content.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Verify the sign-in screen is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify authenticated navigation sections are not available"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the dashboard is not displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC008",
+    "title": "Sign out and return to the login state",
+    "description": "This test verifies that an administrator can sign out and is returned to the login state.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the logout control"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the login state is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the admin dashboard is no longer displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC009",
+    "title": "Open the articles section after signing in",
+    "description": "This test verifies that an authenticated user can open the articles management section from the dashboard.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the articles section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the articles section is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the articles list is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC010",
+    "title": "Access the users section",
+    "description": "Verifies that an authenticated admin can open the users management section from the dashboard.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the users section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the users management view is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the users list is displayed"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC011",
+    "title": "Open the academy management sections after signing in",
+    "description": "This test verifies that an authenticated user can access the academy management tabs from the dashboard.",
+    "category": "Authentication",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the academy management section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify academy management tabs are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the courses tab is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC012",
+    "title": "Create a new project",
+    "description": "This verifies an administrator can create a project and see it added to the projects list.",
+    "category": "Projects",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the projects section"
+      },
+      {
+        "type": "action",
+        "description": "Start a new project"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the project details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Submit the project form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new project appears in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC013",
+    "title": "Upload an image to the media library",
+    "description": "This verifies an administrator can upload an image and see it appear in the media library.",
+    "category": "Media Library",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the media library"
+      },
+      {
+        "type": "action",
+        "description": "Upload a valid image file"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the uploaded image appears in the library"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC014",
+    "title": "Create a new article",
+    "description": "This test verifies that an administrator can create a CMS article and see it added to the list.",
+    "category": "CMS Articles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the articles section"
+      },
+      {
+        "type": "action",
+        "description": "Start a new article"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the article details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new article appears in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a creation success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC015",
+    "title": "Approve a pending academy enrollment request",
+    "description": "This verifies an administrator can approve a pending enrollment request and see its status update.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the academy section"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the enrollment requests area"
+      },
+      {
+        "type": "action",
+        "description": "Approve a pending enrollment request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request status is updated to approved"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC016",
+    "title": "Reject a pending academy enrollment request",
+    "description": "This verifies an administrator can reject a pending enrollment request and see its status update.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the academy section"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the enrollment requests area"
+      },
+      {
+        "type": "action",
+        "description": "Reject a pending enrollment request"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the request status is updated to rejected"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC017",
+    "title": "Open the projects section from the dashboard",
+    "description": "This verifies an authenticated user can navigate to the projects section from the main dashboard.",
+    "category": "Projects",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the projects section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the projects list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the project creation action is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC018",
+    "title": "Create a new user",
+    "description": "Verifies that an admin can add a new user and see the user appear in the list.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the users section"
+      },
+      {
+        "type": "action",
+        "description": "Start adding a new user"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the user details with valid information"
+      },
+      {
+        "type": "action",
+        "description": "Submit the user form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new user appears in the users list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user was created successfully"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC019",
+    "title": "Open the media library from the dashboard",
+    "description": "This verifies an authenticated user can navigate to the media library from the main dashboard.",
+    "category": "Media Library",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the media library"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the media library is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the upload action is available"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC020",
+    "title": "Edit an article",
+    "description": "This test verifies that an administrator can update an existing article and see the changes reflected in the list.",
+    "category": "CMS Articles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the articles section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an article to edit"
+      },
+      {
+        "type": "action",
+        "description": "Update the article details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated article is reflected in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a save success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC021",
+    "title": "Edit an existing project",
+    "description": "This verifies an administrator can update a project and see the changes reflected in the list.",
+    "category": "Projects",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the projects section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an existing project to edit"
+      },
+      {
+        "type": "action",
+        "description": "Update the project details with valid values"
+      },
+      {
+        "type": "action",
+        "description": "Submit the project form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated project is reflected in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC022",
+    "title": "Change a user's role",
+    "description": "Verifies that an admin can update an existing user's role and see the updated role in the list.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the users section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an existing user"
+      },
+      {
+        "type": "action",
+        "description": "Change the user role"
+      },
+      {
+        "type": "action",
+        "description": "Save the user update"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user's role is updated in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated user remains visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC023",
+    "title": "Delete an image from the media library",
+    "description": "This verifies an administrator can delete an image and see it removed from the media library.",
+    "category": "Media Library",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the media library"
+      },
+      {
+        "type": "action",
+        "description": "Choose an image to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the image is removed from the library"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC024",
+    "title": "Delete a user from the list",
+    "description": "Verifies that an admin can delete an existing user and see the user removed from the list.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the users section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an existing user"
+      },
+      {
+        "type": "action",
+        "description": "Delete the user"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the user is removed from the users list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the list updates after deletion"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC025",
+    "title": "Delete an article",
+    "description": "This test verifies that an administrator can delete an article and see it removed from the list.",
+    "category": "CMS Articles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the articles section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an article to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the article is removed from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a deletion success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC026",
+    "title": "Delete a project",
+    "description": "This verifies an administrator can delete a project and see it removed from the projects list.",
+    "category": "Projects",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the projects section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an existing project to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the project is removed from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC027",
+    "title": "Save global settings changes",
+    "description": "Verifies that an admin can modify and save global settings and retain the updated settings in the UI.",
+    "category": "Global Settings",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the settings section"
+      },
+      {
+        "type": "action",
+        "description": "Modify the settings"
+      },
+      {
+        "type": "action",
+        "description": "Save the settings"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated settings are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the saved settings remain visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC028",
+    "title": "Publish an article",
+    "description": "This test verifies that an administrator can publish an article and see its published status in the list.",
+    "category": "CMS Articles",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the articles section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an article to publish"
+      },
+      {
+        "type": "action",
+        "description": "Save the change"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the article is marked as published"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a publish success confirmation is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC029",
+    "title": "Review a contact message",
+    "description": "Verifies that an admin can open a contact message and view its details.",
+    "category": "Contact Messages",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the messages section"
+      },
+      {
+        "type": "action",
+        "description": "Open a message"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the message details are displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the message content is visible"
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC030",
+    "title": "Open the stories section after signing in",
+    "description": "This test verifies that an authenticated user can open the success stories management section from the dashboard.",
+    "category": "Success Stories",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the stories section"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the stories list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify story creation is available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC031",
+    "title": "Open academy management and review courses",
+    "description": "This verifies an authenticated user can open academy management and view the courses area.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the academy section"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the courses area"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the course list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the academy navigation tabs are available"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC032",
+    "title": "Mark a contact message as read",
+    "description": "Verifies that an admin can mark a contact message as read and see the status update in the list.",
+    "category": "Contact Messages",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the messages section"
+      },
+      {
+        "type": "action",
+        "description": "Open a message"
+      },
+      {
+        "type": "action",
+        "description": "Mark the message as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the message is shown as read"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the read status is updated in the list"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC033",
+    "title": "Create a new success story",
+    "description": "This test verifies that an administrator can create a success story and see it added to the list.",
+    "category": "Success Stories",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the stories section"
+      },
+      {
+        "type": "action",
+        "description": "Start a new story"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the story details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new story appears in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a creation success confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC034",
+    "title": "Delete a contact message",
+    "description": "Verifies that an admin can delete a contact message and see it removed from the list.",
+    "category": "Contact Messages",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the messages section"
+      },
+      {
+        "type": "action",
+        "description": "Open a message"
+      },
+      {
+        "type": "action",
+        "description": "Delete the message"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the message is removed from the messages list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the list updates after deletion"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC035",
+    "title": "Delete a success story",
+    "description": "This test verifies that an administrator can delete a success story and see it removed from the list.",
+    "category": "Success Stories",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the stories section"
+      },
+      {
+        "type": "action",
+        "description": "Choose a story to delete"
+      },
+      {
+        "type": "action",
+        "description": "Confirm deletion"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the story is removed from the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a deletion success confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC036",
+    "title": "Edit a success story",
+    "description": "This test verifies that an administrator can update an existing success story and see the changes reflected in the list.",
+    "category": "Success Stories",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the email field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Click the stories section"
+      },
+      {
+        "type": "action",
+        "description": "Choose a story to edit"
+      },
+      {
+        "type": "action",
+        "description": "Update the story details"
+      },
+      {
+        "type": "action",
+        "description": "Submit the form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the updated story is reflected in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a save success confirmation is visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC037",
+    "title": "Preview an uploaded image",
+    "description": "This verifies an administrator can open an image preview and return to the library view.",
+    "category": "Media Library",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the media library"
+      },
+      {
+        "type": "action",
+        "description": "Select an image from the library"
+      },
+      {
+        "type": "action",
+        "description": "Open the image preview"
+      },
+      {
+        "type": "action",
+        "description": "Return to the media library view"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the image preview is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the library view is available again"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC038",
+    "title": "Review students in academy management",
+    "description": "This verifies an authenticated user can open the students area and view the student list.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the academy section"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the students area"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the student list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify student records are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC039",
+    "title": "Review instructors in academy management",
+    "description": "This verifies an authenticated user can open the instructors area and view the instructor list.",
+    "category": "Academy Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the academy section"
+      },
+      {
+        "type": "action",
+        "description": "Switch to the instructors area"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the instructor list is displayed"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify instructor records are visible"
+      }
+    ],
+    "priority": "Medium"
+  },
+  {
+    "id": "TC040",
+    "title": "Reject saving a user with missing details",
+    "description": "Verifies that the users form prevents submission when required user details are missing.",
+    "category": "Users Management",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login username field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the users section"
+      },
+      {
+        "type": "action",
+        "description": "Start adding a new user"
+      },
+      {
+        "type": "action",
+        "description": "Leave a required user field empty"
+      },
+      {
+        "type": "action",
+        "description": "Submit the user form"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a validation message is visible"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new user is not added to the list"
+      }
+    ],
+    "priority": "Low"
+  },
+  {
+    "id": "TC041",
+    "title": "Cancel deleting a project",
+    "description": "This verifies a delete confirmation can be canceled and the project remains in the list.",
+    "category": "Projects",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to /index.html"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login user field with {{LOGIN_USER}}"
+      },
+      {
+        "type": "action",
+        "description": "Fill in the login password field with {{LOGIN_PASSWORD}}"
+      },
+      {
+        "type": "action",
+        "description": "Submit the login form"
+      },
+      {
+        "type": "action",
+        "description": "Open the projects section"
+      },
+      {
+        "type": "action",
+        "description": "Choose an existing project to delete"
+      },
+      {
+        "type": "action",
+        "description": "Cancel the deletion confirmation"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the project remains in the list"
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the delete confirmation is dismissed"
+      }
+    ],
+    "priority": "Low"
+  }
+]

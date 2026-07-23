@@ -1,7 +1,19 @@
 {
-  "status": "init",
-  "scope": "codebase",
+  "status": "commited",
   "type": "frontend",
-  "localEndpoint": "http://localhost:3000/index.html",
-  "serverPort": 45641
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:8080",
+  "loginUser": "admin@sudanfree.com",
+  "loginPassword": "Jamal@www20",
+  "executionArgs": {
+    "projectName": "SudanFree-Admin",
+    "projectPath": "/home/jamal/Projects/SudanFree-Admin",
+    "testIds": [],
+    "additionalInstruction": "Strictly fail tests on any Console error (JS, Network, Firebase permissions, 404, 500). Classify all found bugs into: Critical, High, Medium, Low severity in the final summary. Only perform the tests outlined in standard_prd.json.",
+    "envs": {
+      "API_KEY": "sk-user-S7qPQ-sqSZtsap7KiYmpk3puutXSG0i7KDYftXH-RHNn8PcdmtVDTqFiH_gu4QkMtthjl2PEH-ajq0E5TtHyOm8g9iJtfq_RjwieKQ4t-rWZM04zpgtXuOHU3LDRN7zoQuA"
+    }
+  },
+  "serverPort": 43893,
+  "proxy": "http://bfbfd782-63f2-4320-80c6-36978080ad25:MqMt4LwpWllMksyRHVnVAL9bTNKx2oNk@tun.testsprite.com:8080"
 }

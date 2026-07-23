@@ -285,10 +285,10 @@ const JhomeApp = {
     if (!confirm('هل أنت متأكد من حذف هذا المقال نهائياً؟')) return;
     try {
       await jhomeDb.collection('posts').doc(id).delete();
-      window.AdminApp.showToast('تم الحذف بنجاح', 'success');
+      if (typeof window.showToast === 'function') window.showToast('تم الحذف بنجاح', 'success');
       this.loadPosts();
     } catch (e) {
-      window.AdminApp.showToast('حدث خطأ أثناء الحذف', 'error');
+      if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء الحذف', 'error');
     }
   },
 
@@ -324,12 +324,12 @@ const JhomeApp = {
     const file = fileInput.files[0];
 
     if (!title || !slug || !content) {
-      window.AdminApp.showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
+      if (typeof window.showToast === 'function') window.showToast('الرجاء إدخال العنوان، الرابط، والمحتوى الأساسي', 'error');
       return;
     }
 
     try {
-      window.AdminApp.showToast('جاري حفظ المقال...', 'success');
+      if (typeof window.showToast === 'function') window.showToast('جاري حفظ المقال...', 'success');
       if (file) {
         coverImage = await this.uploadJhomeImage(file, 'posts');
       }
@@ -347,12 +347,12 @@ const JhomeApp = {
         publishedAt: firebase.firestore.FieldValue.serverTimestamp(),
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      window.AdminApp.showToast('تم نشر المقال بنجاح!', 'success');
+      if (typeof window.showToast === 'function') window.showToast('تم نشر المقال بنجاح!', 'success');
       AdminApp.closeModal('jhome-post-modal');
       this.loadPosts();
     } catch (e) {
       console.error('Error saving post:', e);
-      window.AdminApp.showToast('خطأ أثناء حفظ المقال: ' + e.message, 'error');
+      if (typeof window.showToast === 'function') window.showToast('خطأ أثناء حفظ المقال: ' + e.message, 'error');
     }
   },
 

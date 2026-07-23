@@ -1,0 +1,147 @@
+version: "2"
+type: frontend
+tech_stack:
+  - HTML5
+  - CSS3
+  - JavaScript (ES Modules)
+  - Firebase (Firestore, Storage, Auth)
+routes:
+  - path: /index.html
+    file: index.html
+    auth_required: true
+    description: Admin Dashboard SPA
+features:
+  - name: Authentication
+    description: Login and logout for administrators
+    files:
+      - index.html
+      - js/firebase-config.js
+      - js/app.js
+    entry_route: /index.html
+    user_interactions:
+      - Enter email
+      - Enter password
+      - Click login button
+      - Click logout button
+    api_calls:
+      - method: POST
+        endpoint: Firebase Auth API
+    auth_required: false
+  - name: CMS Articles
+    description: Create, edit, and delete articles
+    files:
+      - index.html
+      - js/ui/AdminSystemView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "المقالات" tab
+      - Click "مقال جديد" button
+      - Fill article form
+      - Submit form
+      - Click edit/delete icons on articles
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (articles collection)
+    auth_required: true
+  - name: Success Stories
+    description: Manage success stories
+    files:
+      - index.html
+      - js/ui/StoriesView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "القصص" tab
+      - Click "إضافة قصة" button
+      - Fill story form
+      - Submit form
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (stories collection)
+    auth_required: true
+  - name: Projects
+    description: Manage projects portfolio
+    files:
+      - index.html
+      - js/ui/ProjectsView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "المشاريع" tab
+      - Click "إضافة مشروع" button
+      - Fill project form
+      - Submit form
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (projects collection)
+    auth_required: true
+  - name: Media Library
+    description: Upload and delete images
+    files:
+      - index.html
+      - js/app.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "مكتبة الوسائط" tab
+      - Upload image file
+      - Delete image file
+    api_calls:
+      - method: CRUD
+        endpoint: Firebase Storage
+    auth_required: true
+  - name: Academy Management
+    description: Manage courses, students, and enrollment requests
+    files:
+      - index.html
+      - js/jhome-app.js
+    entry_route: /index.html
+    user_interactions:
+      - Click Academy related tabs (Courses, Enrollment, Students, Instructors)
+      - Approve enrollment
+      - Reject enrollment
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (Jhome DB collections)
+    auth_required: true
+  - name: Users Management
+    description: Create, update, delete users and change roles
+    files:
+      - index.html
+      - js/ui/AdminSystemView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "المستخدمين" tab
+      - Click Add User
+      - Change user role
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (users collection)
+    auth_required: true
+  - name: Contact Messages
+    description: Receive and manage contact messages
+    files:
+      - index.html
+      - js/ui/AdminSystemView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "الرسائل" tab
+      - View message
+      - Mark as read
+      - Delete message
+    api_calls:
+      - method: CRUD
+        endpoint: Firestore (messages collection)
+    auth_required: true
+  - name: Global Settings
+    description: Save system settings
+    files:
+      - index.html
+      - js/ui/AdminSystemView.js
+    entry_route: /index.html
+    user_interactions:
+      - Click "الإعدادات" tab
+      - Modify settings
+      - Click Save
+    api_calls:
+      - method: UPDATE
+        endpoint: Firestore (settings document)
+    auth_required: true
+known_limitations: []
