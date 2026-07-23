@@ -50,15 +50,11 @@ export class AcademyView {
 
     async addCourse(e) {
         e.preventDefault();
-        const form = e.target;
         
         try {
             if (typeof window.showToast === 'function') window.showToast('جاري إنشاء الدورة...', 'success');
             
-            // Try the new dedicated file input first, then fall back to any file input in the form
-            const dedicatedInput = document.getElementById('jcourse-cover-file');
-            const fallbackInput  = form.querySelector('input[type="file"]');
-            const fileInput = dedicatedInput || fallbackInput;
+            const fileInput = document.getElementById('jcourse-cover-file');
             let thumbnail = '';
             if (fileInput && fileInput.files[0]) {
                 if (window.AdminHelpers) {
@@ -68,20 +64,45 @@ export class AcademyView {
                 }
             }
 
+            const title = document.getElementById('jcourse-title').value;
+            const description = document.getElementById('jcourse-desc').value;
+            const instructor = document.getElementById('jcourse-instructor-name').value;
+            const instructorEmail = document.getElementById('jcourse-instructor-email').value;
+            const instructorSpecialty = document.getElementById('jcourse-instructor-specialty').value;
+            const instructorBio = document.getElementById('jcourse-instructor-bio').value;
+            const isPaid = document.getElementById('jcourse-is-paid').checked;
+            const duration = document.getElementById('jcourse-duration').value;
+            const status = document.getElementById('jcourse-status').value;
+
             await jhomeRepository.addCourse({
-                title: form.querySelector('input[placeholder="عنوان الدورة"]').value,
-                description: form.querySelector('textarea').value,
-                instructor: form.querySelector('input[placeholder="اسم المدرب"]').value,
-                price: parseFloat(form.querySelector('input[placeholder="السعر"]').value) || 0,
-                duration: form.querySelector('input[placeholder="المدة (مثال: 4 أسابيع)"]').value,
-                level: form.querySelector('select').value,
-                status: 'published',
+                title: title || '',
+                description: description || '',
+                instructor: instructor || '',
+                instructorEmail: instructorEmail || '',
+                instructorSpecialty: instructorSpecialty || '',
+                instructorBio: instructorBio || '',
+                isPaid: isPaid || false,
+                duration: duration || '',
+                status: status || 'open',
                 thumbnail: thumbnail
             });
 
             if (typeof window.showToast === 'function') window.showToast('تمت إضافة الدورة بنجاح', 'success');
-            if (window.AdminApp) window.AdminApp.closeModal('jhome-add-course-modal');
-            form.reset();
+            if (window.AdminApp) window.AdminApp.closeModal('jhome-course-modal');
+            
+            document.getElementById('jcourse-title').value = '';
+            document.getElementById('jcourse-desc').value = '';
+            document.getElementById('jcourse-instructor-name').value = '';
+            document.getElementById('jcourse-instructor-email').value = '';
+            document.getElementById('jcourse-instructor-specialty').value = '';
+            document.getElementById('jcourse-instructor-bio').value = '';
+            document.getElementById('jcourse-duration').value = '';
+            document.getElementById('jcourse-cover-file').value = '';
+            const preview = document.getElementById('jcourse-img-preview');
+            if (preview) preview.style.display = 'none';
+            const uploadZone = document.getElementById('jcourse-upload-zone');
+            if (uploadZone) uploadZone.style.display = 'block';
+
             await this.renderCourses();
         } catch(err) {
             console.error(err);
