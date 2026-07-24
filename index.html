@@ -161,10 +161,6 @@
           <span class="material-icons-outlined">account_balance</span><span class="nav-text">حسابات الدفع Jhome</span>
         </a>
 
-        <div class="nav-section-title">العودة للتطبيق</div>
-        <a href="#" class="nav-item" onclick="AdminApp.navigateTo('dashboard')">
-          <span class="material-icons-outlined">arrow_forward</span><span class="nav-text">رجوع للرئيسية</span>
-        </a>
       </nav>
       <div class="sidebar-footer">
         <button class="btn btn-ghost btn-full" onclick="AdminApp.logout()">
@@ -326,53 +322,227 @@
                     </button>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr; gap: 20px;">
-                    <!-- A. Course Requests (طلبات التسجيل) -->
+                <div class="course-details-tabs" style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; overflow-x: auto;">
+                    <button class="btn btn-primary active" onclick="JhomeApp.switchCourseTab('overview')" id="btn-tab-overview">الدورة (Overview)</button>
+                    <button class="btn btn-ghost" onclick="JhomeApp.switchCourseTab('curriculum')" id="btn-tab-curriculum">المنهج الدراسي</button>
+                    <button class="btn btn-ghost" onclick="JhomeApp.switchCourseTab('requests')" id="btn-tab-requests">الطلبات</button>
+                    <button class="btn btn-ghost" onclick="JhomeApp.switchCourseTab('students')" id="btn-tab-students">الطلاب</button>
+                    <button class="btn btn-ghost" onclick="JhomeApp.switchCourseTab('instructors')" id="btn-tab-instructors">المدربون</button>
+                </div>
+
+                <!-- Tab: Overview -->
+                <div id="course-tab-overview" class="course-tab-content">
                     <div class="card">
-                        <div class="card-header">
-                            <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">how_to_reg</span>طلبات التسجيل الجديدة</h3>
-                        </div>
+                        <div class="card-header"><h3>معلومات الدورة</h3></div>
                         <div class="card-body">
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
-                                        <th style="padding: 0.5rem;">الطالب</th>
-                                        <th style="padding: 0.5rem;">رقم الدفع</th>
-                                        <th style="padding: 0.5rem;">رقم الواتساب</th>
-                                        <th style="padding: 0.5rem;">الإجراءات</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="course-requests-tbody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
+                            <p>يمكن إضافة إحصائيات الدورة والمناهج هنا لاحقاً.</p>
                         </div>
                     </div>
+                </div>
 
-                    <!-- C. Course Users & Instructors (حسابات الدورة) -->
+                <!-- Tab: Curriculum -->
+                <div id="course-tab-curriculum" class="course-tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <h3>بناء المنهج الدراسي</h3>
+                            <div>
+                                <button class="btn btn-primary" onclick="JhomeApp.openAddSectionModal()">+ إضافة قسم</button>
+                                <button class="btn btn-ghost" onclick="JhomeApp.openCourseSettingsModal()"><span class="material-icons-outlined">settings</span> إعدادات فتح الدروس</button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="curriculum-builder-container" style="display: flex; flex-direction: column; gap: 15px;">
+                                <!-- Sections will be injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Requests -->
+                <div id="course-tab-requests" class="course-tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <h3>طلبات الانضمام</h3>
+                            <select id="course-requests-filter" class="text-input" onchange="JhomeApp.filterRequests()" style="width: 200px;">
+                                <option value="all">الكل</option>
+                                <option value="pending">قيد الانتظار (Pending)</option>
+                                <option value="approved">مقبول (Approved)</option>
+                                <option value="rejected">مرفوض (Rejected)</option>
+                                <option value="paid">مدفوع (Paid)</option>
+                                <option value="unpaid">غير مدفوع (Unpaid)</option>
+                            </select>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-container">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                                            <th style="padding: 0.5rem;">رقم الطلب</th>
+                                            <th style="padding: 0.5rem;">الطالب</th>
+                                            <th style="padding: 0.5rem;">الهاتف</th>
+                                            <th style="padding: 0.5rem;">تاريخ الطلب</th>
+                                            <th style="padding: 0.5rem;">الحالة</th>
+                                            <th style="padding: 0.5rem;">الإيصال</th>
+                                            <th style="padding: 0.5rem;">الإجراءات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="course-requests-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Students -->
+                <div id="course-tab-students" class="course-tab-content" style="display: none;">
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+                            <h3>الطلاب المقبولين</h3>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                <input type="text" id="students-search" placeholder="بحث سريع..." class="text-input" onkeyup="JhomeApp.searchStudents()">
+                                <select id="students-sort" class="text-input" onchange="JhomeApp.sortStudents()">
+                                    <option value="date_desc">الأحدث تسجيلاً</option>
+                                    <option value="date_asc">الأقدم تسجيلاً</option>
+                                    <option value="login_desc">آخر دخول</option>
+                                </select>
+                                <button class="btn btn-secondary" onclick="JhomeApp.exportStudentsExcel()"><i class="fas fa-file-excel"></i> تصدير Excel</button>
+                                <button class="btn btn-secondary" onclick="JhomeApp.printStudents()"><i class="fas fa-print"></i> طباعة</button>
+                            </div>
+                        </div>
+                        <div class="card-body" id="print-area">
+                            <div class="table-container">
+                                <table style="width: 100%; border-collapse: collapse;" id="students-table">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                                            <th style="padding: 0.5rem;">الاسم</th>
+                                            <th style="padding: 0.5rem;">اسم المستخدم</th>
+                                            <th style="padding: 0.5rem;">تاريخ التسجيل</th>
+                                            <th style="padding: 0.5rem;">آخر دخول</th>
+                                            <th style="padding: 0.5rem;">تفاصيل</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="course-students-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab: Instructors -->
+                <div id="course-tab-instructors" class="course-tab-content" style="display: none;">
                     <div class="card">
                         <div class="card-header">
-                            <h3><span class="material-icons-outlined" style="vertical-align: middle; margin-left: 5px;">group</span>حسابات المشرفين والطلاب</h3>
+                            <h3>المدربون والمشرفون</h3>
                         </div>
                         <div class="card-body">
                             <form id="add-instructor-form" onsubmit="JhomeApp.addCourseInstructor(event)" style="display: grid; grid-template-columns: 1fr auto; gap: 1rem; align-items: end; margin-bottom: 1rem;">
-                                <input type="text" id="new-instructor-name" placeholder="إضافة مشرف (الاسم الحقيقي)" required style="flex: 1;" class="text-input">
+                                <input type="text" id="new-instructor-name" placeholder="إضافة مشرف (الاسم الحقيقي)" required class="text-input">
                                 <button type="submit" class="btn btn-primary" style="background-color: var(--warning); color: #000;">توليد حساب مشرف</button>
                             </form>
-                            <table style="width: 100%; border-collapse: collapse;">
-                                <thead>
-                                    <tr style="border-bottom: 1px solid var(--border); text-align: right;">
-                                        <th style="padding: 0.5rem;">الاسم الحقيقي</th>
-                                        <th style="padding: 0.5rem;">اسم المستخدم</th>
-                                        <th style="padding: 0.5rem;">كلمة المرور</th>
-                                        <th style="padding: 0.5rem;">الرتبة</th>
-                                        <th style="padding: 0.5rem;">حذف</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="course-users-tbody">
-                                    <!-- Populated by JS -->
-                                </tbody>
-                            </table>
+                            <div class="table-container">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="border-bottom: 1px solid var(--border); text-align: right;">
+                                            <th style="padding: 0.5rem;">الاسم الحقيقي</th>
+                                            <th style="padding: 0.5rem;">اسم المستخدم</th>
+                                            <th style="padding: 0.5rem;">تاريخ الإنشاء</th>
+                                            <th style="padding: 0.5rem;">حذف</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="course-instructors-tbody"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Student Details -->
+                <div id="student-details-modal" class="modal">
+                    <div class="modal-content" style="max-width: 800px; padding: 2rem; border-radius: 12px; background: var(--surface);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                            <h2 style="margin: 0; color: var(--primary);">تفاصيل الطالب</h2>
+                            <button class="btn btn-ghost" onclick="document.getElementById('student-details-modal').classList.remove('active')"><span class="material-icons-outlined">close</span></button>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div>
+                                <h3>معلومات عامة</h3>
+                                <p><strong>الاسم:</strong> <span id="sd-name"></span></p>
+                                <p><strong>البريد:</strong> <span id="sd-email"></span></p>
+                                <p><strong>الهاتف:</strong> <span id="sd-phone"></span></p>
+                                <p><strong>الدولة والمدينة:</strong> <span id="sd-location"></span></p>
+                                <p><strong>تاريخ التسجيل:</strong> <span id="sd-date"></span></p>
+                                <p><strong>حالة الدفع:</strong> <span id="sd-payment"></span></p>
+                            </div>
+                            <div>
+                                <h3>بيانات الدخول</h3>
+                                <p><strong>اسم المستخدم:</strong> <span id="sd-username"></span></p>
+                                <p>
+                                    <strong>كلمة المرور:</strong> 
+                                    <span id="sd-password" style="filter: blur(4px); transition: filter 0.2s;">******</span>
+                                    <button class="btn btn-sm btn-ghost" onmousedown="document.getElementById('sd-password').style.filter='none'" onmouseup="document.getElementById('sd-password').style.filter='blur(4px)'" onmouseleave="document.getElementById('sd-password').style.filter='blur(4px)'"><i class="fas fa-eye"></i></button>
+                                </p>
+                                <p><strong>آخر دخول:</strong> <span id="sd-last-login"></span></p>
+                                <p><strong>عدد مرات الدخول:</strong> <span id="sd-login-count"></span></p>
+                                <button class="btn btn-sm btn-primary" onclick="JhomeApp.copyStudentCredentials()"><i class="fas fa-copy"></i> نسخ بيانات الدخول</button>
+                            </div>
+                        </div>
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+                        <div>
+                            <h3>الإيصال المرفق</h3>
+                            <div id="sd-receipt-container" style="text-align: center; background: var(--bg); padding: 10px; border-radius: 8px;">
+                                <!-- Image or link will be injected here -->
+                            </div>
+                        </div>
+                        <hr style="margin: 20px 0; border: none; border-top: 1px solid var(--border);">
+                        <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                            <button class="btn btn-secondary" onclick="JhomeApp.openCertificateModal()" style="background: var(--primary); color: white;"><i class="fas fa-certificate"></i> توليد شهادة</button>
+                            <button class="btn btn-warning" onclick="JhomeApp.regenerateStudentPassword()">إعادة توليد كلمة المرور</button>
+                            <button class="btn btn-danger" onclick="JhomeApp.deleteStudentAccount()">حذف الحساب</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Certificate Generator Skeleton -->
+                <div id="certificate-generator-modal" class="modal">
+                    <div class="modal-content" style="max-width: 600px; padding: 2rem; border-radius: 12px; background: var(--surface);">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                            <h2 style="margin: 0; color: var(--primary);">إصدار شهادة الطالب</h2>
+                            <button class="btn btn-ghost" onclick="document.getElementById('certificate-generator-modal').classList.remove('active')"><span class="material-icons-outlined">close</span></button>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>اسم الطالب (كما سيظهر في الشهادة)</label>
+                            <input type="text" id="cert-student-name" class="text-input" disabled>
+                        </div>
+                        <div class="form-group full-width">
+                            <label>اسم الدورة</label>
+                            <input type="text" id="cert-course-name" class="text-input" disabled>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>مستوى التعليم</label>
+                                <input type="text" id="cert-education" class="text-input" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>الموقع / الدولة</label>
+                                <input type="text" id="cert-location" class="text-input" disabled>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label>مشرف الدورة</label>
+                                <input type="text" id="cert-supervisor" class="text-input" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label>النسبة المئوية (%) *</label>
+                                <input type="number" id="cert-score" class="text-input" placeholder="مثال: 95" min="0" max="100">
+                            </div>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--warning); margin-top: 15px;">
+                            <i class="fas fa-info-circle"></i> يتم إضافة المعلومات التلقائية من ملف الطالب وإعدادات الدورة. يرجى إدخال التقييم النهائي قبل توليد الشهادة.
+                        </p>
+                        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
+                            <button class="btn btn-ghost" onclick="document.getElementById('certificate-generator-modal').classList.remove('active')">إلغاء</button>
+                            <button class="btn btn-primary" onclick="JhomeApp.generateCertificate()">معاينة وإصدار الشهادة</button>
                         </div>
                     </div>
                 </div>
@@ -1290,6 +1460,127 @@
       };
     })();
   </script>
+
+  <!-- Curriculum Section Modal -->
+  <div id="jhome-section-modal" class="modal">
+      <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+              <h2>إضافة/تعديل قسم</h2>
+              <button class="close-btn" onclick="AdminApp.closeModal('jhome-section-modal')">&times;</button>
+          </div>
+          <div class="modal-body">
+              <form id="jhome-section-form" onsubmit="JhomeApp.saveCurriculumSection(event)">
+                  <input type="hidden" id="js-section-id">
+                  <div class="form-group">
+                      <label>عنوان القسم</label>
+                      <input type="text" id="js-section-title" class="text-input" required placeholder="مثال: الوحدة الأولى - الأساسيات">
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ القسم</button>
+              </form>
+          </div>
+      </div>
+  </div>
+
+  <!-- Curriculum Lesson Modal -->
+  <div id="jhome-lesson-modal" class="modal">
+      <div class="modal-content" style="max-width: 600px;">
+          <div class="modal-header">
+              <h2>إضافة/تعديل درس</h2>
+              <button class="close-btn" onclick="AdminApp.closeModal('jhome-lesson-modal')">&times;</button>
+          </div>
+          <div class="modal-body">
+              <form id="jhome-lesson-form" onsubmit="JhomeApp.saveCurriculumLesson(event)">
+                  <input type="hidden" id="jl-lesson-id">
+                  <input type="hidden" id="jl-section-id">
+                  
+                  <div class="form-group">
+                      <label>عنوان الدرس</label>
+                      <input type="text" id="jl-title" class="text-input" required>
+                  </div>
+
+                  <div class="form-group">
+                      <label>نوع المحتوى</label>
+                      <select id="jl-type" class="text-input" onchange="JhomeApp.toggleLessonTypeFields()" required>
+                          <option value="video">فيديو (Video)</option>
+                          <option value="pdf">ملف PDF</option>
+                          <option value="article">مقال نصي (Article)</option>
+                          <option value="audio">ملف صوتي (Audio)</option>
+                          <option value="zip">ملف مضغوط (ZIP)</option>
+                          <option value="attachment">مرفق قابل للتحميل</option>
+                          <option value="link">رابط خارجي (Link)</option>
+                          <option value="quiz">اختبار (Quiz)</option>
+                          <option value="assignment">واجب (Assignment)</option>
+                      </select>
+                  </div>
+
+                  <!-- Source Type Toggle for Video/Audio/PDF -->
+                  <div class="form-group" id="jl-source-type-container">
+                      <label>مصدر المحتوى</label>
+                      <div style="display:flex; gap:10px;">
+                          <label><input type="radio" name="jl_source_type" value="upload" checked onchange="JhomeApp.toggleLessonTypeFields()"> رفع ملف مباشر</label>
+                          <label><input type="radio" name="jl_source_type" value="link" onchange="JhomeApp.toggleLessonTypeFields()"> رابط خارجي (Youtube/Vimeo/الخ)</label>
+                      </div>
+                  </div>
+
+                  <!-- File Upload Box -->
+                  <div class="form-group" id="jl-upload-container">
+                      <label>اختر الملف</label>
+                      <input type="file" id="jl-file" class="text-input" accept="video/*,audio/*,application/pdf,.zip">
+                      <small class="text-muted" id="jl-file-hint">اختر ملفاً لرفعه إلى مساحة التخزين.</small>
+                      <div id="jl-upload-progress" style="display:none; margin-top:5px;">
+                          <div style="width:100%; background:#eee; border-radius:4px; overflow:hidden;">
+                              <div id="jl-progress-bar" style="width:0%; height:8px; background:var(--primary); transition: width 0.2s;"></div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <!-- External Link Box -->
+                  <div class="form-group" id="jl-link-container" style="display:none;">
+                      <label>رابط المحتوى</label>
+                      <input type="url" id="jl-external-link" class="text-input" placeholder="https://youtube.com/...">
+                  </div>
+
+                  <!-- Text Editor for Articles -->
+                  <div class="form-group" id="jl-article-container" style="display:none;">
+                      <label>محتوى المقال</label>
+                      <textarea id="jl-article-content" class="text-input" rows="6" placeholder="اكتب محتوى المقال هنا..."></textarea>
+                  </div>
+
+                  <div class="form-group" style="margin-top:15px; display:flex; gap:10px; align-items:center;">
+                      <input type="checkbox" id="jl-is-preview">
+                      <label for="jl-is-preview" style="margin:0;">مجاني / يمكن مشاهدته قبل الاشتراك (Preview)</label>
+                  </div>
+
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;" id="jl-submit-btn">حفظ الدرس</button>
+              </form>
+          </div>
+      </div>
+  </div>
+
+  <!-- Course Settings Modal (Locking system) -->
+  <div id="jhome-course-settings-modal" class="modal">
+      <div class="modal-content" style="max-width: 500px;">
+          <div class="modal-header">
+              <h2>إعدادات فتح الدروس</h2>
+              <button class="close-btn" onclick="AdminApp.closeModal('jhome-course-settings-modal')">&times;</button>
+          </div>
+          <div class="modal-body">
+              <form id="jhome-course-settings-form" onsubmit="JhomeApp.saveCourseSettings(event)">
+                  <div class="form-group">
+                      <label>نظام التدرج في الدورة (Unlock System)</label>
+                      <select id="jcs-unlock-system" class="text-input">
+                          <option value="free">حر - يمكن للطالب فتح أي درس مباشرة</option>
+                          <option value="sequential">متسلسل - يجب إكمال الدرس لفتح الذي يليه</option>
+                          <option value="section_based" selected>بالأقسام - يجب إكمال القسم لفتح القسم التالي</option>
+                      </select>
+                      <small class="text-muted" style="display:block; margin-top:8px;">يوصى باختيار "بالأقسام" لضمان تسلسل تعليمي مرن ومنطقي.</small>
+                  </div>
+                  <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 15px;">حفظ الإعدادات</button>
+              </form>
+          </div>
+      </div>
+  </div>
+
   </div>
 </body>
 </html>

@@ -210,6 +210,9 @@ const JhomeApp = {
   openCourse(id) {
     academyView.openCourse(id);
   },
+  closeCourseDetails() {
+    academyView.closeCourseDetails();
+  },
 
   async renderCourseRequests() {
     await academyView.renderRequests();
@@ -233,6 +236,79 @@ const JhomeApp = {
 
   async deleteCourseUser(userId) {
     await academyView.deleteCourseUser(userId);
+  },
+
+  // ── Academy Tab Utilities ──
+  switchCourseTab(tabName) {
+    academyView.switchCourseTab(tabName);
+  },
+
+  filterRequests() {
+    academyView.filterRequests();
+  },
+
+  searchStudents() {
+    academyView.searchStudents();
+  },
+
+  sortStudents() {
+    academyView.sortStudents();
+  },
+
+  printStudents() {
+    academyView.printStudents();
+  },
+
+  exportStudentsExcel() {
+    academyView.exportStudentsExcel();
+  },
+
+  openStudentDetails(credId) {
+    academyView.openStudentDetails(credId);
+  },
+
+  copyStudentCredentials() {
+    academyView.copyStudentCredentials();
+  },
+
+  async regenerateStudentPassword() {
+    await academyView.regenerateStudentPassword();
+  },
+
+  async deleteStudentAccount() {
+    await academyView.deleteStudentAccount();
+  },
+
+  // ── Curriculum UI Wrappers ──
+  openAddSectionModal() {
+    academyView.openAddSectionModal();
+  },
+  editCurriculumSection(id, title) {
+    academyView.editCurriculumSection(id, title);
+  },
+  async saveCurriculumSection(e) {
+    await academyView.saveCurriculumSection(e);
+  },
+  async deleteCurriculumSection(id) {
+    await academyView.deleteCurriculumSection(id);
+  },
+  openAddLessonModal(sectionId) {
+    academyView.openAddLessonModal(sectionId);
+  },
+  toggleLessonTypeFields() {
+    academyView.toggleLessonTypeFields();
+  },
+  async saveCurriculumLesson(e) {
+    await academyView.saveCurriculumLesson(e);
+  },
+  async deleteCurriculumLesson(id) {
+    await academyView.deleteCurriculumLesson(id);
+  },
+  openCourseSettingsModal() {
+    academyView.openCourseSettingsModal();
+  },
+  async saveCourseSettings(e) {
+    await academyView.saveCourseSettings(e);
   },
 
   // ── Blog / Posts ──

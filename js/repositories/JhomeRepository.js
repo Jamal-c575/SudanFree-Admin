@@ -90,24 +90,92 @@ export class JhomeRepository {
     }
 
     async deleteCourse(id) {
+        // Delete related enrollment requests
+        const reqsSnap = await this.db.collection('enrollmentRequests').where('courseId', '==', id).get();
+        const batch = this.db.batch();
+        reqsSnap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        
+        // Delete related course credentials
+        const credsSnap = await this.db.collection('courses_credentials').where('courseId', '==', id).get();
+        credsSnap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Commit batch deletions
+        await batch.commit();
+
+        // Finally delete the course itself
         return await this.db.collection('courses').doc(id).delete();
     }
 
-    async getCourseRequests() {
-        const snap = await this.db.collection('enrollmentRequests').orderBy('createdAt', 'desc').get();
-        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    async getCourseRequests(courseId) {
+        if (!courseId) return [];
+        const snap = await this.db.collection('enrollmentRequests').where('courseId', '==', courseId).get();
+        let requests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        requests.sort((a, b) => {
+            const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
+            const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
+            return timeB - timeA;
+        });
+        return requests;
     }
 
     async approveCourseRequest(reqId) {
-        return await this.db.collection('course_requests').doc(reqId).update({ status: 'approved' });
+        const reqRef = this.db.collection('enrollmentRequests').doc(reqId);
+        const reqDoc = await reqRef.get();
+        if (!reqDoc.exists) throw new Error("Request not found");
+        const reqData = reqDoc.data();
+
+        if (reqData.status === 'approved') {
+            throw new Error("Request is already approved");
+        }
+
+        const randNum = Math.floor(1000 + Math.random() * 9000);
+        let username = reqData.fullName 
+            ? reqData.fullName.split(' ')[0].toLowerCase() + randNum 
+            : 'student' + randNum;
+        
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let password = "";
+        for (let i = 0; i < 8; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        const credRef = await this.db.collection('courses_credentials').add({
+            courseId: reqData.courseId,
+            studentId: reqData.email || reqData.phone || '',
+            requestId: reqId,
+            username: username,
+            password: password, // TODO: Replace plaintext passwords with hashed passwords before public launch.
+            role: 'student',
+            active: true,
+            loginCount: 0,
+            mustChangePassword: true,
+            createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+            createdBy: 'admin'
+        });
+
+        return await reqRef.update({ 
+            status: 'approved',
+            reviewedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+            reviewedBy: 'admin',
+            credentialId: credRef.id
+        });
     }
 
     async rejectCourseRequest(reqId) {
-        return await this.db.collection('course_requests').doc(reqId).update({ status: 'rejected' });
+        return await this.db.collection('enrollmentRequests').doc(reqId).update({ 
+            status: 'rejected',
+            reviewedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+            reviewedBy: 'admin'
+        });
     }
 
-    async getCourseUsers() {
-        const snap = await this.db.collection('courses_credentials').get();
+    async getCourseUsers(courseId) {
+        if (!courseId) return [];
+        const snap = await this.db.collection('courses_credentials').where('courseId', '==', courseId).get();
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 
@@ -120,6 +188,57 @@ export class JhomeRepository {
 
     async deleteCourseUser(userId) {
         return await this.db.collection('courses_credentials').doc(userId).delete();
+    }
+
+    // --- Curriculum Database Operations ---
+    
+    async getCurriculumSections(courseId) {
+        const snap = await this.db.collection('curriculum_sections')
+            .where('courseId', '==', courseId)
+            .orderBy('createdAt', 'asc')
+            .get();
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async addCurriculumSection(courseId, title) {
+        return await this.db.collection('curriculum_sections').add({
+            courseId,
+            title,
+            createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        });
+    }
+
+    async deleteCurriculumSection(sectionId) {
+        const batch = this.db.batch();
+        
+        // Delete lessons inside the section
+        const lessonsSnap = await this.db.collection('curriculum_lessons')
+            .where('sectionId', '==', sectionId)
+            .get();
+        lessonsSnap.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+
+        // Delete the section itself
+        batch.delete(this.db.collection('curriculum_sections').doc(sectionId));
+        return await batch.commit();
+    }
+
+    async getCurriculumLessons(sectionId) {
+        const snap = await this.db.collection('curriculum_lessons')
+            .where('sectionId', '==', sectionId)
+            .orderBy('createdAt', 'asc')
+            .get();
+        return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async addCurriculumLesson(sectionId, courseId, lessonData) {
+        return await this.db.collection('curriculum_lessons').add({
+            sectionId,
+            courseId,
+            ...lessonData,
+            createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        });
     }
 }
 
