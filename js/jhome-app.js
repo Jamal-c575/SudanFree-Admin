@@ -1,15 +1,15 @@
-import { projectsView } from './ui/ProjectsView.js?v=4';
-import { storiesView } from './ui/StoriesView.js?v=4';
-import { blogView } from './ui/BlogView.js?v=4';
-import { academyView } from './ui/AcademyView.js?v=4';
-import { adminSystemView } from './ui/AdminSystemView.js?v=3';
-
-// Explicitly reference the global Firebase app to prevent module isolation ReferenceErrors
-const jhomeDb = window.firebase.app('jhome').firestore();
+import { projectsView } from './ui/ProjectsView.js?v=5';
+import { storiesView } from './ui/StoriesView.js?v=5';
+import { blogView } from './ui/BlogView.js?v=5';
+import { academyView } from './ui/AcademyView.js?v=5';
+import { adminSystemView } from './ui/AdminSystemView.js?v=5';
 
 // Jhome App Management Logic
 const JhomeApp = {
   currentTab: 'blog',
+
+  // Lazy db access — only called when a method runs, never at module load time
+  get db() { return window.firebase.app('jhome').firestore(); },
 
   showTab(tabId, clickedEl) {
     this.currentTab = tabId;
@@ -115,7 +115,7 @@ const JhomeApp = {
     document.getElementById('jhome-page-editor-actions').style.display = 'none';
 
     try {
-      const docSnap = await jhomeDb.collection('pageContent').doc(pageKey).get();
+      const docSnap = await this.db.collection('pageContent').doc(pageKey).get();
       let sectionsData = {};
       if (docSnap.exists) {
         sectionsData = docSnap.data().sections || {};
@@ -318,7 +318,7 @@ const JhomeApp = {
     tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">⏳ جاري التحميل...</td></tr>';
     try {
       // Use a simple get() without orderBy to avoid requiring a composite index
-      const snap = await jhomeDb.collection('posts').get();
+      const snap = await this.db.collection('posts').get();
 
       if (snap.empty) {
         tbody.innerHTML = '<tr><td colspan="6" class="empty-state">لا توجد مقالات منشورة حتى الآن</td></tr>';
@@ -360,7 +360,7 @@ const JhomeApp = {
   async deletePost(id) {
     if (!confirm('هل أنت متأكد من حذف هذا المقال نهائياً؟')) return;
     try {
-      await jhomeDb.collection('posts').doc(id).delete();
+      await this.db.collection('posts').doc(id).delete();
       if (typeof window.showToast === 'function') window.showToast('تم الحذف بنجاح', 'success');
       this.loadPosts();
     } catch (e) {
@@ -410,7 +410,7 @@ const JhomeApp = {
         coverImage = await this.uploadJhomeImage(file, 'posts');
       }
 
-      await jhomeDb.collection('posts').add({
+      await this.db.collection('posts').add({
         title,
         slug,
         excerpt,
@@ -436,7 +436,7 @@ const JhomeApp = {
   async loadStories() {
     try {
       // Load published stories
-      const pubSnap = await jhomeDb.collection('successStories').where('isPublished', '==', true).get();
+      const pubSnap = await this.db.collection('successStories').where('isPublished', '==', true).get();
       const pubTbody = document.getElementById('jhome-stories-tbody');
       
       if (pubSnap.empty) {
@@ -459,7 +459,7 @@ const JhomeApp = {
       }
 
       // Load pending submissions
-      const subSnap = await jhomeDb.collection('storySubmissions').where('status', '==', 'pending').get();
+      const subSnap = await this.db.collection('storySubmissions').where('status', '==', 'pending').get();
       const subList = document.getElementById('jhome-story-submissions-list');
       
       if (subSnap.empty) {
@@ -492,7 +492,7 @@ const JhomeApp = {
     try {
       // In a real app, you might want a modal to let admin edit before publishing.
       // For now, we update status to approved.
-      await jhomeDb.collection('storySubmissions').doc(id).update({ status: 'approved' });
+      await this.db.collection('storySubmissions').doc(id).update({ status: 'approved' });
       window.AdminApp.showToast('تم الموافقة على القصة', 'success');
       this.loadStories();
     } catch(e) {
@@ -503,7 +503,7 @@ const JhomeApp = {
   async rejectStorySubmission(id) {
     if (!confirm('هل تريد رفض وحذف هذا التقديم؟')) return;
     try {
-      await jhomeDb.collection('storySubmissions').doc(id).update({ status: 'rejected' });
+      await this.db.collection('storySubmissions').doc(id).update({ status: 'rejected' });
       window.AdminApp.showToast('تم الرفض', 'success');
       this.loadStories();
     } catch(e) {
@@ -513,7 +513,7 @@ const JhomeApp = {
 
   async deleteStory(id) {
     if (!confirm('هل أنت متأكد من حذف القصة؟')) return;
-    await jhomeDb.collection('successStories').doc(id).delete();
+    await this.db.collection('successStories').doc(id).delete();
     this.loadStories();
   },
 
@@ -556,7 +556,7 @@ const JhomeApp = {
         coverImage = await this.uploadJhomeImage(file, 'successStories');
       }
 
-      await jhomeDb.collection('successStories').add({
+      await this.db.collection('successStories').add({
         title,
         personName: title,
         personRole,

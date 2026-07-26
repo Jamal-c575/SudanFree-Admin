@@ -1,8 +1,6 @@
 export class JhomeRepository {
-    constructor() {
-        // Access the globally initialized secondary Firebase app
-        this.db = window.firebase.app('jhome').firestore();
-    }
+    // Lazy getter: firebase may not be ready at module parse time
+    get db() { return window.firebase.app('jhome').firestore(); }
 
     async getProjects() {
         const snap = await this.db.collection('projects').orderBy('createdAt', 'desc').get();

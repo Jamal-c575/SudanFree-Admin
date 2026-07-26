@@ -1,7 +1,6 @@
 export class AdminDataRepository {
-    constructor() {
-        this.db = window.firebase.app('jhome').firestore();
-    }
+    // Lazy getter: firebase may not be ready at module parse time
+    get db() { return window.firebase.app('jhome').firestore(); }
 
     // ── Messages ──
     async getMessages() {

@@ -1,12 +1,12 @@
 import { adminDataRepository } from '../repositories/AdminDataRepository.js';
 
 export class AdminSystemView {
-    constructor() {
-        this.usersTbody = document.getElementById('jhome-users-tbody');
-        this.bankTbody = document.getElementById('jhome-bank-accounts-tbody');
-        this.messagesList = document.getElementById('jhome-messages-list');
-        this.newsletterTbody = document.getElementById('jhome-newsletter-tbody');
-    }
+    // Lazy DOM getters — queried at call time, not at module load time
+    get usersTbody()      { return document.getElementById('jhome-users-tbody'); }
+    get bankTbody()       { return document.getElementById('jhome-bank-accounts-tbody'); }
+    get messagesList()    { return document.getElementById('jhome-messages-list'); }
+    get newsletterTbody() { return document.getElementById('jhome-newsletter-tbody'); }
+    get requestsTbody()   { return document.getElementById('jhome-requests-tbody'); }
 
     async load() {
         await this.loadUsers();
