@@ -2,12 +2,16 @@ import { jhomeRepository } from '../repositories/JhomeRepository.js';
 
 export class AcademyView {
     constructor() {
-        this.coursesGrid = document.getElementById('courses-list-tbody');
-        this.requestsTbody = document.getElementById('course-requests-tbody');
-        this.studentsTbody = document.getElementById('course-students-tbody');
-        this.instructorsTbody = document.getElementById('course-instructors-tbody');
+        // Non-DOM state kept in constructor
         this.activeCourseId = null;
+        this.currentStudentCredData = null;
     }
+
+    // Lazy DOM getters — always look up at call time, never null on module load
+    get coursesGrid()        { return document.getElementById('courses-list-tbody'); }
+    get requestsTbody()      { return document.getElementById('course-requests-tbody'); }
+    get studentsTbody()      { return document.getElementById('course-students-tbody'); }
+    get instructorsTbody()   { return document.getElementById('course-instructors-tbody'); }
 
     async load() {
         await this.renderCourses();

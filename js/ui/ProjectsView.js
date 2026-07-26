@@ -1,9 +1,8 @@
 import { jhomeRepository } from '../repositories/JhomeRepository.js';
 
 export class ProjectsView {
-    constructor() {
-        this.tbody = document.getElementById('jhome-projects-tbody');
-    }
+    // Lazy getter: avoids null when module loads before page is visible
+    get tbody() { return document.getElementById('jhome-projects-tbody'); }
 
     async load() {
         if (!this.tbody) return;

@@ -1,10 +1,9 @@
 import { jhomeRepository } from '../repositories/JhomeRepository.js';
 
 export class StoriesView {
-    constructor() {
-        this.pubTbody = document.getElementById('jhome-stories-tbody');
-        this.subList = document.getElementById('jhome-story-submissions-list');
-    }
+    // DOM references fetched lazily to avoid null when module loads before page is rendered
+    get pubTbody() { return document.getElementById('jhome-stories-tbody'); }
+    get subList()  { return document.getElementById('jhome-story-submissions-list'); }
 
     async load() {
         await this.loadPublishedStories();

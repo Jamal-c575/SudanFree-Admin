@@ -1,9 +1,8 @@
 import { jhomeRepository } from '../repositories/JhomeRepository.js';
 
 export class BlogView {
-    constructor() {
-        this.tbody = document.getElementById('jhome-posts-tbody');
-    }
+    // Lazy getter: avoids null when module loads before page is visible
+    get tbody() { return document.getElementById('jhome-posts-tbody'); }
 
     async load() {
         if (!this.tbody) return;

@@ -1,7 +1,7 @@
-import { projectsView } from './ui/ProjectsView.js?v=3';
-import { storiesView } from './ui/StoriesView.js?v=3';
-import { blogView } from './ui/BlogView.js?v=3';
-import { academyView } from './ui/AcademyView.js?v=3';
+import { projectsView } from './ui/ProjectsView.js?v=4';
+import { storiesView } from './ui/StoriesView.js?v=4';
+import { blogView } from './ui/BlogView.js?v=4';
+import { academyView } from './ui/AcademyView.js?v=4';
 import { adminSystemView } from './ui/AdminSystemView.js?v=3';
 
 // Explicitly reference the global Firebase app to prevent module isolation ReferenceErrors
