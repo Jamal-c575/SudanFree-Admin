@@ -736,13 +736,13 @@ export class AcademyView {
                         const file = fileInput.files[0];
                         // Upload with progress
                         if (window.AdminHelpers && window.AdminHelpers.uploadWithProgress) {
-                            contentUrl = await window.AdminHelpers.uploadWithProgress(file, \`courses/\${this.activeCourseId}/lessons\`, (progress) => {
+                            contentUrl = await window.AdminHelpers.uploadWithProgress(file, `courses/\${this.activeCourseId}/lessons`, (progress) => {
                                 document.getElementById('jl-upload-progress').style.display = 'block';
                                 document.getElementById('jl-progress-bar').style.width = progress + '%';
                             });
                         } else {
                             // Fallback
-                            contentUrl = await window.AdminHelpers.uploadToJhomeStorage(file, \`courses/\${this.activeCourseId}/lessons\`);
+                            contentUrl = await window.AdminHelpers.uploadToJhomeStorage(file, `courses/\${this.activeCourseId}/lessons`);
                         }
                     }
                 } else {
