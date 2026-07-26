@@ -121,13 +121,18 @@ export class JhomeRepository {
     }
 
     async approveCourseRequest(reqId) {
+        const jhomeAuth = this.db.app.auth();
+        if (!jhomeAuth.currentUser) {
+            throw new Error("حسابك غير مسجل في نظام Jhome (Authentication). يرجى التأكد من أن البريد وكلمة المرور متطابقان في كلا المشروعين.");
+        }
+
         const reqRef = this.db.collection('enrollmentRequests').doc(reqId);
         const reqDoc = await reqRef.get();
         if (!reqDoc.exists) throw new Error("Request not found");
         const reqData = reqDoc.data();
 
         if (reqData.status === 'approved') {
-            throw new Error("Request is already approved");
+            throw new Error("الطلب مقبول مسبقاً (Request is already approved)");
         }
 
         const randNum = Math.floor(1000 + Math.random() * 9000);
@@ -141,26 +146,43 @@ export class JhomeRepository {
             password += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
-        const credRef = await this.db.collection('courses_credentials').add({
-            courseId: reqData.courseId,
-            studentId: reqData.email || reqData.phone || '',
-            requestId: reqId,
-            username: username,
-            password: password, // TODO: Replace plaintext passwords with hashed passwords before public launch.
-            role: 'student',
-            active: true,
-            loginCount: 0,
-            mustChangePassword: true,
-            createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-            createdBy: 'admin'
-        });
+        let credRef;
+        try {
+            credRef = await this.db.collection('courses_credentials').add({
+                courseId: reqData.courseId,
+                studentId: reqData.email || reqData.phone || '',
+                requestId: reqId,
+                username: username,
+                password: password, 
+                role: 'student',
+                active: true,
+                loginCount: 0,
+                mustChangePassword: true,
+                createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+                createdBy: jhomeAuth.currentUser.uid
+            });
+        } catch (e) {
+            console.error("Error writing to courses_credentials:", e);
+            if (e.code === 'permission-denied') {
+                throw new Error("ليس لديك صلاحية الكتابة في جدول courses_credentials. يرجى تعديل Firebase Rules في مشروع Jhome.");
+            }
+            throw e;
+        }
 
-        await reqRef.update({ 
-            status: 'approved',
-            reviewedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
-            reviewedBy: 'admin',
-            credentialId: credRef.id
-        });
+        try {
+            await reqRef.update({ 
+                status: 'approved',
+                reviewedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+                reviewedBy: jhomeAuth.currentUser.uid,
+                credentialId: credRef.id
+            });
+        } catch (e) {
+            console.error("Error updating enrollmentRequests:", e);
+            if (e.code === 'permission-denied') {
+                throw new Error("ليس لديك صلاحية التعديل على جدول enrollmentRequests. يرجى تعديل Firebase Rules في مشروع Jhome.");
+            }
+            throw e;
+        }
 
         return {
             username,
@@ -186,10 +208,22 @@ export class JhomeRepository {
     }
 
     async addCourseInstructor(data) {
-        return await this.db.collection('courses_credentials').add({
-            ...data,
-            createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
-        });
+        const jhomeAuth = this.db.app.auth();
+        if (!jhomeAuth.currentUser) {
+            throw new Error("حسابك غير مسجل في نظام Jhome (Authentication). يرجى التأكد من أن البريد وكلمة المرور متطابقان في كلا المشروعين.");
+        }
+        try {
+            return await this.db.collection('courses_credentials').add({
+                ...data,
+                createdBy: jhomeAuth.currentUser.uid,
+                createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (e) {
+            if (e.code === 'permission-denied') {
+                throw new Error("ليس لديك صلاحية الكتابة في جدول courses_credentials. يرجى تعديل Firebase Rules في مشروع Jhome.");
+            }
+            throw e;
+        }
     }
 
     async deleteCourseUser(userId) {
