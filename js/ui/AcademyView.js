@@ -26,6 +26,7 @@ export class AcademyView {
         try {
             console.log("[DEBUG] Fetching courses...");
             const courses = await jhomeRepository.getCourses();
+            this.courses = courses; // Store it so openCourse() can find it
             console.log("[DEBUG] Fetched courses length:", courses.length);
             if (courses.length === 0) {
                 grid.innerHTML = '<tr><td colspan="4" class="empty-state">لا توجد دورات حالياً</td></tr>';
@@ -221,11 +222,43 @@ export class AcademyView {
     async approveCourseRequest(reqId, studentName) {
         if (!confirm(`هل أنت متأكد من قبول طلب ${studentName}؟`)) return;
         try {
-            await jhomeRepository.approveCourseRequest(reqId);
-            if (typeof window.showToast === 'function') window.showToast('تم قبول الطلب', 'success');
+            const creds = await jhomeRepository.approveCourseRequest(reqId);
+            if (typeof window.showToast === 'function') window.showToast('تم قبول الطلب وإنشاء الحساب', 'success');
             await this.renderRequests();
+
+            // Show credentials modal
+            const waLink = creds.phone 
+                ? `https://wa.me/${creds.phone.replace(/\+/g, '')}?text=${encodeURIComponent(`مرحباً ${creds.name}،\nتم قبول طلب انضمامك للدورة بنجاح.\n\nبيانات الدخول لمنصة Jhome Academy:\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}\n\nرابط المنصة: https://jhome.app/academy`)}`
+                : '#';
+
+            const modalHtml = `
+                <div class="modal" style="display:flex; z-index: 10000;">
+                    <div class="modal-content" style="max-width: 450px; text-align: right;">
+                        <div class="modal-header">
+                            <h3>تم إنشاء حساب الطالب</h3>
+                            <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+                        </div>
+                        <div class="modal-body" style="line-height: 2;">
+                            <p><strong>اسم الطالب:</strong> ${creds.name || '—'}</p>
+                            <div style="background: var(--bg-hover); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <p style="margin-bottom: 10px;"><strong>اسم المستخدم:</strong> <span dir="ltr" style="user-select: all; font-family: monospace; font-size: 1.1rem; color: var(--primary);">${creds.username}</span></p>
+                                <p><strong>كلمة المرور:</strong> <span dir="ltr" style="user-select: all; font-family: monospace; font-size: 1.1rem; color: var(--primary);">${creds.password}</span></p>
+                            </div>
+                            ${creds.phone ? `
+                                <a href="${waLink}" target="_blank" class="btn btn-success" style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 8px;">
+                                    <span class="material-icons-outlined">send</span>
+                                    إرسال عبر واتساب
+                                </a>
+                            ` : '<p class="text-muted">لا يوجد رقم هاتف لإرسال رسالة واتساب.</p>'}
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
         } catch(e) {
             console.error(e);
+            if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء القبول', 'error');
         }
     }
 

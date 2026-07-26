@@ -155,12 +155,20 @@ export class JhomeRepository {
             createdBy: 'admin'
         });
 
-        return await reqRef.update({ 
+        await reqRef.update({ 
             status: 'approved',
             reviewedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
             reviewedBy: 'admin',
             credentialId: credRef.id
         });
+
+        return {
+            username,
+            password,
+            phone: reqData.phone,
+            email: reqData.email,
+            name: reqData.fullName
+        };
     }
 
     async rejectCourseRequest(reqId) {
