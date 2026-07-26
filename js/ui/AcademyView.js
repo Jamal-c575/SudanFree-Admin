@@ -228,7 +228,7 @@ export class AcademyView {
 
             // Show credentials modal
             const waLink = creds.phone 
-                ? `https://wa.me/${creds.phone.replace(/\+/g, '')}?text=${encodeURIComponent(`مرحباً ${creds.name}،\nتم قبول طلب انضمامك للدورة بنجاح.\n\nبيانات الدخول لمنصة Jhome Academy:\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}\n\nرابط المنصة: https://jhome.app/academy`)}`
+                ? `https://wa.me/${String(creds.phone).replace(/\+/g, '')}?text=${encodeURIComponent(`مرحباً ${creds.name || 'الطالب'}،\nتم قبول طلب انضمامك للدورة بنجاح.\n\nبيانات الدخول لمنصة Jhome Academy:\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}\n\nرابط المنصة: https://jhome.app/academy`)}`
                 : '#';
 
             const modalHtml = `
@@ -258,7 +258,8 @@ export class AcademyView {
 
         } catch(e) {
             console.error(e);
-            if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء القبول', 'error');
+            if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء القبول: ' + (e.message || ''), 'error');
+            else alert('حدث خطأ أثناء القبول: ' + e.message);
         }
     }
 
@@ -333,16 +334,58 @@ export class AcademyView {
         e.preventDefault();
         const form = e.target;
         try {
+            const nameInput = form.querySelector('#new-instructor-name');
+            if (!nameInput) throw new Error("Input not found");
+            const fullName = nameInput.value;
+            if (!fullName) return;
+
+            const randNum = Math.floor(100 + Math.random() * 900);
+            const username = 'admin_' + fullName.split(' ')[0].toLowerCase() + randNum;
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let password = "";
+            for (let i = 0; i < 8; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+
             await jhomeRepository.addCourseInstructor({
-                name: form.querySelector('input[placeholder="الاسم الكامل"]').value,
-                email: form.querySelector('input[placeholder="البريد الإلكتروني"]').value,
-                password: form.querySelector('input[placeholder="كلمة المرور"]').value,
-                role: 'admin'
+                courseId: this.activeCourseId,
+                name: fullName,
+                username: username,
+                password: password,
+                role: 'admin',
+                active: true
             });
-            
-            if (typeof window.showToast === 'function') window.showToast('تم إضافة المدرب بنجاح', 'success');
+
+            if (typeof window.showToast === 'function') window.showToast('تم إضافة المشرف بنجاح', 'success');
             form.reset();
             await this.renderCourseUsers();
+
+            // Show credentials modal
+            const waLink = `https://wa.me/?text=${encodeURIComponent(`مرحباً ${fullName}،\nتم إنشاء حساب المشرف الخاص بك في منصة Jhome Academy بنجاح.\n\nبيانات الدخول:\nاسم المستخدم: ${username}\nكلمة المرور: ${password}\n\nرابط المنصة: https://jhome.app/academy`)}`;
+            
+            const modalHtml = `
+                <div class="modal" style="display:flex; z-index: 10000;">
+                    <div class="modal-content" style="max-width: 450px; text-align: right;">
+                        <div class="modal-header">
+                            <h3>تم إنشاء حساب المشرف</h3>
+                            <span class="close-modal" onclick="this.closest('.modal').remove()">&times;</span>
+                        </div>
+                        <div class="modal-body" style="line-height: 2;">
+                            <p><strong>اسم المشرف:</strong> ${fullName}</p>
+                            <div style="background: var(--bg-hover); padding: 15px; border-radius: 8px; margin: 15px 0;">
+                                <p style="margin-bottom: 10px;"><strong>اسم المستخدم:</strong> <span dir="ltr" style="user-select: all; font-family: monospace; font-size: 1.1rem; color: var(--primary);">${username}</span></p>
+                                <p><strong>كلمة المرور:</strong> <span dir="ltr" style="user-select: all; font-family: monospace; font-size: 1.1rem; color: var(--primary);">${password}</span></p>
+                            </div>
+                            <a href="${waLink}" target="_blank" class="btn btn-success" style="width: 100%; justify-content: center; display: flex; align-items: center; gap: 8px;">
+                                <span class="material-icons-outlined">send</span>
+                                إرسال عبر واتساب
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
         } catch(err) {
             console.error(err);
             if (typeof window.showToast === 'function') window.showToast('حدث خطأ', 'error');

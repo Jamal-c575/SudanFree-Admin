@@ -1,7 +1,7 @@
 import { projectsView } from './ui/ProjectsView.js?v=5';
 import { storiesView } from './ui/StoriesView.js?v=5';
 import { blogView } from './ui/BlogView.js?v=5';
-import { academyView } from './ui/AcademyView.js?v=7';
+import { academyView } from './ui/AcademyView.js?v=8';
 import { adminSystemView } from './ui/AdminSystemView.js?v=5';
 
 // Jhome App Management Logic
