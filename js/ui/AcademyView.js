@@ -495,42 +495,63 @@ export class AcademyView {
     async openStudentDetails(credId) {
         if (typeof window.showToast === 'function') window.showToast('جاري جلب بيانات الطالب...', 'info');
         
+        // Step 1: Read credential doc
+        let credDoc;
         try {
-            const credDoc = await jhomeRepository.db.collection('courses_credentials').doc(credId).get();
-            if (!credDoc.exists) return;
-            const credData = credDoc.data();
-            this.currentStudentCredId = credId;
-            this.currentStudentCredData = credData;
+            credDoc = await jhomeRepository.db.collection('courses_credentials').doc(credId).get();
+        } catch(e) {
+            console.error('خطأ في قراءة courses_credentials:', e);
+            if (typeof window.showToast === 'function') window.showToast('خطأ في الصلاحيات: ' + e.message, 'error');
+            return;
+        }
 
-            let reqData = {};
-            if (credData.requestId) {
+        if (!credDoc.exists) {
+            if (typeof window.showToast === 'function') window.showToast('لم يتم العثور على بيانات هذا الطالب في courses_credentials', 'error');
+            return;
+        }
+
+        const credData = credDoc.data();
+        this.currentStudentCredId = credId;
+        this.currentStudentCredData = credData;
+
+        // Step 2: Read enrollment request (may fail due to rules - handle gracefully)
+        let reqData = {};
+        if (credData.requestId) {
+            try {
                 const reqDoc = await jhomeRepository.db.collection('enrollmentRequests').doc(credData.requestId).get();
                 if (reqDoc.exists) reqData = reqDoc.data();
+            } catch(e) {
+                console.warn('تعذر قراءة enrollmentRequests (تحقق من قواعد Firebase):', e.message);
+                // Don't block - continue showing credential data
             }
+        }
 
-            document.getElementById('sd-name').textContent = reqData.fullName || credData.name || '—';
-            document.getElementById('sd-email').textContent = reqData.email || '—';
+        // Step 3: Populate modal fields
+        try {
+            document.getElementById('sd-name').textContent = reqData.fullName || credData.name || credData.username || '—';
+            document.getElementById('sd-email').textContent = reqData.email || credData.studentId || '—';
             document.getElementById('sd-phone').textContent = reqData.phone || '—';
             document.getElementById('sd-location').textContent = (reqData.country || '—') + '، ' + (reqData.city || '—');
             document.getElementById('sd-date').textContent = credData.createdAt ? new Date(credData.createdAt.toDate()).toLocaleDateString('ar-EG') : '—';
             document.getElementById('sd-payment').textContent = reqData.paymentStatus === 'paid' ? 'مدفوع' : 'مجاني';
-            
             document.getElementById('sd-username').textContent = credData.username || '—';
             document.getElementById('sd-password').textContent = credData.password || '—';
             document.getElementById('sd-last-login').textContent = credData.lastLogin ? new Date(credData.lastLogin.toDate()).toLocaleString('ar-EG') : 'لم يسجل دخول بعد';
             document.getElementById('sd-login-count').textContent = credData.loginCount || 0;
 
             const receiptContainer = document.getElementById('sd-receipt-container');
-            if (reqData.receiptUrl) {
-                receiptContainer.innerHTML = `<a href="${reqData.receiptUrl}" target="_blank"><img src="${reqData.receiptUrl}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"></a>`;
-            } else {
-                receiptContainer.innerHTML = '<p class="text-muted">لا يوجد إيصال</p>';
+            if (receiptContainer) {
+                if (reqData.receiptUrl) {
+                    receiptContainer.innerHTML = `<a href="${reqData.receiptUrl}" target="_blank"><img src="${reqData.receiptUrl}" style="max-width: 100%; max-height: 200px; border-radius: 8px;"></a>`;
+                } else {
+                    receiptContainer.innerHTML = '<p class="text-muted">لا يوجد إيصال</p>';
+                }
             }
 
             document.getElementById('student-details-modal').classList.add('active');
         } catch(e) {
-            console.error(e);
-            if (typeof window.showToast === 'function') window.showToast('فشل جلب البيانات', 'error');
+            console.error('خطأ في تعبئة نافذة التفاصيل:', e);
+            if (typeof window.showToast === 'function') window.showToast('خطأ في عرض البيانات: ' + e.message, 'error');
         }
     }
 
