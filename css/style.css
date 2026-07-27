@@ -431,6 +431,7 @@ img {
 
 /* Modal */
 .modal { position: fixed; inset: 0; z-index: 200; display: none; align-items: center; justify-content: center; }
+.modal.active { display: flex; }
 .modal-overlay { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
 .modal-content {
   position: relative; background: var(--bg-main);

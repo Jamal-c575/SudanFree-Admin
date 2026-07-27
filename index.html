@@ -457,8 +457,9 @@
                 </div>
 
                 <!-- Modal: Student Details -->
-                <div id="student-details-modal" class="modal">
-                    <div class="modal-content" style="max-width: 800px; padding: 2rem; border-radius: 12px; background: var(--surface);">
+                <div id="student-details-modal" class="modal" onclick="if(event.target===this)this.classList.remove('active')">
+                    <div class="modal-overlay"></div>
+                    <div class="modal-content" style="max-width: 800px; padding: 2rem; border-radius: 12px; background: var(--surface); position: relative; z-index: 1;">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
                             <h2 style="margin: 0; color: var(--primary);">تفاصيل الطالب</h2>
                             <button class="btn btn-ghost" onclick="document.getElementById('student-details-modal').classList.remove('active')"><span class="material-icons-outlined">close</span></button>
