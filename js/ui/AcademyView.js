@@ -199,10 +199,13 @@ export class AcademyView {
                       ${r.receiptUrl ? `<a href="${r.receiptUrl}" target="_blank" class="btn btn-sm btn-ghost">عرض الإيصال</a>` : 'لا يوجد'}
                     </td>
                     <td>
-                      ${r.status === 'pending' ? `
-                        <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${r.id}', '${r.fullName ? r.fullName.replace(/'/g, "\\'") : 'الطالب'}')">قبول</button>
-                        <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${r.id}')">رفض</button>
-                      ` : ''}
+                      ${r.status === 'pending' ? (() => {
+                          const safeName = (r.fullName || 'الطالب').replace(/['"\n\r]/g, '');
+                          return `
+                            <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${r.id}', '${safeName}')">قبول</button>
+                            <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${r.id}')">رفض</button>
+                          `;
+                      })() : ''}
                     </td>
                 `;
                 fragment.appendChild(tr);
