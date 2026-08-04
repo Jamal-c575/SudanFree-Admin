@@ -45,7 +45,10 @@ export class AcademyView {
                         <strong>${c.title}</strong>
                       </div>
                     </td>
-                    <td style="padding: 1rem;">${c.duration} أيام</td>
+                    <td style="padding: 1rem;">
+                        <div>${c.duration} أيام</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">${c.isPaid ? (c.price > 0 ? c.price + ' SDG' : 'مدفوعة') : 'مجانية'}</div>
+                    </td>
                     <td style="padding: 1rem;">
                       <span class="badge ${c.status === 'active' ? 'bg-success' : 'bg-warning'}">${c.status === 'active' ? 'نشط' : 'قيد المراجعة'}</span>
                     </td>
@@ -82,22 +85,17 @@ export class AcademyView {
 
             const title = document.getElementById('jcourse-title').value;
             const description = document.getElementById('jcourse-desc').value;
-            const instructor = document.getElementById('jcourse-instructor-name').value;
-            const instructorEmail = document.getElementById('jcourse-instructor-email').value;
-            const instructorSpecialty = document.getElementById('jcourse-instructor-specialty').value;
-            const instructorBio = document.getElementById('jcourse-instructor-bio').value;
             const isPaid = document.getElementById('jcourse-is-paid').checked;
             const duration = document.getElementById('jcourse-duration').value;
             const status = document.getElementById('jcourse-status').value;
+            const priceEl = document.getElementById('jcourse-price');
+            const price = priceEl && priceEl.value ? Number(priceEl.value) : 0;
 
             await jhomeRepository.addCourse({
                 title: title || '',
                 description: description || '',
-                instructor: instructor || '',
-                instructorEmail: instructorEmail || '',
-                instructorSpecialty: instructorSpecialty || '',
-                instructorBio: instructorBio || '',
                 isPaid: isPaid || false,
+                price: price,
                 duration: duration || '',
                 status: status || 'open',
                 thumbnail: thumbnail
@@ -108,11 +106,8 @@ export class AcademyView {
             
             document.getElementById('jcourse-title').value = '';
             document.getElementById('jcourse-desc').value = '';
-            document.getElementById('jcourse-instructor-name').value = '';
-            document.getElementById('jcourse-instructor-email').value = '';
-            document.getElementById('jcourse-instructor-specialty').value = '';
-            document.getElementById('jcourse-instructor-bio').value = '';
             document.getElementById('jcourse-duration').value = '';
+            if (document.getElementById('jcourse-price')) document.getElementById('jcourse-price').value = '';
             document.getElementById('jcourse-cover-file').value = '';
             const preview = document.getElementById('jcourse-img-preview');
             if (preview) preview.style.display = 'none';
@@ -339,21 +334,9 @@ export class AcademyView {
             const fullName = nameInput.value;
             if (!fullName) return;
 
-            const randNum = Math.floor(100 + Math.random() * 900);
-            const username = 'admin_' + fullName.split(' ')[0].toLowerCase() + randNum;
-            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            let password = "";
-            for (let i = 0; i < 8; i++) {
-                password += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-
-            await jhomeRepository.addCourseInstructor({
+            const { username, password } = await jhomeRepository.addCourseInstructor({
                 courseId: this.activeCourseId,
-                name: fullName,
-                username: username,
-                password: password,
-                role: 'admin',
-                active: true
+                name: fullName
             });
 
             if (typeof window.showToast === 'function') window.showToast('تم إضافة المشرف بنجاح', 'success');
