@@ -160,7 +160,18 @@ export class JhomeRepository {
     async getCourseRequests(courseId) {
         if (!courseId) return [];
         const snap = await this.db.collection('enrollmentRequests').where('courseId', '==', courseId).get();
-        let requests = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        let requests = snap.docs.map(doc => {
+            const data = doc.data();
+            const studentObj = data.student || {};
+            return { 
+                id: doc.id, 
+                ...data,
+                fullName: data.fullName || studentObj.fullName || data.name || '—',
+                phone: data.phone || studentObj.phone || '—',
+                requestNumber: data.requestNumber || studentObj.requestNumber || '—',
+                receiptUrl: data.receiptUrl || studentObj.receiptUrl || null
+            };
+        });
         requests.sort((a, b) => {
             const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : new Date(a.createdAt).getTime()) : 0;
             const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : new Date(b.createdAt).getTime()) : 0;
@@ -178,7 +189,13 @@ export class JhomeRepository {
         const reqRef = this.db.collection('enrollmentRequests').doc(reqId);
         const reqDoc = await reqRef.get();
         if (!reqDoc.exists) throw new Error("Request not found");
-        const reqData = reqDoc.data();
+        const rawData = reqDoc.data();
+        const reqData = {
+            ...rawData,
+            fullName: rawData.fullName || (rawData.student && rawData.student.fullName) || rawData.name || 'غير محدد',
+            phone: rawData.phone || (rawData.student && rawData.student.phone) || '',
+            email: rawData.email || ''
+        };
 
         if (reqData.status === 'approved') {
             throw new Error("الطلب مقبول مسبقاً (Request is already approved)");
