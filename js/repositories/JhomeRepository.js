@@ -1,6 +1,55 @@
+// Phonetic Arabic → Latin map — Jhome logins are checked against a
+// courses_credentials document whose ID *is* the username, and that ID
+// must be ASCII (used to build synthetic emails / Firebase Auth uids).
+const ARABIC_TO_LATIN_MAP = {
+    'ا': 'a', 'أ': 'a', 'إ': 'a', 'آ': 'a', 'ب': 'b', 'ت': 't', 'ث': 'th',
+    'ج': 'j', 'ح': 'h', 'خ': 'kh', 'د': 'd', 'ذ': 'th', 'ر': 'r', 'ز': 'z',
+    'س': 's', 'ش': 'sh', 'ص': 's', 'ض': 'd', 'ط': 't', 'ظ': 'z', 'ع': 'a',
+    'غ': 'gh', 'ف': 'f', 'ق': 'q', 'ك': 'k', 'ل': 'l', 'م': 'm', 'ن': 'n',
+    'ه': 'h', 'و': 'w', 'ي': 'y', 'ى': 'a', 'ة': 'a', 'ئ': 'y', 'ؤ': 'w', 'ء': 'a'
+};
+
+function transliterateToUsername(rawName) {
+    const firstWord = String(rawName || '').trim().split(/\s+/)[0] || '';
+    const transliterated = firstWord.split('').map(ch => ARABIC_TO_LATIN_MAP[ch] ?? ch).join('');
+    return transliterated.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+}
+
 export class JhomeRepository {
     // Lazy getter: firebase may not be ready at module parse time
     get db() { return window.firebase.app('jhome').firestore(); }
+
+    // Generates a unique, login-safe username and creates the
+    // courses_credentials document with that username as its doc ID —
+    // required because api_v1_academy_login looks credentials up by
+    // `doc(username).get()`, not by a `username` field query.
+    async _createCredentialDoc(baseName, fallbackPrefix, extraData) {
+        const base = transliterateToUsername(baseName) || fallbackPrefix;
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        let password = "";
+        for (let i = 0; i < 8; i++) {
+            password += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        let username;
+        let credRef;
+        let attempts = 0;
+        do {
+            const randNum = Math.floor(1000 + Math.random() * 9000);
+            username = base + randNum;
+            credRef = this.db.collection('courses_credentials').doc(username);
+            attempts++;
+        } while (attempts < 5 && (await credRef.get()).exists);
+
+        await credRef.set({
+            ...extraData,
+            username,
+            password,
+            createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+        });
+
+        return { ref: credRef, username, password };
+    }
 
     async getProjects() {
         const snap = await this.db.collection('projects').orderBy('createdAt', 'desc').get();
@@ -135,32 +184,21 @@ export class JhomeRepository {
             throw new Error("الطلب مقبول مسبقاً (Request is already approved)");
         }
 
-        const randNum = Math.floor(1000 + Math.random() * 9000);
-        let username = reqData.fullName 
-            ? reqData.fullName.split(' ')[0].toLowerCase() + randNum 
-            : 'student' + randNum;
-        
-        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        let password = "";
-        for (let i = 0; i < 8; i++) {
-            password += chars.charAt(Math.floor(Math.random() * chars.length));
-        }
-
-        let credRef;
+        let username, password, credRef;
         try {
-            credRef = await this.db.collection('courses_credentials').add({
+            const created = await this._createCredentialDoc(reqData.fullName, 'student', {
                 courseId: reqData.courseId,
                 studentId: reqData.email || reqData.phone || '',
                 requestId: reqId,
-                username: username,
-                password: password, 
                 role: 'student',
                 active: true,
                 loginCount: 0,
                 mustChangePassword: true,
-                createdAt: window.firebase.firestore.FieldValue.serverTimestamp(),
                 createdBy: jhomeAuth.currentUser.uid
             });
+            credRef = created.ref;
+            username = created.username;
+            password = created.password;
         } catch (e) {
             console.error("Error writing to courses_credentials:", e);
             if (e.code === 'permission-denied') {
@@ -213,11 +251,15 @@ export class JhomeRepository {
             throw new Error("حسابك غير مسجل في نظام Jhome (Authentication). يرجى التأكد من أن البريد وكلمة المرور متطابقان في كلا المشروعين.");
         }
         try {
-            return await this.db.collection('courses_credentials').add({
-                ...data,
-                createdBy: jhomeAuth.currentUser.uid,
-                createdAt: window.firebase.firestore.FieldValue.serverTimestamp()
+            const { courseId, name } = data;
+            const created = await this._createCredentialDoc(name, 'admin', {
+                courseId,
+                name,
+                role: 'admin',
+                active: true,
+                createdBy: jhomeAuth.currentUser.uid
             });
+            return { username: created.username, password: created.password, name };
         } catch (e) {
             if (e.code === 'permission-denied') {
                 throw new Error("ليس لديك صلاحية الكتابة في جدول courses_credentials. يرجى تعديل Firebase Rules في مشروع Jhome.");

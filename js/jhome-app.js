@@ -45,13 +45,17 @@ const JhomeApp = {
   async loadProjects() { await projectsView.load(); },
 
   // ── Page Content Management ──
+  // NOTE: every field below is wired to a real `[data-dynamic="key"]` element
+  // on the live site (verified in HOME-WEB). Fields that had no matching
+  // element (heroTitle, servicesTitle, contactTitle/Phone/Address, the
+  // sfCustomerDesc/sfWorkerDesc/sfStoreDesc trio, and the whole 'projects'
+  // page) were removed rather than left silently no-op — re-add them only
+  // once the corresponding HTML section exists.
   pageSchemas: {
     'home': {
       title: 'الرئيسية',
       fields: [
-        { key: 'heroTitle', label: 'العنوان الرئيسي (مؤسسة Jhome)', type: 'text' },
-        { key: 'heroSubtitle', label: 'الوصف تحت العنوان', type: 'text' },
-        { key: 'servicesTitle', label: 'عنوان قسم الخدمات', type: 'text' },
+        { key: 'heroSubtitle', label: 'الوصف تحت العنوان الرئيسي', type: 'textarea' },
         { key: 'sudanFreeTitle', label: 'عنوان بطاقة سودان فري', type: 'text' },
         { key: 'sudanFreeDesc', label: 'وصف تطبيق سودان فري', type: 'textarea' }
       ]
@@ -59,25 +63,12 @@ const JhomeApp = {
     'about': {
       title: 'من نحن',
       fields: [
-        { key: 'aboutHeroTitle', label: 'عنوان غلاف الصفحة', type: 'text' },
-        { key: 'aboutStory', label: 'قصتنا', type: 'textarea' },
-        { key: 'value1_title', label: 'عنوان القيمة الأولى', type: 'text' },
-        { key: 'value1_desc', label: 'وصف القيمة الأولى', type: 'textarea' },
-        { key: 'value2_title', label: 'عنوان القيمة الثانية', type: 'text' },
-        { key: 'value2_desc', label: 'وصف القيمة الثانية', type: 'textarea' },
-        { key: 'value3_title', label: 'عنوان القيمة الثالثة', type: 'text' },
-        { key: 'value3_desc', label: 'وصف القيمة الثالثة', type: 'textarea' }
-      ]
-    },
-    'projects': {
-      title: 'مشاريعنا',
-      fields: [
-        { key: 'projectsTitle', label: 'عنوان الصفحة (مشاريعنا)', type: 'text' },
-        { key: 'projectsSubtitle', label: 'وصف الصفحة', type: 'text' },
-        { key: 'app1_title', label: 'اسم التطبيق الأول', type: 'text' },
-        { key: 'app1_desc', label: 'وصف التطبيق الأول', type: 'textarea' },
-        { key: 'tool1_title', label: 'اسم الأداة الأولى', type: 'text' },
-        { key: 'tool1_desc', label: 'وصف الأداة الأولى', type: 'textarea' }
+        { key: 'vision', label: 'الرؤية', type: 'textarea' },
+        { key: 'mission', label: 'الرسالة', type: 'textarea' },
+        { key: 'values', label: 'القيم الجوهرية', type: 'textarea' },
+        { key: 'founderName', label: 'اسم المؤسس', type: 'text' },
+        { key: 'founderBio1', label: 'نبذة المؤسس (فقرة 1)', type: 'textarea' },
+        { key: 'founderBio2', label: 'نبذة المؤسس (فقرة 2)', type: 'textarea' }
       ]
     },
     'sudan-free': {
@@ -85,19 +76,13 @@ const JhomeApp = {
       fields: [
         { key: 'sfHeroTitle', label: 'العنوان الرئيسي', type: 'text' },
         { key: 'sfHeroDesc', label: 'الوصف الرئيسي', type: 'textarea' },
-        { key: 'sfCustomerDesc', label: 'قسم "أنا زبون"', type: 'textarea' },
-        { key: 'sfWorkerDesc', label: 'قسم "أنا حرفي"', type: 'textarea' },
-        { key: 'sfStoreDesc', label: 'قسم "أنا صاحب متجر"', type: 'textarea' },
         { key: 'appDownloadLink', label: 'رابط تحميل التطبيق', type: 'text', dir: 'ltr' }
       ]
     },
     'contact': {
       title: 'تواصل معنا',
       fields: [
-        { key: 'contactTitle', label: 'العنوان', type: 'text' },
-        { key: 'contactEmail', label: 'البريد الإلكتروني', type: 'text', dir: 'ltr' },
-        { key: 'contactPhone', label: 'رقم الهاتف', type: 'text', dir: 'ltr' },
-        { key: 'contactAddress', label: 'العنوان (المقر)', type: 'text' }
+        { key: 'contactEmail', label: 'البريد الإلكتروني', type: 'text', dir: 'ltr' }
       ]
     }
   },
@@ -167,6 +152,11 @@ const JhomeApp = {
       document.getElementById('jhome-page-editor-actions').style.opacity = '0.5';
       document.getElementById('jhome-page-editor-actions').style.pointerEvents = 'none';
       
+      // NOTE: api_v1_cms_content destructures `payload` as `{ id, data }` and
+      // merges `data` directly onto the pageContent/{pageKey} doc. The reader
+      // (both this admin UI and HOME-WEB's GlobalController.js) expects the
+      // saved fields nested under a `sections` map, so `data` must be
+      // `{ sections }` — NOT the sections spread flat into payload.
       const updatePageFn = firebase.app("jhome").functions().httpsCallable('api_v1_cms_content');
       await updatePageFn({
         apiVersion: 'v1',
@@ -174,7 +164,7 @@ const JhomeApp = {
         entity: 'page',
         payload: {
           id: this.currentPageKey,
-          ...sections
+          data: { sections }
         }
       });
 

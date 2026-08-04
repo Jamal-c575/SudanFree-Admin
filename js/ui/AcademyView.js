@@ -206,11 +206,10 @@ export class AcademyView {
                     </td>
                 `;
                 fragment.appendChild(tr);
-            });
             this.requestsTbody.innerHTML = '';
             this.requestsTbody.appendChild(fragment);
         } catch(e) {
-            console.error(e);
+            console.error("renderRequests Error:", e);
         }
     }
 
@@ -321,7 +320,7 @@ export class AcademyView {
                 }
             }
         } catch(e) {
-            console.error(e);
+            console.error("renderCourseUsers Error:", e);
         }
     }
 
@@ -698,7 +697,7 @@ export class AcademyView {
             }
             container.innerHTML = html;
         } catch(e) {
-            console.error(e);
+            console.error("renderCurriculum Error:", e);
             container.innerHTML = '<div class="empty-state text-danger">حدث خطأ أثناء تحميل المنهج.</div>';
         }
     }
