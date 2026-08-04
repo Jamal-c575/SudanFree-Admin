@@ -206,6 +206,7 @@ export class AcademyView {
                     </td>
                 `;
                 fragment.appendChild(tr);
+            });
             this.requestsTbody.innerHTML = '';
             this.requestsTbody.appendChild(fragment);
         } catch(e) {
