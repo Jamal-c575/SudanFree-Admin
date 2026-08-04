@@ -202,8 +202,8 @@ export class AcademyView {
                       ${r.status === 'pending' ? (() => {
                           const safeName = (r.fullName || 'الطالب').replace(/['"\n\r]/g, '');
                           return `
-                            <button class="btn btn-sm btn-success" onclick="JhomeApp.approveCourseRequest('${r.id}', '${safeName}')">قبول</button>
-                            <button class="btn btn-sm btn-danger" onclick="JhomeApp.rejectCourseRequest('${r.id}')">رفض</button>
+                            <button class="btn btn-sm btn-success" onclick="try{ JhomeApp.approveCourseRequest('${r.id}', '${safeName}') }catch(e){alert(e)}">قبول</button>
+                            <button class="btn btn-sm btn-danger" onclick="try{ JhomeApp.rejectCourseRequest('${r.id}') }catch(e){alert(e)}">رفض</button>
                           `;
                       })() : ''}
                     </td>
