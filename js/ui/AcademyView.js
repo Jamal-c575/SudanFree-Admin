@@ -339,7 +339,8 @@ export class AcademyView {
 
             const { username, password } = await jhomeRepository.addCourseInstructor({
                 courseId: this.activeCourseId,
-                name: fullName
+                name: fullName,
+                role: 'instructor'
             });
 
             if (typeof window.showToast === 'function') window.showToast('تم إضافة المشرف بنجاح', 'success');

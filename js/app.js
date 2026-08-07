@@ -1355,6 +1355,7 @@ const AdminApp = {
       // Use Secondary Firebase App trick to avoid logging out
       if (!window.secondaryApp) {
         window.secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+        await window.secondaryApp.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
       }
       
       const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);

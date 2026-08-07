@@ -140,21 +140,18 @@ export class AdminSystemView {
         }
 
         try {
+            const courseIdToAssign = window._currentPendingCourseId || 'all';
             const createUserFn = window.firebase.app("jhome").functions().httpsCallable('api_v1_users');
-            const res = await createUserFn({ 
-                apiVersion: 'v1', 
-                action: 'create', 
-                payload: { email, password, displayName: name, role: 'STUDENT' } 
+            const res = await createUserFn({
+                apiVersion: 'v1',
+                action: 'create',
+                payload: { email, password, displayName: name, role: 'STUDENT', courseId: courseIdToAssign },
+                metadata: { correlationId: 'sysadmin-' + Date.now() + '-' + Math.random().toString(36).substring(2) }
             });
             
             if(res.data && res.data.uid) {
-                await adminDataRepository.saveUser({ name, email, role: 'student' });
-                // Also save to credentials
-                const courseIdToAssign = window._currentPendingCourseId || 'all';
-                await window.firebase.app('jhome').firestore().collection('courses_credentials').doc(res.data.uid).set({
-                    username: email, password, role: 'student', realName: name, courseId: courseIdToAssign
-                });
-
+                await adminDataRepository.saveUser({ name, email, role: 'student', uid: res.data.uid });
+                
                 if (window._currentPendingRequestId) {
                     await window.firebase.app('jhome').firestore().collection('enrollmentRequests').doc(window._currentPendingRequestId).update({ status: 'approved' });
                     window._currentPendingRequestId = null;

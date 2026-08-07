@@ -42,6 +42,7 @@ export class JhomeRepository {
         } while (attempts < 5 && (await credRef.get()).exists);
 
         await credRef.set({
+            role: 'instructor',
             ...extraData,
             username,
             password,
