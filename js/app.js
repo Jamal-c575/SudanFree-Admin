@@ -1350,45 +1350,67 @@ const AdminApp = {
       return;
     }
 
+    // Initialize secondary app BEFORE try block so finally can always sign it out
+    if (!window.secondaryApp) {
+      window.secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
+      await window.secondaryApp.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
+    }
+
     try {
       showToast('جاري إنشاء حساب المشرف...');
-      // Use Secondary Firebase App trick to avoid logging out
-      if (!window.secondaryApp) {
-        window.secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
-        await window.secondaryApp.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
-      }
-      
       const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-      await db.collection('users').doc(cred.user.uid).set({
-        email: email,
-        name: name,
-        role: 'admin',
+
+      // ✅ استخدام secondaryApp.firestore() بدلاً من db
+      // هذا يضمن أن الكتابة تتم بمصادقة المستخدم الجديد، وليس بمصادقة الأدمن الحالي
+      // مما يمنع أي تعارض مع قواعد Firestore التي تشترط تطابق uid
+      await secondaryApp.firestore().collection('users').doc(cred.user.uid).set({
+        email:     email,
+        name:      name,
+        role:      'admin',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      
-      await secondaryApp.auth().signOut();
-      
+
       showToast('تم إنشاء حساب المشرف بنجاح! 🎉');
       document.getElementById('new-admin-email').value = '';
       document.getElementById('new-admin-pass').value = '';
       document.getElementById('new-admin-name').value = '';
       this.loadAdmins();
+
     } catch (e) {
       if (e.code === 'auth/email-already-in-use') {
-        // If user already exists in Auth, just update their role in Firestore
+        // البريد موجود في Firebase Auth — ابحث عن وثيقة Firestore أو أنشئها
         if (confirm('البريد الإلكتروني مسجل بالفعل. هل تريد ترقية حسابه إلى مشرف؟')) {
-          const snap = await db.collection('users').where('email', '==', email).get();
-          if (!snap.empty) {
-            await db.collection('users').doc(snap.docs[0].id).update({ role: 'admin', name: name });
-            showToast('تمت ترقية الحساب إلى مشرف بنجاح!');
+          try {
+            const snap = await db.collection('users').where('email', '==', email).get();
+            if (!snap.empty) {
+              // الوثيقة موجودة → فقط حدّث الدور
+              await db.collection('users').doc(snap.docs[0].id).update({ role: 'admin', name: name });
+              showToast('تمت ترقية الحساب إلى مشرف بنجاح!');
+            } else {
+              // الوثيقة غائبة (حساب Auth موجود لكن لا سجل في Firestore)
+              // سجّل الدخول مؤقتاً عبر secondaryApp للحصول على uid ثم أنشئ الوثيقة
+              const tempCred = await secondaryApp.auth().signInWithEmailAndPassword(email, pass);
+              await secondaryApp.firestore().collection('users').doc(tempCred.user.uid).set({
+                email:     email,
+                name:      name,
+                role:      'admin',
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              showToast('تم إنشاء سجل المشرف المفقود وترقيته بنجاح!');
+            }
             this.loadAdmins();
-          } else {
-            showToast('حدث خطأ غير متوقع', 'error');
+          } catch (upgradeError) {
+            showToast('خطأ أثناء الترقية: ' + upgradeError.message, 'error');
+            console.error('createAdmin upgrade error:', upgradeError);
           }
         }
       } else {
         showToast('خطأ: ' + e.message, 'error');
+        console.error('createAdmin error:', e);
       }
+    } finally {
+      // دائماً أغلق جلسة secondaryApp لتجنب حالات المصادقة الزائفة
+      try { await secondaryApp.auth().signOut(); } catch (_) {}
     }
   },
 
