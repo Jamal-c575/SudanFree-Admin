@@ -242,7 +242,7 @@ const AdminApp = {
         if (navEl) navEl.classList.add('active');
     }
 
-    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع' };
+    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', unions: 'النقابات المهنية', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
     if (page === 'deletions') this.loadDeletions();
@@ -258,6 +258,7 @@ const AdminApp = {
     if (page === 'success-stories') this.loadSuccessStories();
     if (page === 'banned') this.loadBannedUsers();
     if (page === 'subscriptions') SubscriptionAdminApp.loadSubscriptions();
+    if (page === 'unions') this.loadUnions();
     if (page === 'payment-settings') PaymentSettingsApp.loadMethods();
     document.getElementById('sidebar').classList.remove('open');
   },
@@ -1106,8 +1107,166 @@ const AdminApp = {
     }
   },
 
-  // ── Reports ──
-  async loadReports() {
+  // ── Unions (النقابات) ──
+  unionsList: [],
+  async loadUnions() {
+    const tbody = document.getElementById('unions-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">جاري التحميل...</td></tr>';
+    
+    try {
+      const snapshot = await db.collection('unions').get();
+      this.unionsList = [];
+      snapshot.forEach(doc => {
+        this.unionsList.push({ id: doc.id, ...doc.data() });
+      });
+      this.renderUnions(this.unionsList);
+    } catch (error) {
+      console.error("Error loading unions: ", error);
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center error-text">حدث خطأ أثناء تحميل النقابات</td></tr>';
+    }
+  },
+  renderUnions(list) {
+    const tbody = document.getElementById('unions-table-body');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    
+    if (list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center">لا توجد نقابات لعرضها</td></tr>';
+      return;
+    }
+    
+    list.forEach(union => {
+      const createdAt = union.createdAt && union.createdAt.toDate 
+          ? union.createdAt.toDate().toLocaleDateString('ar-EG') 
+          : 'غير محدد';
+          
+      const membersCount = union.memberIds ? union.memberIds.length : 0;
+      const isActive = union.subscriptionStatus === 'active';
+      const statusBadge = isActive 
+          ? '<span class="status-badge status-active">نشط</span>' 
+          : '<span class="status-badge status-inactive">غير نشط</span>';
+      
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="user-avatar">${union.name ? union.name.substring(0, 1) : '?'}</div>
+            <div>
+              <div class="user-name">${union.name || 'بدون اسم'}</div>
+              <small style="color:gray;">${union.description ? union.description.substring(0, 30) + '...' : ''}</small>
+            </div>
+          </div>
+        </td>
+        <td>${union.state || 'غير محدد'}</td>
+        <td>${statusBadge}</td>
+        <td>${createdAt}</td>
+        <td>
+          <button class="btn btn-sm btn-secondary" onclick="AdminApp.openUnionModal('${union.id}')">تعديل</button>
+          <button class="btn btn-sm ${isActive ? 'btn-danger' : 'btn-primary'}" onclick="AdminApp.toggleUnionSubscription('${union.id}', ${isActive})">${isActive ? 'إيقاف' : 'تفعيل'}</button>
+          <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteUnion('${union.id}')"><span class="material-icons-outlined" style="font-size:16px;">delete</span></button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  },
+  openUnionModal(id = null) {
+    document.getElementById('union-id').value = '';
+    document.getElementById('union-name').value = '';
+    document.getElementById('union-description').value = '';
+    document.getElementById('union-state').value = '';
+    document.getElementById('union-subscription').value = 'active';
+    document.getElementById('union-modal-title').textContent = 'إضافة نقابة جديدة';
+    
+    if (id) {
+      const union = this.unionsList.find(u => u.id === id);
+      if (union) {
+        document.getElementById('union-modal-title').textContent = 'تعديل النقابة';
+        document.getElementById('union-id').value = id;
+        document.getElementById('union-name').value = union.name || '';
+        document.getElementById('union-description').value = union.description || '';
+        document.getElementById('union-state').value = union.state || '';
+        document.getElementById('union-subscription').value = union.subscriptionStatus || 'active';
+      }
+    }
+    
+    document.getElementById('union-modal').style.display = 'flex';
+  },
+  async saveUnion() {
+    const id = document.getElementById('union-id').value;
+    const name = document.getElementById('union-name').value.trim();
+    const description = document.getElementById('union-description').value.trim();
+    const state = document.getElementById('union-state').value.trim();
+    const subscriptionStatus = document.getElementById('union-subscription').value;
+    
+    if (!name) {
+      this.showToast('اسم النقابة مطلوب', 'error');
+      return;
+    }
+    
+    const unionData = {
+      name,
+      description,
+      state,
+      subscriptionStatus,
+      category: 'unions',
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    try {
+      if (id) {
+        await db.collection('unions').doc(id).update(unionData);
+        this.showToast('تم تحديث النقابة بنجاح', 'success');
+      } else {
+        unionData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+        unionData.adminIds = [];
+        unionData.memberIds = [];
+        await db.collection('unions').add(unionData);
+        this.showToast('تمت إضافة النقابة بنجاح', 'success');
+      }
+      this.closeModal('union-modal');
+      this.loadUnions();
+    } catch (error) {
+      console.error("Error saving union: ", error);
+      this.showToast('حدث خطأ أثناء حفظ النقابة', 'error');
+    }
+  },
+  async deleteUnion(id) {
+    if (confirm('هل أنت متأكد من مسح هذه النقابة نهائياً؟')) {
+      try {
+        await db.collection('unions').doc(id).delete();
+        this.showToast('تم مسح النقابة بنجاح', 'success');
+        this.loadUnions();
+      } catch (error) {
+        console.error("Error deleting union: ", error);
+        this.showToast('حدث خطأ أثناء المسح', 'error');
+      }
+    }
+  },
+  async toggleUnionSubscription(id, currentlyActive) {
+    try {
+      const newStatus = currentlyActive ? 'inactive' : 'active';
+      await db.collection('unions').doc(id).update({
+        subscriptionStatus: newStatus
+      });
+      this.showToast(`تم ${currentlyActive ? 'إيقاف' : 'تفعيل'} الاشتراك بنجاح`, 'success');
+      this.loadUnions();
+    } catch (error) {
+      console.error("Error toggling subscription: ", error);
+      this.showToast('حدث خطأ أثناء تحديث الاشتراك', 'error');
+    }
+  },
+  filterUnions() {
+    const query = document.getElementById('unions-search').value.toLowerCase();
+    const filtered = this.unionsList.filter(u => 
+      (u.name && u.name.toLowerCase().includes(query)) ||
+      (u.state && u.state.toLowerCase().includes(query))
+    );
+    this.renderUnions(filtered);
+  },
+
+  // ── Users ──
+  async loadUsers() {
     const snap = await db.collection('reports').orderBy('createdAt','desc').limit(200).get();
     this.allReports = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     this.renderReports(this.allReports);

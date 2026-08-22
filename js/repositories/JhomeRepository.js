@@ -209,6 +209,7 @@ export class JhomeRepository {
                 studentId: reqData.email || reqData.phone || '',
                 requestId: reqId,
                 role: 'student',
+                name: reqData.fullName,
                 active: true,
                 loginCount: 0,
                 mustChangePassword: true,
@@ -245,7 +246,8 @@ export class JhomeRepository {
             password,
             phone: reqData.phone,
             email: reqData.email,
-            name: reqData.fullName
+            name: reqData.fullName,
+            courseId: reqData.courseId
         };
     }
 
@@ -257,10 +259,50 @@ export class JhomeRepository {
         });
     }
 
+    async issueCertificate(studentId, courseId, studentName) {
+        const jhomeAuth = this.db.app.auth();
+        if (!jhomeAuth.currentUser) {
+            throw new Error("حسابك غير مسجل في نظام Jhome (Authentication).");
+        }
+        
+        // Use the student's ID or generate a unique certificate ID
+        const certId = `${studentId}_${courseId}`;
+        
+        const certRef = this.db.collection('certificates').doc(certId);
+        
+        await certRef.set({
+            studentId,
+            courseId,
+            studentName,
+            issuedBy: jhomeAuth.currentUser.uid,
+            issuedAt: window.firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'valid'
+        });
+        
+        return certId;
+    }
+
     async getCourseUsers(courseId) {
         if (!courseId) return [];
         const snap = await this.db.collection('courses_credentials').where('courseId', '==', courseId).get();
         return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }
+
+    async getCourseUsersPaginated(courseId, lastDoc = null, limit = 50) {
+        if (!courseId) return { users: [], lastDoc: null };
+        let query = this.db.collection('courses_credentials')
+            .where('courseId', '==', courseId)
+            .limit(limit);
+            
+        if (lastDoc) {
+            query = query.startAfter(lastDoc);
+        }
+        
+        const snap = await query.get();
+        return {
+            users: snap.docs.map(doc => ({ id: doc.id, ...doc.data() })),
+            lastDoc: snap.docs.length > 0 ? snap.docs[snap.docs.length - 1] : null
+        };
     }
 
     async addCourseInstructor(data) {
@@ -270,10 +312,10 @@ export class JhomeRepository {
         }
         try {
             const { courseId, name } = data;
-            const created = await this._createCredentialDoc(name, 'admin', {
+            const created = await this._createCredentialDoc(name, 'instructor', {
                 courseId,
                 name,
-                role: 'admin',
+                role: 'instructor', // FIXED: Give them actual instructor permissions
                 active: true,
                 createdBy: jhomeAuth.currentUser.uid
             });

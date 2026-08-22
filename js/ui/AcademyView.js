@@ -1,4 +1,4 @@
-import { jhomeRepository } from '../repositories/JhomeRepository.js';
+import { jhomeRepository } from '../repositories/JhomeRepository.js?v=99';
 
 export class AcademyView {
     constructor() {
@@ -226,7 +226,7 @@ export class AcademyView {
 
             // Show credentials modal
             const waLink = creds.phone 
-                ? `https://wa.me/${String(creds.phone).replace(/\+/g, '')}?text=${encodeURIComponent(`مرحباً ${creds.name || 'الطالب'}،\nتم قبول طلب انضمامك للدورة بنجاح.\n\nبيانات الدخول لمنصة Jhome Academy:\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}\n\nرابط المنصة: https://jhome.app/academy`)}`
+                ? `https://wa.me/${String(creds.phone).replace(/\+/g, '')}?text=${encodeURIComponent(`مرحباً ${creds.name || 'الطالب'}،\nتم قبول طلب انضمامك للدورة بنجاح.\n\nبيانات الدخول لمنصة Jhome Academy:\nاسم المستخدم: ${creds.username}\nكلمة المرور: ${creds.password}\n\nرابط المنصة: https://sudanfree.com/course-room.html?type=paid&id=${creds.courseId}`)}`
                 : '#';
 
             const modalHtml = `
@@ -272,33 +272,54 @@ export class AcademyView {
         }
     }
 
-    async renderCourseUsers() {
+    async renderCourseUsers(append = false) {
         if (!this.studentsTbody || !this.activeCourseId) return;
         try {
-            const users = await jhomeRepository.getCourseUsers(this.activeCourseId);
+            if (!append) {
+                this.studentsTbody.innerHTML = '<tr><td colspan="5" class="text-center">جاري التحميل...</td></tr>';
+                this.lastStudentDoc = null;
+            }
+
+            const result = await jhomeRepository.getCourseUsersPaginated(this.activeCourseId, this.lastStudentDoc, 50);
+            this.lastStudentDoc = result.lastDoc;
+            
+            const users = result.users;
             const students = users.filter(u => u.role === 'student');
             const instructors = users.filter(u => u.role === 'admin' || u.role === 'instructor');
 
-            if (students.length === 0) {
+            if (students.length === 0 && !append) {
                 this.studentsTbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد طلاب حالياً</td></tr>';
             } else {
+                if (!append) this.studentsTbody.innerHTML = ''; // Clear loading
+                
                 const fragment = document.createDocumentFragment();
                 students.forEach(u => {
                     const date = u.createdAt ? (u.createdAt.toDate ? u.createdAt.toDate().toLocaleDateString('ar-EG') : new Date(u.createdAt).toLocaleDateString('ar-EG')) : '—';
                     const tr = document.createElement('tr');
                     tr.innerHTML = `
-                        <td><strong>${u.studentId || u.username || '—'}</strong></td>
+                        <td><strong>${u.name || u.fullName || u.studentId || u.username || '—'}</strong></td>
                         <td>${u.username || '—'}</td>
                         <td>${date}</td>
-                        <td>${u.lastLogin ? new Date(u.lastLogin.toDate()).toLocaleString('ar-EG') : 'لم يسجل دخول بعد'}</td>
+                        <td>${u.lastLogin ? (u.lastLogin.toDate ? u.lastLogin.toDate().toLocaleString('ar-EG') : new Date(u.lastLogin).toLocaleString('ar-EG')) : 'لم يسجل دخول بعد'}</td>
                         <td>
                           <button class="btn btn-sm btn-primary" onclick="JhomeApp.openStudentDetails('${u.id}')">التفاصيل</button>
+                          <button class="btn btn-sm btn-success" onclick="JhomeApp.issueCertificate('${u.id}', '${this.activeCourseId}', '${(u.name || u.fullName || '').replace(/'/g, "\\'")}')">إصدار شهادة</button>
                         </td>
                     `;
                     fragment.appendChild(tr);
                 });
-                this.studentsTbody.innerHTML = '';
                 this.studentsTbody.appendChild(fragment);
+
+                // Handle Load More Button
+                let loadMoreRow = document.getElementById('load-more-students-row');
+                if (loadMoreRow) loadMoreRow.remove();
+
+                if (this.lastStudentDoc) {
+                    loadMoreRow = document.createElement('tr');
+                    loadMoreRow.id = 'load-more-students-row';
+                    loadMoreRow.innerHTML = `<td colspan="5" class="text-center"><button class="btn btn-secondary btn-sm" onclick="JhomeApp.academyView.renderCourseUsers(true)">تحميل المزيد</button></td>`;
+                    this.studentsTbody.appendChild(loadMoreRow);
+                }
             }
 
             if (this.instructorsTbody) {
@@ -652,6 +673,59 @@ export class AcademyView {
             await this.renderCourseUsers();
         } catch(e) {
             console.error(e);
+        }
+    }
+
+    openCertificateModal() {
+        if (!this.currentStudentCredData) return;
+        const sName = document.getElementById('sd-name').textContent;
+        const cTitle = this.activeCourseData ? this.activeCourseData.title : 'دورة تدريبية';
+        
+        document.getElementById('cert-student-name').value = sName;
+        document.getElementById('cert-course-name').value = cTitle;
+        document.getElementById('cert-education').value = document.getElementById('sd-education').textContent || '';
+        document.getElementById('cert-location').value = document.getElementById('sd-city').textContent || '';
+        document.getElementById('cert-supervisor').value = "إدارة الأكاديمية";
+        
+        document.getElementById('cert-score').value = '';
+        document.getElementById('certificate-generator-modal').classList.add('active');
+    }
+
+    async generateCertificate() {
+        const score = document.getElementById('cert-score').value;
+        if (!score || score < 0 || score > 100) {
+            if (typeof window.showToast === 'function') window.showToast('الرجاء إدخال تقييم صحيح (0 - 100)', 'error');
+            return;
+        }
+
+        const btn = document.querySelector('#certificate-generator-modal .btn-primary');
+        const origText = btn.textContent;
+        btn.textContent = 'جاري الإصدار...';
+        btn.disabled = true;
+
+        try {
+            const certId = "CERT-" + Array.from({length: 8}, () => "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".charAt(Math.floor(Math.random() * 36))).join('');
+            const verifyUrl = `https://jhomeweb-9ee56.web.app/verify.html?id=${certId}`;
+            const certData = {
+                courseId: this.activeCourseId,
+                userId: this.currentStudentCredId, // Used by HOME-WEB for user auth matching
+                studentName: document.getElementById('cert-student-name').value,
+                courseTitle: document.getElementById('cert-course-name').value,
+                score: parseFloat(score),
+                verifyUrl: verifyUrl,
+                issueDate: window.firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            await jhomeRepository.db.collection('certificates').doc(certId).set(certData);
+            
+            if (typeof window.showToast === 'function') window.showToast('تم إصدار الشهادة بنجاح!', 'success');
+            document.getElementById('certificate-generator-modal').classList.remove('active');
+        } catch(e) {
+            console.error(e);
+            if (typeof window.showToast === 'function') window.showToast('حدث خطأ أثناء إصدار الشهادة', 'error');
+        } finally {
+            btn.textContent = origText;
+            btn.disabled = false;
         }
     }
 

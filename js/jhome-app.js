@@ -1,7 +1,7 @@
 import { projectsView } from './ui/ProjectsView.js?v=5';
 import { storiesView } from './ui/StoriesView.js?v=5';
 import { blogView } from './ui/BlogView.js?v=5';
-import { academyView } from './ui/AcademyView.js?v=12';
+import { academyView } from './ui/AcademyView.js?v=99';
 import { adminSystemView } from './ui/AdminSystemView.js?v=5';
 
 // Jhome App Management Logic
@@ -233,6 +233,18 @@ const JhomeApp = {
     academyView.switchCourseTab(tabName);
   },
 
+  async issueCertificate(studentId, courseId, name) {
+    if (!confirm(`هل أنت متأكد من إصدار شهادة للطالب ${name}؟`)) return;
+    try {
+      await window.jhomeRepository.issueCertificate(studentId, courseId, name);
+      if (typeof window.showToast === 'function') window.showToast('تم إصدار الشهادة بنجاح');
+      else alert('تم إصدار الشهادة بنجاح');
+    } catch (error) {
+      console.error(error);
+      alert('خطأ أثناء إصدار الشهادة: ' + error.message);
+    }
+  },
+
   filterRequests() {
     academyView.filterRequests();
   },
@@ -267,6 +279,14 @@ const JhomeApp = {
 
   async deleteStudentAccount() {
     await academyView.deleteStudentAccount();
+  },
+
+  openCertificateModal() {
+    academyView.openCertificateModal();
+  },
+
+  async generateCertificate() {
+    await academyView.generateCertificate();
   },
 
   // ── Curriculum UI Wrappers ──

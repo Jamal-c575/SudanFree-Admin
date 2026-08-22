@@ -99,6 +99,10 @@
           <span class="badge" id="reports-badge" style="display:none;">0</span>
         </a>
 
+        <a href="#" class="nav-item" data-page="unions" onclick="AdminApp.navigateTo('unions')">
+          <span class="material-icons-outlined">work</span><span class="nav-text">النقابات المهنية</span>
+        </a>
+
         <div class="nav-section-title">المزيد والنظام</div>
         <a href="#" class="nav-item" data-page="posts" onclick="AdminApp.navigateTo('posts')">
           <span class="material-icons-outlined">article</span><span class="nav-text">المنشورات</span>
@@ -1006,6 +1010,40 @@
           </div>
         </section>
 
+        <!-- Unions Page -->
+        <section id="page-unions" class="page">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <div class="page-subtitle">إدارة النقابات المهنية</div>
+            <button class="btn btn-primary" onclick="AdminApp.openUnionModal()">
+              <span class="material-icons-outlined">add</span> تأسيس نقابة جديدة
+            </button>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h3><span class="material-icons-outlined">work</span> قائمة النقابات</h3>
+              <div class="actions">
+                <input type="text" id="unions-search" class="text-input" placeholder="ابحث عن نقابة..." style="width: 250px; padding: 6px 12px;" onkeyup="AdminApp.filterUnions()">
+              </div>
+            </div>
+            <div class="card-body">
+              <table class="data-table" id="unions-table">
+                <thead>
+                  <tr>
+                    <th>اسم النقابة</th>
+                    <th>الولاية</th>
+                    <th>حالة الاشتراك</th>
+                    <th>تاريخ الإنشاء</th>
+                    <th>الإجراءات</th>
+                  </tr>
+                </thead>
+                <tbody id="unions-table-body">
+                  <!-- JS Data -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
         <!-- Payment Settings Page -->
         <section id="page-payment-settings" class="page">
           <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
@@ -1376,6 +1414,42 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Union Modal -->
+  <div id="union-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+      <div class="modal-header">
+        <h2 id="union-modal-title">إضافة نقابة جديدة</h2>
+        <span class="close-modal" onclick="AdminApp.closeModal('union-modal')">&times;</span>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="union-id">
+        <div class="form-group full-width">
+          <label>اسم النقابة</label>
+          <input type="text" id="union-name" class="text-input" placeholder="مثال: نقابة الأطباء">
+        </div>
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label>وصف النقابة</label>
+          <textarea id="union-description" class="text-input" rows="3" placeholder="وصف النقابة وأهدافها..."></textarea>
+        </div>
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label>الولاية</label>
+          <input type="text" id="union-state" class="text-input" placeholder="مثال: الخرطوم">
+        </div>
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label>حالة الاشتراك</label>
+          <select id="union-subscription" class="text-input">
+            <option value="active">نشط (Active)</option>
+            <option value="inactive">غير نشط (Inactive)</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top: 20px; text-align: left;">
+        <button class="btn btn-primary" onclick="AdminApp.saveUnion()">حفظ النقابة</button>
+        <button class="btn btn-secondary" onclick="AdminApp.closeModal('union-modal')">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
