@@ -265,6 +265,7 @@ img {
   margin-right: var(--sidebar-w);
   display: flex;
   flex-direction: column;
+  justify-content: flex-start !important;
 }
 .top-bar {
   display: flex;

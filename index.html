@@ -90,6 +90,12 @@
         <a href="#" class="nav-item" data-page="contracts" onclick="AdminApp.navigateTo('contracts')">
           <span class="material-icons-outlined">handshake</span><span class="nav-text">العقود</span>
         </a>
+        <a href="#" class="nav-item" data-page="unions" onclick="AdminApp.navigateTo('unions')">
+          <span class="material-icons-outlined">groups</span><span class="nav-text">النقابات</span>
+        </a>
+        <a href="#" class="nav-item" data-page="pro-users" onclick="AdminApp.navigateTo('pro-users')">
+          <span class="material-icons-outlined">workspace_premium</span><span class="nav-text">مشتركي Pro</span>
+        </a>
         <a href="#" class="nav-item" data-page="deletions" onclick="AdminApp.navigateTo('deletions')">
           <span class="material-icons-outlined">person_remove</span><span class="nav-text">طلبات الحذف</span>
           <span class="badge" id="deletions-badge" style="display:none;">0</span>
@@ -1087,6 +1093,55 @@
             </div>
           </div>
         </section>
+        <!-- Unions Page -->
+        <section id="page-unions" class="page">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 20px;">
+            <h2 class="page-subtitle">إدارة النقابات (Unions)</h2>
+            <button class="btn btn-primary" onclick="UnionsAdminApp.showCreateModal()">
+              <span class="material-icons-outlined">add</span> إنشاء نقابة جديدة
+            </button>
+          </div>
+          <div class="card table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>اسم النقابة</th>
+                  <th>الفئة</th>
+                  <th>الولاية</th>
+                  <th>عدد الأعضاء</th>
+                  <th>تاريخ الإنشاء</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="unions-table-body">
+                <tr><td colspan="6" class="loading">جاري التحميل...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- Pro Users Page -->
+        <section id="page-pro-users" class="page">
+          <div class="page-subtitle">مشتركي خطة Pro</div>
+          <div class="card table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>الاسم</th>
+                  <th>البريد الإلكتروني</th>
+                  <th>رقم الهاتف</th>
+                  <th>حالة التوثيق</th>
+                  <th>تاريخ الانضمام</th>
+                  <th>الإجراءات</th>
+                </tr>
+              </thead>
+              <tbody id="pro-users-table-body">
+                <tr><td colspan="6" class="loading">جاري التحميل...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -1094,6 +1149,56 @@
   <!-- Modals -->
   <div id="user-modal" class="modal" style="display:none;"><div class="modal-overlay" onclick="AdminApp.closeModal('user-modal')"></div><div class="modal-content"><div class="modal-header"><h3 id="modal-user-name">تفاصيل المستخدم</h3><button class="modal-close" onclick="AdminApp.closeModal('user-modal')"><span class="material-icons-outlined">close</span></button></div><div class="modal-body" id="modal-user-body"></div></div></div>
   
+  <!-- Create Union Modal -->
+  <div id="create-union-modal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="AdminApp.closeModal('create-union-modal')"></div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>إنشاء نقابة جديدة</h3>
+        <button class="modal-close" onclick="AdminApp.closeModal('create-union-modal')"><span class="material-icons-outlined">close</span></button>
+      </div>
+      <div class="modal-body">
+        <form id="create-union-form">
+          <div class="form-group full-width">
+            <label>اسم النقابة</label>
+            <input type="text" id="union-name" class="text-input" required>
+          </div>
+          <div class="form-group full-width">
+            <label>الفئة</label>
+            <select id="union-category" class="text-input">
+              <option value="medical">طبية</option>
+              <option value="engineering">هندسية</option>
+              <option value="education">تعليمية</option>
+              <option value="legal">قانونية</option>
+              <option value="technology">تقنية</option>
+              <option value="art">فنية</option>
+              <option value="sports">رياضية</option>
+              <option value="other">أخرى</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label>الولاية</label>
+            <input type="text" id="union-state" class="text-input" placeholder="مثال: الخرطوم" required>
+          </div>
+          <div class="form-group full-width">
+            <label>الوصف</label>
+            <textarea id="union-description" class="text-input" rows="3" required></textarea>
+          </div>
+          <div class="form-group full-width">
+            <label>صورة الغلاف (اختياري)</label>
+            <div style="display:flex; gap:10px; margin-bottom:10px;">
+              <input type="file" id="union-cover-file" class="text-input" accept="image/*" style="flex:1;">
+            </div>
+            <div style="text-align:center; font-size:12px; color:#888; margin-bottom:5px;">أو أدخل رابط الصورة مباشرة:</div>
+            <input type="url" id="union-cover-url" class="text-input" placeholder="https://example.com/image.jpg">
+          </div>
+          <button type="button" class="btn btn-primary btn-full" onclick="UnionsAdminApp.createUnion()" style="margin-top: 15px;">
+            إنشاء
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
   <!-- Payment Settings Modal -->
   <div id="payment-modal" class="modal" style="display:none;">
     <div class="modal-overlay" onclick="AdminApp.closeModal('payment-modal')"></div>

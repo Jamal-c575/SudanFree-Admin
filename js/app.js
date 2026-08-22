@@ -224,6 +224,7 @@ const AdminApp = {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     document.getElementById('page-' + page).classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     // Toggle Sidebars
     if (page === 'jhome') {
@@ -242,7 +243,7 @@ const AdminApp = {
         if (navEl) navEl.classList.add('active');
     }
 
-    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع' };
+    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع', unions:'النقابات', 'pro-users':'مشتركي Pro' };
     document.getElementById('page-title').textContent = titles[page] || page;
     if (page === 'statistics') this.loadStatistics();
     if (page === 'deletions') this.loadDeletions();
@@ -259,6 +260,8 @@ const AdminApp = {
     if (page === 'banned') this.loadBannedUsers();
     if (page === 'subscriptions') SubscriptionAdminApp.loadSubscriptions();
     if (page === 'payment-settings') PaymentSettingsApp.loadMethods();
+    if (page === 'unions') UnionsAdminApp.loadUnions();
+    if (page === 'pro-users') ProUsersAdminApp.loadProUsers();
     document.getElementById('sidebar').classList.remove('open');
   },
   refreshCurrentPage() {
@@ -1059,15 +1062,25 @@ const AdminApp = {
           <div class="card-body">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
               <strong>رقم الهاتف: <span dir="ltr">${req.phoneNumber}</span></strong>
-              <span class="badge" style="background:#ff9800;">بانتظار الإرسال</span>
+              <div>
+                <span class="badge" style="background: ${req.channel === 'whatsapp' ? '#25D366' : '#1976D2'}; margin-left: 5px;">
+                  ${req.channel === 'whatsapp' ? 'واتساب' : 'SMS'}
+                </span>
+                <span class="badge" style="background:#ff9800;">بانتظار الإرسال</span>
+              </div>
             </div>
             <div class="detail-item"><div class="label">كود التحقق (OTP)</div><div class="value" style="font-size:24px; font-weight:bold; letter-spacing:3px; color:var(--primary);">${req.otp}</div></div>
             <div class="detail-item"><div class="label">تاريخ الطلب</div><div class="value">${timeStr}</div></div>
           </div>
           <div class="card-footer" style="display:flex; gap:10px;">
-            <a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
-              <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
-            </a>
+            ${req.channel === 'whatsapp' 
+              ? `<a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
+                  <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
+                 </a>` 
+              : `<a href="sms:${phoneForWa}?body=${msg}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
+                  <span class="material-icons-outlined">sms</span> إرسال رسالة SMS
+                 </a>`
+            }
             <button class="btn btn-primary" onclick="AdminApp.markOtpSent('${req.id}')" style="flex:1;">
               <span class="material-icons-outlined">done_all</span> تحديد كمُرسل
             </button>
@@ -2207,3 +2220,157 @@ window.AdminApp = AdminApp;
 
 
 
+
+// ── Unions App ──
+const UnionsAdminApp = {
+  async loadUnions() {
+    try {
+      const tbody = document.getElementById('unions-table-body');
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
+      
+      const snap = await db.collection('unions').orderBy('createdAt', 'desc').get();
+      if(snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا توجد نقابات</td></tr>';
+        return;
+      }
+
+      let html = '';
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        const d = data.createdAt ? data.createdAt.toDate() : new Date();
+        const dateStr = d.toLocaleDateString('ar-EG');
+        
+        html += `
+          <tr>
+            <td>${data.name || 'بدون اسم'}</td>
+            <td>${data.category || '-'}</td>
+            <td>${data.state || '-'}</td>
+            <td>${data.memberCount || 0}</td>
+            <td>${dateStr}</td>
+            <td>
+              <button class="btn btn-sm btn-danger" onclick="UnionsAdminApp.deleteUnion('${doc.id}')">حذف</button>
+            </td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    } catch(e) {
+      console.error(e);
+      document.getElementById('unions-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
+    }
+  },
+
+  showCreateModal() {
+    document.getElementById('create-union-form').reset();
+    document.getElementById('create-union-modal').style.display = 'flex';
+  },
+
+  async createUnion() {
+    const name = document.getElementById('union-name').value;
+    const category = document.getElementById('union-category').value;
+    const state = document.getElementById('union-state').value;
+    const desc = document.getElementById('union-description').value;
+    
+    const fileInput = document.getElementById('union-cover-file');
+    const urlInput = document.getElementById('union-cover-url').value;
+
+    if (!name || !state || !desc) {
+      showToast('يرجى ملء الحقول المطلوبة', 'error');
+      return;
+    }
+
+    // Disable button to prevent double submission
+    const submitBtn = document.querySelector('#create-union-form .btn-primary');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'جاري الإنشاء...';
+
+    try {
+      let finalCoverUrl = urlInput || null;
+
+      // Handle file upload if a file was selected
+      if (fileInput.files && fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        const storageRef = firebase.storage().ref('unions_covers/' + Date.now() + '_' + file.name);
+        const snapshot = await storageRef.put(file);
+        finalCoverUrl = await snapshot.ref.getDownloadURL();
+      }
+
+      await db.collection('unions').add({
+        name: name,
+        description: desc,
+        category: category,
+        state: state,
+        coverImageUrl: finalCoverUrl,
+        adminIds: [],
+        memberIds: [],
+        memberCount: 0,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      showToast('تم إنشاء النقابة بنجاح', 'success');
+      AdminApp.closeModal('create-union-modal');
+      this.loadUnions();
+    } catch (error) {
+      console.error(error);
+      showToast('حدث خطأ أثناء الإنشاء', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'إنشاء';
+    }
+  },
+
+  async deleteUnion(id) {
+    if (!confirm('هل أنت متأكد من حذف هذه النقابة؟')) return;
+    try {
+      await db.collection('unions').doc(id).delete();
+      showToast('تم الحذف بنجاح', 'success');
+      this.loadUnions();
+    } catch (e) {
+      console.error(e);
+      showToast('خطأ في الحذف', 'error');
+    }
+  }
+};
+
+// ── Pro Users App ──
+const ProUsersAdminApp = {
+  async loadProUsers() {
+    try {
+      const tbody = document.getElementById('pro-users-table-body');
+      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
+      
+      const snap = await db.collection('users').where('isPremium', '==', true).get();
+      if(snap.empty) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا يوجد مستخدمون في خطة البرو</td></tr>';
+        return;
+      }
+
+      let html = '';
+      for (const doc of snap.docs) {
+        const data = doc.data();
+        const d = data.createdAt ? data.createdAt.toDate() : new Date();
+        const dateStr = d.toLocaleDateString('ar-EG');
+        const verificationStatus = data.isVerified ? 'موثق' : 'غير موثق';
+        
+        html += `
+          <tr>
+            <td>${data.name || 'بدون اسم'}</td>
+            <td>${data.email || '-'}</td>
+            <td>${data.phoneNumber || '-'}</td>
+            <td>${verificationStatus}</td>
+            <td>${dateStr}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="AdminApp.viewUser('${doc.id}')">عرض الحساب</button>
+            </td>
+          </tr>
+        `;
+      }
+      tbody.innerHTML = html;
+    } catch(e) {
+      console.error(e);
+      document.getElementById('pro-users-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
+    }
+  }
+};
+
+window.UnionsAdminApp = UnionsAdminApp;
+window.ProUsersAdminApp = ProUsersAdminApp;
