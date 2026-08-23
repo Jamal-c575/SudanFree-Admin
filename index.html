@@ -1442,6 +1442,17 @@
             <option value="inactive">غير نشط (Inactive)</option>
           </select>
         </div>
+        <div class="form-group full-width" style="margin-top: 10px;">
+          <label>صورة الغلاف</label>
+          <div class="img-upload-zone" onclick="document.getElementById('union-cover-file').click()" id="union-upload-zone">
+            <span class="material-icons-outlined" style="font-size:40px;color:var(--text-muted);">add_photo_alternate</span>
+            <p style="margin:8px 0 4px;font-weight:bold;">اضغط لرفع صورة الغلاف</p>
+            <p style="font-size:12px;color:var(--text-muted);">PNG، JPG، WEBP — الحد الأقصى 10 ميغا</p>
+            <input type="file" id="union-cover-file" accept="image/*" style="display:none" onchange="AdminHelpers.previewSingleImg('union-cover-file','union-img-preview','union-upload-zone')">
+          </div>
+          <div id="union-img-preview" style="display:none; margin-top:10px; position:relative;"></div>
+          <input type="hidden" id="union-cover-url" value="">
+        </div>
       </div>
       <div class="modal-footer" style="margin-top: 20px; text-align: left;">
         <button class="btn btn-primary" onclick="AdminApp.saveUnion()">حفظ النقابة</button>

@@ -1177,6 +1177,8 @@ const AdminApp = {
     document.getElementById('union-state').value = '';
     document.getElementById('union-subscription').value = 'active';
     document.getElementById('union-modal-title').textContent = 'إضافة نقابة جديدة';
+    AdminHelpers.clearSingleImg('union-cover-file', 'union-img-preview', 'union-upload-zone');
+    document.getElementById('union-cover-url').value = '';
     
     if (id) {
       const union = this.unionsList.find(u => u.id === id);
@@ -1187,6 +1189,13 @@ const AdminApp = {
         document.getElementById('union-description').value = union.description || '';
         document.getElementById('union-state').value = union.state || '';
         document.getElementById('union-subscription').value = union.subscriptionStatus || 'active';
+        
+        if (union.coverImageUrl) {
+          document.getElementById('union-cover-url').value = union.coverImageUrl;
+          const preview = document.getElementById('union-img-preview');
+          preview.style.display = 'block';
+          preview.innerHTML = `<img src="${union.coverImageUrl}" style="max-width:100%; border-radius:8px;">`;
+        }
       }
     }
     
@@ -1198,22 +1207,34 @@ const AdminApp = {
     const description = document.getElementById('union-description').value.trim();
     const state = document.getElementById('union-state').value.trim();
     const subscriptionStatus = document.getElementById('union-subscription').value;
+    const coverFile = document.getElementById('union-cover-file').files[0];
+    let coverUrl = document.getElementById('union-cover-url').value;
     
     if (!name) {
       this.showToast('اسم النقابة مطلوب', 'error');
       return;
     }
     
-    const unionData = {
-      name,
-      description,
-      state,
-      subscriptionStatus,
-      category: 'unions',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
-    
+    const saveBtn = document.querySelector('#union-modal .btn-primary');
+    const originalText = saveBtn.textContent;
+    saveBtn.textContent = 'جاري الحفظ...';
+    saveBtn.disabled = true;
+
     try {
+      if (coverFile) {
+        coverUrl = await AdminHelpers.uploadToStorage(coverFile, 'unions');
+      }
+
+      const unionData = {
+        name,
+        description,
+        state,
+        subscriptionStatus,
+        coverImageUrl: coverUrl,
+        category: 'unions',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+
       if (id) {
         await db.collection('unions').doc(id).update(unionData);
         this.showToast('تم تحديث النقابة بنجاح', 'success');
@@ -1221,6 +1242,7 @@ const AdminApp = {
         unionData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
         unionData.adminIds = [];
         unionData.memberIds = [];
+        unionData.memberCount = 0;
         await db.collection('unions').add(unionData);
         this.showToast('تمت إضافة النقابة بنجاح', 'success');
       }
@@ -1229,6 +1251,9 @@ const AdminApp = {
     } catch (error) {
       console.error("Error saving union: ", error);
       this.showToast('حدث خطأ أثناء حفظ النقابة', 'error');
+    } finally {
+      saveBtn.textContent = originalText;
+      saveBtn.disabled = false;
     }
   },
   async deleteUnion(id) {
