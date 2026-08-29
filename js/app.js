@@ -1048,29 +1048,49 @@ const AdminApp = {
     let html = '';
     requests.forEach(req => {
       const timeStr = timeAgo(req.createdAt);
-      // Remove + and leading zeros to format for wa.me
-      let phoneForWa = req.phoneNumber || '';
-      if (phoneForWa.startsWith('+')) phoneForWa = phoneForWa.substring(1);
+      const method = (req.method || 'whatsapp').toLowerCase();
       
-      const msg = encodeURIComponent(`كود التحقق الخاص بك في منصة سودان فري هو: ${req.otp}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.`);
-      const waLink = `https://wa.me/${phoneForWa}?text=${msg}`;
+      let actionBtn = '';
+      if (method === 'whatsapp') {
+        let phoneForWa = req.phoneNumber || '';
+        if (phoneForWa.startsWith('+')) phoneForWa = phoneForWa.substring(1);
+        const msg = encodeURIComponent(`كود التحقق الخاص بك في منصة سودان فري هو: ${req.otp}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.`);
+        const waLink = `https://wa.me/${phoneForWa}?text=${msg}`;
+        actionBtn = `<a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
+          <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
+        </a>`;
+      } else if (method === 'sms') {
+        actionBtn = `<a href="sms:${req.phoneNumber}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
+          <span class="material-icons-outlined">sms</span> إرسال عبر SMS
+        </a>`;
+      } else if (method === 'email') {
+        actionBtn = `<a href="mailto:${req.email || ''}?subject=كود التحقق&body=${req.otp}" class="btn btn-warning" style="flex:1; text-align:center; text-decoration:none;">
+          <span class="material-icons-outlined">email</span> إرسال عبر الإيميل
+        </a>`;
+      } else if (method === 'telegram') {
+        actionBtn = `<a href="https://t.me/${req.telegramUsername || ''}" target="_blank" class="btn" style="background:#0088cc; color:#fff; flex:1; text-align:center; text-decoration:none;">
+          <span class="material-icons-outlined">send</span> إرسال عبر تليجرام
+        </a>`;
+      } else {
+        actionBtn = `<a href="tel:${req.phoneNumber}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
+          <span class="material-icons-outlined">phone</span> اتصال هاتفي
+        </a>`;
+      }
 
       html += `
         <div class="card fade-in">
           <div class="card-body">
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-              <strong>رقم الهاتف: <span dir="ltr">${req.phoneNumber}</span></strong>
-              <span class="badge" style="background:#ff9800;">بانتظار الإرسال</span>
+              <strong>${req.email ? 'البريد الإلكتروني:' : 'رقم الهاتف:'} <span dir="ltr">${req.email || req.phoneNumber}</span></strong>
+              <span class="badge" style="background:#ff9800;">بانتظار الإرسال عبر ${method}</span>
             </div>
             <div class="detail-item"><div class="label">كود التحقق (OTP)</div><div class="value" style="font-size:24px; font-weight:bold; letter-spacing:3px; color:var(--primary);">${req.otp}</div></div>
             <div class="detail-item"><div class="label">تاريخ الطلب</div><div class="value">${timeStr}</div></div>
           </div>
           <div class="card-footer" style="display:flex; gap:10px;">
-            <a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
-              <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
-            </a>
+            ${actionBtn}
             <button class="btn btn-primary" onclick="AdminApp.markOtpSent('${req.id}')" style="flex:1;">
-              <span class="material-icons-outlined">done_all</span> تحديد كمُرسل
+              <span class="material-icons-outlined">done_all</span> تم الإرسال (حذف التنبيه)
             </button>
           </div>
         </div>
