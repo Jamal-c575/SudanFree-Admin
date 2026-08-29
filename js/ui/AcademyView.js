@@ -117,7 +117,7 @@ export class AcademyView {
             await this.renderCourses();
         } catch(err) {
             console.error(err);
-            if (typeof window.showToast === 'function') window.showToast('خطأ أثناء الإضافة', 'error');
+            if (typeof window.showToast === 'function') window.showToast('خطأ أثناء الإضافة: ' + err.message, 'error');
         }
     }
 
