@@ -231,11 +231,29 @@ const AdminApp = {
         if(mainNav) mainNav.style.display = 'none';
         const jhomeNav = document.getElementById('jhome-sidebar-nav');
         if(jhomeNav) jhomeNav.style.display = 'flex';
+        
+        const switchText = document.getElementById('switch-app-text');
+        if (switchText) {
+          switchText.innerHTML = 'لوحة التطبيق (SudanFree) <span class="material-icons-outlined" style="font-size: 12px;">open_in_new</span>';
+        }
+        const appTitle = document.getElementById('app-main-title');
+        if (appTitle) appTitle.textContent = 'إدارة Jhome';
+        const appIcon = document.getElementById('app-logo-icon');
+        if (appIcon) appIcon.textContent = 'school';
     } else {
         const mainNav = document.getElementById('main-sidebar-nav');
         if(mainNav) mainNav.style.display = 'flex';
         const jhomeNav = document.getElementById('jhome-sidebar-nav');
         if(jhomeNav) jhomeNav.style.display = 'none';
+        
+        const switchText = document.getElementById('switch-app-text');
+        if (switchText) {
+          switchText.innerHTML = 'لوحة إدارة Jhome <span class="material-icons-outlined" style="font-size: 12px;">open_in_new</span>';
+        }
+        const appTitle = document.getElementById('app-main-title');
+        if (appTitle) appTitle.textContent = 'سودان فري';
+        const appIcon = document.getElementById('app-logo-icon');
+        if (appIcon) appIcon.textContent = 'admin_panel_settings';
         
         // Highlight active link in main sidebar
         const navEl = document.querySelector(`#main-sidebar-nav [data-page="${page}"]`);
@@ -270,6 +288,15 @@ const AdminApp = {
 
   toggleSidebar() {
     document.getElementById('sidebar').classList.toggle('open');
+  },
+
+  toggleApp() {
+    const jhomeNav = document.getElementById('jhome-sidebar-nav');
+    if (jhomeNav && jhomeNav.style.display === 'flex') {
+      this.navigateTo('dashboard');
+    } else {
+      this.navigateTo('jhome');
+    }
   },
 
   async getCount(query) {

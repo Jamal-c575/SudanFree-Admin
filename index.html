@@ -42,11 +42,11 @@
   <div id="main-app" class="main-app" style="display:none;">
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header" onclick="AdminApp.navigateTo('jhome')" style="cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="الانتقال إلى إدارة Jhome">
-        <span class="material-icons-outlined logo-icon-sm">admin_panel_settings</span>
+      <div class="sidebar-header" onclick="AdminApp.toggleApp()" style="cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'" title="التبديل بين المنصتين">
+        <span id="app-logo-icon" class="material-icons-outlined logo-icon-sm">admin_panel_settings</span>
         <div style="display: flex; flex-direction: column;">
-          <h2 style="margin: 0;">سودان فري</h2>
-          <span style="font-size: 11px; color: var(--primary-light); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+          <h2 id="app-main-title" style="margin: 0;">سودان فري</h2>
+          <span id="switch-app-text" style="font-size: 11px; color: var(--primary-light); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
             لوحة إدارة Jhome <span class="material-icons-outlined" style="font-size: 12px;">open_in_new</span>
           </span>
         </div>
