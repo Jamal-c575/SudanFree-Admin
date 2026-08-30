@@ -1311,8 +1311,8 @@ const AdminApp = {
     this.renderUnions(filtered);
   },
 
-  // ── Users ──
-  async loadUsers() {
+  // ── Reports ──
+  async loadReports() {
     const snap = await db.collection('reports').orderBy('createdAt','desc').limit(200).get();
     this.allReports = snap.docs.map(d => ({ id:d.id, ...d.data() }));
     this.renderReports(this.allReports);
