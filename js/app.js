@@ -1060,7 +1060,8 @@ const AdminApp = {
           <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
         </a>`;
       } else if (method === 'sms') {
-        actionBtn = `<a href="sms:${req.phoneNumber}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
+        const msg = encodeURIComponent(`كود التحقق الخاص بك في منصة سودان فري هو: ${req.otp}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.`);
+        actionBtn = `<a href="sms:${req.phoneNumber}?body=${msg}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
           <span class="material-icons-outlined">sms</span> إرسال عبر SMS
         </a>`;
       } else if (method === 'email') {
@@ -1494,7 +1495,8 @@ const AdminApp = {
   async approveDeletion(reqId, userId) {
     if (!confirm('هل أنت متأكد من حذف حساب هذا المستخدم نهائياً؟ ستُحذف جميع بياناته.')) return;
     try {
-      const result = await deleteUserAccount({ userId });
+      const deleteUserFn = firebase.functions().httpsCallable('deleteUserAccount');
+      const result = await deleteUserFn({ userId, requestId: reqId });
       if (result?.data?.success) {
         await db.collection('deletion_requests').doc(reqId).update({ status: 'approved', processedAt: firebase.firestore.FieldValue.serverTimestamp() });
         showToast('تمت الموافقة وحذف بيانات المستخدم بنجاح');
