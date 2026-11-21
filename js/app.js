@@ -1,1942 +1,546 @@
-// ═══ AdminApp Core ═══
+/**
+ * AdminApp Core Orchestrator — AVYRA Admin Dashboard
+ * Wires Authentication, Theme Toggle (Dark/Light), Navigation, Real-time Badges,
+ * Jhome Academy Legacy Helpers, AI Assistant, and delegates domain actions to modular scripts.
+ */
 const AdminApp = {
-  allUsers: [],
-  lastUserDoc: null,
-  isLoadingUsers: false,
-  hasMoreUsers: true,
-  usersObserver: null,
-  allReports: [],
+  currentPage: 'dashboard',
+  activeCountry: localStorage.getItem('avyra_admin_country') || 'ALL',
 
-  // ── Auth ──
+  initGlobalCountrySelector() {
+    const sel = document.getElementById('global-country-selector');
+    if (!sel || !window.AvyraCatalogs) return;
+    if (sel.options.length <= 1) {
+      sel.innerHTML = `<option value="ALL">كل الدول (عالمي - ALL)</option>` +
+        AvyraCatalogs.COUNTRIES.map(c =>
+          `<option value="${escapeAttr(c.code)}">${escapeHtml(c.nameAr)} (${escapeHtml(c.code)})</option>`
+        ).join('');
+    }
+    sel.value = this.activeCountry;
+  },
+
+  setActiveCountry(code) {
+    this.activeCountry = code || 'ALL';
+    localStorage.setItem('avyra_admin_country', this.activeCountry);
+
+    // Sync section country filters if present
+    const syncIds = [
+      'users-country-filter',
+      'news-country-filter',
+      'ads-country-filter',
+      'jobs-country-filter',
+      'payment-country-filter'
+    ];
+    syncIds.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.value = this.activeCountry === 'ALL' ? '' : this.activeCountry;
+      }
+    });
+
+    const notifCountry = document.getElementById('notif-country');
+    if (notifCountry && this.activeCountry !== 'ALL') {
+      notifCountry.value = this.activeCountry;
+      if (window.NotificationsModule) NotificationsModule.onNotifCountryChange();
+    }
+
+    const adCountry = document.getElementById('ad-country');
+    if (adCountry) {
+      adCountry.value = this.activeCountry;
+      if (window.ModerationModule) ModerationModule.onAdCountryChange();
+    }
+
+    if (window.UsersModule) UsersModule.onUserCountryFilterChange();
+    if (window.PaymentsVerificationModule) {
+      PaymentsVerificationModule.filterVerificationsList();
+      PaymentsVerificationModule.renderMethods();
+    }
+
+    this.navigateTo(this.currentPage);
+    const label = window.AvyraCatalogs ? AvyraCatalogs.getCountryName(this.activeCountry) : this.activeCountry;
+    showToast(`تم تغيير نطاق العرض إلى: ${label}`, 'info');
+  },
+
+  // ── Toast & Modal Helpers ──
+  showToast(msg, type = 'success') {
+    if (typeof showToast === 'function') {
+      showToast(msg, type);
+    } else {
+      console.log(`[Toast ${type}]`, msg);
+    }
+  },
+
+  closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.display = 'none';
+      el.classList.remove('active');
+    }
+  },
+
+  previewImage(url) {
+    const safe = typeof safeUrl === 'function' ? safeUrl(url) : url;
+    if (!safe) return;
+    const imgEl = document.getElementById('image-preview-img');
+    const modal = document.getElementById('image-modal');
+    if (imgEl) imgEl.src = safe;
+    if (modal) modal.style.display = 'flex';
+  },
+
+  // ── Theme Toggle (Dark Obsidian default + Light Surface mode) ──
+  initTheme() {
+    const saved = localStorage.getItem('avyra_admin_theme') || 'dark';
+    this.applyTheme(saved);
+  },
+
+  applyTheme(theme) {
+    const mode = theme === 'light' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', mode);
+    localStorage.setItem('avyra_admin_theme', mode);
+    const iconEl = document.getElementById('theme-toggle-icon');
+    if (iconEl) {
+      iconEl.textContent = mode === 'dark' ? 'light_mode' : 'dark_mode';
+    }
+  },
+
+  toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    this.applyTheme(current === 'dark' ? 'light' : 'dark');
+  },
+
+  // ── Authentication ──
   async login() {
-    let email = document.getElementById('login-email').value;
-    let pass = document.getElementById('login-password').value;
+    const email = document.getElementById('login-email')?.value.trim() || '';
+    const pass = document.getElementById('login-password')?.value || '';
     const errEl = document.getElementById('login-error');
-    errEl.style.display = 'none';
+    if (errEl) errEl.style.display = 'none';
 
-    // Primary admin accounts must be provisioned securely through a trusted backend or Firebase Console.
-    // Removing hard-coded credentials from the client improves security.
     try {
       const cred = await auth.signInWithEmailAndPassword(email, pass);
-      
-      // Try to sync login with Jhome app (assuming same admin credentials exist there)
+
+      // Sync login with Jhome Firebase instance
       try {
         await firebase.app('jhome').auth().signInWithEmailAndPassword(email, pass);
       } catch (je) {
-        console.warn("Could not log into Jhome Firebase instance:", je.message);
-        showToast('تنبيه: فشل تسجيل الدخول في مشروع Jhome. (' + je.message + ')', 'error');
+        console.warn('Could not log into Jhome Firebase instance:', je.message);
       }
 
       const doc = await db.collection('users').doc(cred.user.uid).get();
       if (!doc.exists || doc.data().role !== 'admin') {
-        errEl.textContent = 'ليس لديك صلاحية الوصول';
-        errEl.style.display = 'flex';
+        if (errEl) {
+          errEl.textContent = 'ليس لديك صلاحية الوصول إلى لوحة التحكم';
+          errEl.style.display = 'block';
+        }
         await auth.signOut();
-        try { await firebase.app('jhome').auth().signOut(); } catch(e){}
+        try { await firebase.app('jhome').auth().signOut(); } catch (_) {}
         return;
       }
       this.showDashboard(doc.data().name || 'المشرف');
     } catch (e) {
-      errEl.textContent = 'خطأ في تسجيل الدخول: ' + e.message;
-      errEl.style.display = 'flex';
+      if (errEl) {
+        errEl.textContent = 'خطأ في تسجيل الدخول: ' + e.message;
+        errEl.style.display = 'block';
+      }
     }
   },
 
   logout() {
     auth.signOut();
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
+    try { firebase.app('jhome').auth().signOut(); } catch (_) {}
+    const loginEl = document.getElementById('login-screen');
+    const mainEl = document.getElementById('main-app');
+    if (loginEl) loginEl.style.display = 'flex';
+    if (mainEl) mainEl.style.display = 'none';
   },
 
   showDashboard(name) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    document.getElementById('admin-name').textContent = name;
+    const loginEl = document.getElementById('login-screen');
+    const mainEl = document.getElementById('main-app');
+    const nameEl = document.getElementById('admin-name');
+    if (loginEl) loginEl.style.display = 'none';
+    if (mainEl) mainEl.style.display = 'flex';
+    if (nameEl) nameEl.textContent = name;
+
+    this.initGlobalCountrySelector();
     this.loadDashboard();
     this.loadUsers();
     this.listenVerifications();
     this.listenOtpRequests();
     this.loadReports();
     this.loadDeletions();
-    this.loadLocalities();
+    if (window.SubscriptionsModule) SubscriptionsModule.updateBadge();
+    if (window.ModerationModule) ModerationModule.initAdSelects();
+    if (window.NotificationsModule) NotificationsModule.initNotifSelects();
+    if (window.JobsModule) JobsModule.initSelects();
   },
 
-  // ── Dynamic Localities ──
-  registeredLocalities: [],
-  async loadLocalities() {
-    try {
-      const snap = await db.collection('users').get();
-      const localitySet = new Set();
-      snap.docs.forEach(d => {
-        const loc = d.data().locality;
-        if (loc && loc.trim()) localitySet.add(loc.trim());
-      });
-      this.registeredLocalities = Array.from(localitySet).sort();
-      this.populateLocalityDropdowns();
-    } catch (e) {
-      console.error('Error loading localities:', e);
+  // ── Navigation ──
+  navigateTo(page) {
+    this.currentPage = page;
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+    const pageEl = document.getElementById('page-' + page);
+    if (pageEl) pageEl.classList.add('active');
+
+    const mainNav = document.getElementById('main-sidebar-nav');
+    const jhomeNav = document.getElementById('jhome-sidebar-nav');
+    if (page === 'jhome') {
+      if (mainNav) mainNav.style.display = 'none';
+      if (jhomeNav) jhomeNav.style.display = 'flex';
+    } else {
+      if (mainNav) mainNav.style.display = 'flex';
+      if (jhomeNav) jhomeNav.style.display = 'none';
+      const navEl = document.querySelector(`#main-sidebar-nav [data-page="${page}"]`);
+      if (navEl) navEl.classList.add('active');
     }
+
+    const titles = {
+      dashboard: 'الرئيسية',
+      statistics: 'الإحصائيات والتحليلات',
+      users: 'إدارة المستخدمين',
+      verification: 'توثيق الحسابات',
+      otp: 'أكواد التحقق (OTP)',
+      unions: 'النقابات وفرق العمل',
+      news: 'إدارة الأخبار',
+      posts: 'منشورات المجتمع',
+      'success-stories': 'قصص النجاح',
+      orders: 'طلبات المتاجر',
+      jobs: 'المشاريع والعروض واليوميات',
+      requests: 'طلبات الخدمات',
+      contracts: 'عقود العمل والاتفاقيات',
+      subscriptions: 'إدارة اشتراكات Pro',
+      'pro-users': 'مشتركو Pro',
+      ads: 'إدارة الإعلانات',
+      promotions: 'الترويجات المميزة',
+      reports: 'البلاغات ومراجعة التقييمات',
+      banned: 'المحظورون والأجهزة المحظورة',
+      deletions: 'طلبات حذف الحسابات',
+      'system-errors': 'سجل أخطاء النظام',
+      markets: 'إدارة الأسواق والدول',
+      'payment-settings': 'إعدادات الدفع ورسوم التوثيق',
+      notifications: 'التنبيهات الجماعية',
+      admins: 'إدارة المشرفين',
+      settings: 'إعدادات وروابط التطبيق',
+      'site-control': 'تحكم النظام والذكاء الاصطناعي',
+      jhome: 'إدارة موقع وأكاديمية Jhome'
+    };
+
+    const titleEl = document.getElementById('page-title');
+    if (titleEl) titleEl.textContent = titles[page] || page;
+
+    if (page === 'dashboard') this.loadDashboard();
+    if (page === 'statistics') this.loadStatistics();
+    if (page === 'users') this.loadUsers();
+    if (page === 'verification' && window.PaymentsVerificationModule) PaymentsVerificationModule.filterVerificationsList();
+    if (page === 'otp' && window.PaymentsVerificationModule) PaymentsVerificationModule.filterOtpList();
+    if (page === 'unions' && window.UnionsSquadsModule) UnionsSquadsModule.loadAll();
+    if (page === 'news' && window.NewsModule) NewsModule.loadNews();
+    if (page === 'posts' && window.ModerationModule) ModerationModule.loadPosts();
+    if (page === 'success-stories') this.loadSuccessStories();
+    if (page === 'orders' && window.OrdersModule) OrdersModule.loadOrders();
+    if (page === 'jobs' && window.JobsModule) JobsModule.loadAll();
+    if (page === 'requests' && window.ModerationModule) ModerationModule.loadRequests();
+    if (page === 'contracts') this.loadContracts();
+    if (page === 'subscriptions' && window.SubscriptionsModule) {
+      SubscriptionsModule.loadSubscriptions();
+      SubscriptionsModule.loadPointRequests();
+      SubscriptionsModule.loadProUsers();
+    }
+    if (page === 'pro-users' && window.SubscriptionsModule) SubscriptionsModule.loadProUsers();
+    if (page === 'ads' && window.ModerationModule) ModerationModule.loadAds();
+    if (page === 'promotions') this.loadPromotions();
+    if (page === 'reports') {
+      this.loadReports();
+      if (window.ModerationModule) ModerationModule.loadReviewReports();
+    }
+    if (page === 'banned') {
+      this.loadBannedUsers();
+      if (window.UsersModule) UsersModule.loadBannedDevices();
+    }
+    if (page === 'deletions') this.loadDeletions();
+    if (page === 'system-errors' && window.SettingsSystemModule) SettingsSystemModule.loadSystemErrors();
+    if (page === 'markets' && window.MarketsModule) MarketsModule.loadMarkets();
+    if (page === 'payment-settings' && window.PaymentsVerificationModule) PaymentsVerificationModule.loadMethods();
+    if (page === 'notifications') this.loadNotifHistory();
+    if (page === 'admins') this.loadAdmins();
+    if (page === 'settings') this.loadSettings();
+    if (page === 'site-control' && window.SettingsSystemModule) SettingsSystemModule.loadSiteControl();
+
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.remove('open');
   },
 
-  // ── Academy Features ──
+  refreshCurrentPage() {
+    this.navigateTo(this.currentPage);
+    showToast('تم تحديث البيانات', 'info');
+  },
+
+  toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) sidebar.classList.toggle('open');
+  },
+
+  // ── Delegated Methods (Backward-Compatible Surface) ──
+  getCount(query) {
+    return window.StatsModule ? StatsModule.getCount(query) : query.get().then(s => s.size);
+  },
+  loadDashboard() {
+    if (window.StatsModule) return StatsModule.loadDashboard();
+  },
+  loadStatistics() {
+    if (window.StatsModule) return StatsModule.loadStatistics();
+  },
+  loadUsers() {
+    if (window.UsersModule) return UsersModule.loadUsers();
+  },
+  filterUsers(immediate) {
+    if (window.UsersModule) return UsersModule.filterUsers(immediate);
+  },
+  showUserDetail(uid) {
+    if (window.UsersModule) return UsersModule.showUserDetail(uid);
+  },
+  viewUser(uid) {
+    return this.showUserDetail(uid);
+  },
+  promoteUser(uid) {
+    if (window.UsersModule) return UsersModule.promoteUser(uid);
+  },
+  showPersonalNotifForm(uid) {
+    if (window.UsersModule) return UsersModule.showPersonalNotifForm(uid);
+  },
+  sendPersonalNotification(uid) {
+    if (window.UsersModule) return UsersModule.sendPersonalNotification(uid);
+  },
+  toggleUserVerification(uid, current) {
+    if (window.UsersModule) return UsersModule.toggleUserVerification(uid, current);
+  },
+  toggleUserBan(uid, current) {
+    if (window.UsersModule) return UsersModule.toggleUserBan(uid, current);
+  },
+  loadBannedUsers() {
+    if (window.UsersModule) return UsersModule.loadBannedUsers();
+  },
+  filterBannedUsers() {
+    if (window.UsersModule) return UsersModule.filterBannedUsers();
+  },
+  loadSuccessStories() {
+    if (window.UsersModule) return UsersModule.loadSuccessStories();
+  },
+  updateSuccessStoryStatus(id, status) {
+    if (window.UsersModule) return UsersModule.updateSuccessStoryStatus(id, status);
+  },
+  loadDeletions() {
+    if (window.UsersModule) return UsersModule.loadDeletions();
+  },
+  approveDeletion(reqId, userId) {
+    if (window.UsersModule) return UsersModule.approveDeletion(reqId, userId);
+  },
+  rejectDeletion(reqId) {
+    if (window.UsersModule) return UsersModule.rejectDeletion(reqId);
+  },
+  loadAdmins() {
+    if (window.UsersModule) return UsersModule.loadAdmins();
+  },
+  createAdmin() {
+    if (window.UsersModule) return UsersModule.createAdmin();
+  },
+  removeAdmin(uid) {
+    if (window.UsersModule) return UsersModule.removeAdmin(uid);
+  },
+  listenVerifications() {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.listenVerifications();
+  },
+  filterVerificationsList() {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.filterVerificationsList();
+  },
+  approveVerification(reqId) {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.approveVerification(reqId);
+  },
+  rejectVerification(reqId) {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.rejectVerification(reqId);
+  },
+  listenOtpRequests() {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.listenOtpRequests();
+  },
+  filterOtpList() {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.filterOtpList();
+  },
+  markOtpSent(reqId, channel) {
+    if (window.PaymentsVerificationModule) return PaymentsVerificationModule.markOtpSent(reqId, channel);
+  },
+  loadReports() {
+    if (window.ModerationModule) return ModerationModule.loadReports();
+  },
+  filterReports() {
+    if (window.ModerationModule) return ModerationModule.filterReports();
+  },
+  updateReport(id, status) {
+    if (window.ModerationModule) return ModerationModule.updateReport(id, status);
+  },
+  filterPosts() {
+    if (window.ModerationModule) return ModerationModule.filterPosts();
+  },
+  loadPromotions() {
+    if (window.ModerationModule) return ModerationModule.loadPromotions();
+  },
+  deletePromotion(id) {
+    if (window.ModerationModule) return ModerationModule.deletePromotion(id);
+  },
+  loadContracts() {
+    if (window.ModerationModule) return ModerationModule.loadContracts();
+  },
+  filterContracts() {
+    if (window.ModerationModule) return ModerationModule.filterContracts();
+  },
+  toggleNotifFilters() {
+    if (window.NotificationsModule) return NotificationsModule.toggleNotifFilters();
+  },
+  sendNotification() {
+    if (window.NotificationsModule) return NotificationsModule.sendNotification();
+  },
+  loadNotifHistory() {
+    if (window.NotificationsModule) return NotificationsModule.loadNotifHistory();
+  },
+  deleteNotificationLog(id) {
+    if (window.NotificationsModule) return NotificationsModule.deleteNotificationLog(id);
+  },
+  loadSettings() {
+    if (window.SettingsSystemModule) return SettingsSystemModule.loadSettings();
+  },
+  saveSettings(section) {
+    if (window.SettingsSystemModule) return SettingsSystemModule.saveSettings(section);
+  },
+
+  // ── Jhome Academy Legacy Compatibility Methods ──
   async getAcademyAccounts() {
     const snap = await jhomeDb.collection('bankAccounts').get();
-    if (snap.empty) {
-      return [
-          { id: '1', bankName: 'بنكك', accountName: 'جمال أحمد', accountNumber: '123456789' },
-          { id: '2', bankName: 'فوري', accountName: 'جمال أحمد', accountNumber: '987654321' }
-      ];
-    }
+    if (snap.empty) return [];
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
-  
+
   async renderAcademyAccounts() {
     const list = document.getElementById('bank-accounts-list');
     if (!list) return;
     list.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
-    
     const accounts = await this.getAcademyAccounts();
-    list.innerHTML = '';
-    if (accounts.length === 0) {
-        list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد حسابات</td></tr>';
-        return;
+    if (!accounts.length) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا توجد حسابات</td></tr>';
+      return;
     }
-    accounts.forEach(acc => {
-        list.innerHTML += `
-            <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 1rem;">${acc.bankName}</td>
-                <td style="padding: 1rem;">${acc.accountName}</td>
-                <td style="padding: 1rem; font-family: monospace;">${acc.accountNumber}</td>
-                <td style="padding: 1rem;">
-                    <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyAccount('${acc.id}')">حذف</button>
-                </td>
-            </tr>
-        `;
-    });
+    list.innerHTML = accounts.map(acc => `
+      <tr style="border-bottom: 1px solid var(--border-glass);">
+        <td style="padding: 1rem;">${escapeHtml(acc.bankName)}</td>
+        <td style="padding: 1rem;">${escapeHtml(acc.accountName)}</td>
+        <td style="padding: 1rem; font-family: monospace;">${escapeHtml(acc.accountNumber)}</td>
+        <td style="padding: 1rem;">
+          <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyAccount('${escapeAttr(acc.id)}')">حذف</button>
+        </td>
+      </tr>
+    `).join('');
   },
 
   async addAcademyAccount(e) {
-    e.preventDefault();
-    const bankName = document.getElementById('new-bank-name').value;
-    const accName = document.getElementById('new-account-name').value;
-    const accNum = document.getElementById('new-account-number').value;
-    
-    await jhomeDb.collection('bankAccounts').add({ bankName, accountName: accName, accountNumber: accNum });
-    
-    document.getElementById('add-bank-form').reset();
-    this.renderAcademyAccounts();
+    if (e && e.preventDefault) e.preventDefault();
+    const bankName = document.getElementById('new-bank-name')?.value.trim() || '';
+    const accountName = document.getElementById('new-account-name')?.value.trim() || '';
+    const accountNumber = document.getElementById('new-account-number')?.value.trim() || '';
+    if (!bankName || !accountName || !accountNumber) return;
+    await jhomeDb.collection('bankAccounts').add({ bankName, accountName, accountNumber });
+    document.getElementById('add-bank-form')?.reset();
+    await this.renderAcademyAccounts();
   },
 
   async deleteAcademyAccount(id) {
-    if (confirm('حذف هذا الحساب؟')) {
-        if (id === '1' || id === '2') {
-           showToast('لا يمكن حذف الحسابات الافتراضية بهذه الطريقة، تمت إضافتها للعرض فقط', 'error');
-           return;
-        }
-        await jhomeDb.collection('bankAccounts').doc(id).delete();
-        this.renderAcademyAccounts();
-    }
+    const confirmed = await AdminDialog.confirm({
+      title: 'حذف حساب الأكاديمية',
+      message: 'هل أنت متأكد من حذف هذا الحساب البنكي؟',
+      confirmText: 'حذف',
+      danger: true
+    });
+    if (!confirmed) return;
+    await jhomeDb.collection('bankAccounts').doc(id).delete();
+    await this.renderAcademyAccounts();
   },
 
   async getAcademyUsers() {
     const snap = await jhomeDb.collection('academyUsers').get();
-    if (snap.empty) {
-        return [
-            { id: 'admin-1', fullname: 'جمال أحمد', username: 'jamalahmed', password: 'jamalahmed', role: 'instructor' }
-        ];
-    }
+    if (snap.empty) return [];
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   },
 
   async renderAcademyUsers() {
     const list = document.getElementById('users-list');
     if (!list) return;
-    list.innerHTML = '<tr><td colspan="5" style="text-align: center;">جاري التحميل...</td></tr>';
-
+    list.innerHTML = '<tr><td colspan="4" style="text-align: center;">جاري التحميل...</td></tr>';
     const users = await this.getAcademyUsers();
-    list.innerHTML = '';
-    if (users.length === 0) {
-        list.innerHTML = '<tr><td colspan="5" style="text-align: center;">لا يوجد مستخدمين</td></tr>';
-        return;
+    if (!users.length) {
+      list.innerHTML = '<tr><td colspan="4" style="text-align: center;">لا يوجد مستخدمون</td></tr>';
+      return;
     }
-    users.forEach(user => {
-        const roleBadge = user.role === 'instructor' 
-            ? '<span style="background: var(--warning); color: #000; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">مدرب / مشرف</span>'
-            : '<span style="background: var(--primary); color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">طالب</span>';
-        
-        list.innerHTML += `
-            <tr style="border-bottom: 1px solid var(--border);">
-                <td style="padding: 1rem;">${user.fullname}</td>
-                <td style="padding: 1rem; font-family: monospace; color: var(--primary);">${user.username}</td>
-                <td style="padding: 1rem; font-family: monospace;">${user.password}</td>
-                <td style="padding: 1rem;">${roleBadge}</td>
-                <td style="padding: 1rem;">
-                    <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyUser('${user.id}')">حذف</button>
-                </td>
-            </tr>
-        `;
-    });
+    list.innerHTML = users.map(user => {
+      const roleBadge = user.role === 'instructor'
+        ? '<span class="report-status warning">مدرب / مشرف</span>'
+        : '<span class="report-status info">طالب</span>';
+      return `
+        <tr style="border-bottom: 1px solid var(--border-glass);">
+          <td style="padding: 1rem;">${escapeHtml(user.fullname)}</td>
+          <td style="padding: 1rem; font-family: monospace; color: var(--primary-light);">${escapeHtml(user.username)}</td>
+          <td style="padding: 1rem;">${roleBadge}</td>
+          <td style="padding: 1rem;">
+            <button class="btn btn-sm btn-danger" onclick="AdminApp.deleteAcademyUser('${escapeAttr(user.id)}')">حذف</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
   },
 
   async addAcademyUser(e) {
-    e.preventDefault();
-    const fullname = document.getElementById('new-user-fullname').value;
-    const role = document.getElementById('new-user-role').value;
+    if (e && e.preventDefault) e.preventDefault();
+    const fullname = document.getElementById('new-user-fullname')?.value.trim() || '';
+    const role = document.getElementById('new-user-role')?.value || 'student';
+    if (!fullname) return;
     const base = fullname.replace(/\s+/g, '').toLowerCase();
-    
     await jhomeDb.collection('academyUsers').add({
-        fullname,
-        username: base,
-        password: base,
-        role
+      fullname,
+      username: base,
+      password: base,
+      role
     });
-    
-    document.getElementById('add-user-form').reset();
-    this.renderAcademyUsers();
+    document.getElementById('add-user-form')?.reset();
+    await this.renderAcademyUsers();
   },
 
   async deleteAcademyUser(id) {
-    if (confirm('حذف هذا المستخدم؟')) {
-        if (id === 'admin-1') return;
-        await jhomeDb.collection('academyUsers').doc(id).delete();
-        this.renderAcademyUsers();
-    }
-  },
-
-  populateLocalityDropdowns() {
-    const ids = ['ad-locality', 'notif-locality'];
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      const currentVal = el.value;
-      el.innerHTML = '<option value="">\u0627\u0644\u0643\u0644</option>';
-      this.registeredLocalities.forEach(loc => {
-        el.innerHTML += `<option value="${loc}">${loc}</option>`;
-      });
-      if (currentVal) el.value = currentVal;
+    const confirmed = await AdminDialog.confirm({
+      title: 'حذف مستخدم الأكاديمية',
+      message: 'هل أنت متأكد من حذف هذا المستخدم؟',
+      confirmText: 'حذف',
+      danger: true
     });
-  },
-
-  // ── Navigation ──
-  currentPage: 'dashboard',
-  navigateTo(page) {
-    this.currentPage = page;
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('page-' + page).classList.add('active');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // Toggle Sidebars
-    if (page === 'jhome') {
-        const mainNav = document.getElementById('main-sidebar-nav');
-        if(mainNav) mainNav.style.display = 'none';
-        const jhomeNav = document.getElementById('jhome-sidebar-nav');
-        if(jhomeNav) jhomeNav.style.display = 'flex';
-    } else {
-        const mainNav = document.getElementById('main-sidebar-nav');
-        if(mainNav) mainNav.style.display = 'flex';
-        const jhomeNav = document.getElementById('jhome-sidebar-nav');
-        if(jhomeNav) jhomeNav.style.display = 'none';
-        
-        // Highlight active link in main sidebar
-        const navEl = document.querySelector(`#main-sidebar-nav [data-page="${page}"]`);
-        if (navEl) navEl.classList.add('active');
-    }
-
-    const titles = { dashboard:'الرئيسية', jhome:'إدارة Jhome', users:'المستخدمون', 'success-stories':'قصص النجاح', banned:'المحظورون', posts:'المنشورات', requests:'الطلبات', ads:'الإعلانات', promotions:'الترويجات', contracts:'العقود', settings:'إعدادات التطبيق', verification:'طلبات التوثيق', otp:'أكواد التحقق', reports:'البلاغات', deletions:'طلبات الحذف', admins:'المشرفون', notifications:'الإشعارات', statistics:'الإحصائيات', subscriptions:'إدارة الاشتراكات', 'payment-settings':'إعدادات الدفع', unions:'النقابات', 'pro-users':'مشتركي Pro' };
-    document.getElementById('page-title').textContent = titles[page] || page;
-    if (page === 'statistics') this.loadStatistics();
-    if (page === 'deletions') this.loadDeletions();
-    if (page === 'admins') this.loadAdmins();
-    if (page === 'posts') AdminExtras.loadPosts();
-    if (page === 'requests') AdminExtras.loadRequests();
-    if (page === 'ads') AdminExtras.loadAds();
-    if (page === 'notifications') this.loadNotifHistory();
-    if (page === 'promotions') this.loadPromotions();
-    if (page === 'contracts') this.loadContracts();
-    if (page === 'settings') this.loadSettings();
-    if (page === 'users') this.loadUsers();
-    if (page === 'success-stories') this.loadSuccessStories();
-    if (page === 'banned') this.loadBannedUsers();
-    if (page === 'subscriptions') SubscriptionAdminApp.loadSubscriptions();
-    if (page === 'payment-settings') PaymentSettingsApp.loadMethods();
-    if (page === 'unions') UnionsAdminApp.loadUnions();
-    if (page === 'pro-users') ProUsersAdminApp.loadProUsers();
-    document.getElementById('sidebar').classList.remove('open');
-  },
-  refreshCurrentPage() {
-    if (this.currentPage === 'dashboard') this.loadDashboard();
-    else this.navigateTo(this.currentPage);
-    showToast('تم التحديث');
-  },
-
-  toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-  },
-
-  async getCount(query) {
-    // Prefer aggregate count queries when supported to avoid full collection reads
-    if (typeof query.count === 'function') {
-      const agg = await query.count().get();
-      return agg.data().count || 0;
-    }
-    const snap = await query.get();
-    return snap.size;
-  },
-
-  // ── Dashboard ──
-  async loadDashboard() {
-    const [usersCount, verifiedCount, postsCount, jobsCount, requestsCount, adsCount] = await Promise.all([
-      this.getCount(db.collection('users')),
-      this.getCount(db.collection('users').where('isVerified', '==', true)),
-      this.getCount(db.collection('posts')),
-      this.getCount(db.collection('jobs')),
-      this.getCount(db.collection('requests')),
-      this.getCount(db.collection('ads').where('isActive', '==', true)),
-    ]);
-
-    const grid = document.getElementById('stats-grid');
-    const stats = [
-      { icon:'people', label:'المستخدمون', value:usersCount, color:'#6c5ce7' },
-      { icon:'verified', label:'الموثقون', value:verifiedCount, color:'#00cec9' },
-      { icon:'article', label:'المنشورات', value:postsCount, color:'#fdcb6e' },
-      { icon:'work', label:'المشاريع', value:jobsCount, color:'#00b894' },
-      { icon:'assignment', label:'الطلبات', value:requestsCount, color:'#e17055' },
-      { icon:'campaign', label:'إعلانات نشطة', value:adsCount, color:'#0984e3' },
-    ];
-    grid.innerHTML = stats.map(s => `
-      <div class="stat-card">
-        <div class="stat-icon" style="background:${s.color}22;color:${s.color}">
-          <span class="material-icons-outlined">${s.icon}</span>
-        </div>
-        <div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div>
-      </div>`).join('');
-  },
-
-  // ── Users ──
-  globalUserStatsInterval: null,
-
-  async updateGlobalUserStats() {
-    const totalEl = document.getElementById('global-users-count');
-    const onlineEl = document.getElementById('global-online-count');
-    const verifiedEl = document.getElementById('global-verified-count');
-    
-    try {
-      const fiveMinutesAgo = new Date(Date.now() - 300000);
-      
-      AdminApp.getCount(db.collection('users'))
-        .then(count => { if (totalEl) totalEl.textContent = count; })
-        .catch(e => { console.error("Error total count:", e); if (totalEl) totalEl.textContent = "Error"; });
-
-      AdminApp.getCount(db.collection('users').where('lastActive', '>=', fiveMinutesAgo))
-        .then(count => { if (onlineEl) onlineEl.textContent = count; })
-        .catch(e => { console.error("Error online count:", e); if (onlineEl) onlineEl.textContent = "Error"; });
-
-      AdminApp.getCount(db.collection('users').where('isVerified', '==', true))
-        .then(count => { if (verifiedEl) verifiedEl.textContent = count; })
-        .catch(e => { console.error("Error verified count:", e); if (verifiedEl) verifiedEl.textContent = "Error"; });
-
-    } catch (e) {
-      console.error("Error updating global user stats:", e);
-    }
-  },
-
-  async loadUsers() {
-    this.lastUserDoc = null;
-    this.hasMoreUsers = true;
-    this.allUsers = [];
-    document.getElementById('users-tbody').innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
-    
-    // Initial fetch of global stats and setup interval
-    this.updateGlobalUserStats();
-    if (this.globalUserStatsInterval) clearInterval(this.globalUserStatsInterval);
-    this.globalUserStatsInterval = setInterval(() => this.updateGlobalUserStats(), 60000);
-
-    await this.fetchMoreUsers();
-    this.setupUsersObserver();
-  },
-
-  async fetchMoreUsers() {
-    if (this.isLoadingUsers || !this.hasMoreUsers) return;
-    this.isLoadingUsers = true;
-    
-    const tbody = document.getElementById('users-tbody');
-    if (this.allUsers.length > 0) {
-      const tr = document.createElement('tr');
-      tr.id = 'users-loading-row';
-      tr.innerHTML = '<td colspan="7" style="text-align:center;"><div class="loading-spinner" style="display:inline-block; transform:scale(0.5);"><div class="spinner"></div></div></td>';
-      tbody.appendChild(tr);
-    }
-    
-    const onlineFilter = document.getElementById('users-online-filter') ? document.getElementById('users-online-filter').value : '';
-    let query = db.collection('users');
-    
-    if (onlineFilter === 'true') {
-      const fiveMinsAgo = firebase.firestore.Timestamp.fromDate(new Date(Date.now() - 300000));
-      query = query.where('lastActive', '>=', fiveMinsAgo).orderBy('lastActive', 'desc');
-    } else {
-      query = query.orderBy('createdAt', 'desc');
-    }
-    
-    query = query.limit(50);
-    
-    if (this.lastUserDoc) {
-      query = query.startAfter(this.lastUserDoc);
-    }
-    
-    const snap = await query.get();
-    
-    const loadingRow = document.getElementById('users-loading-row');
-    if (loadingRow) loadingRow.remove();
-    
-    if (snap.empty) {
-      this.hasMoreUsers = false;
-      this.isLoadingUsers = false;
-      if (this.allUsers.length === 0) {
-         tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد مستخدمون</td></tr>';
-      }
-      return;
-    }
-    
-    this.lastUserDoc = snap.docs[snap.docs.length - 1];
-    const newUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    this.allUsers = [...this.allUsers, ...newUsers];
-    
-    if (snap.docs.length < 50) {
-      this.hasMoreUsers = false;
-    }
-    
-    this.isLoadingUsers = false;
-    this.filterUsers(); // Re-render with active filters
-  },
-
-  setupUsersObserver() {
-    if (this.usersObserver) {
-      this.usersObserver.disconnect();
-    }
-    
-    let sentinel = document.getElementById('users-sentinel');
-    if (!sentinel) {
-      sentinel = document.createElement('div');
-      sentinel.id = 'users-sentinel';
-      sentinel.style.height = '20px';
-      const container = document.querySelector('#page-users .table-container');
-      if (container) container.appendChild(sentinel);
-    }
-    
-    this.usersObserver = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && this.hasMoreUsers && !this.isLoadingUsers) {
-        this.fetchMoreUsers();
-      }
-    }, { root: null, rootMargin: '100px' });
-    
-    if (sentinel) this.usersObserver.observe(sentinel);
-  },
-
-  renderUsers(users) {
-    const onlineCount = users.filter(u => this.isOnline(u)).length;
-    document.getElementById('users-count').innerHTML = `
-      <div style="display:flex; gap:20px; align-items:center;">
-        <span>إجمالي: ${users.length} مستخدم</span>
-        <span style="color: #2e7d32; font-weight:bold; background: #e8f5e9; padding: 4px 12px; border-radius: 12px; display:flex; align-items:center; gap:6px;">
-          <span class="status-dot status-online" style="margin:0;"></span> متصل حالياً: ${onlineCount}
-        </span>
-      </div>
-    `;
-    const tbody = document.getElementById('users-tbody');
-    if (!users.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">لا يوجد مستخدمون</td></tr>'; return; }
-    tbody.innerHTML = users.map(u => `
-      <tr>
-        <td><img class="user-avatar" src="${u.profileImageUrl || 'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name)+'&background=6c5ce7&color=fff'}" alt=""></td>
-        <td><strong>${u.name}</strong>${u.isVerified ? ' <span class="verified-badge material-icons-outlined">verified</span>' : ''}<br><small style="color:var(--text-muted)">${u.email || ''}</small></td>
-        <td>${getRoleBadge(u.role)}</td>
-        <td>${u.state || '—'}<br><small>${u.locality || ''}</small></td>
-        <td>⭐ ${(u.rating||0).toFixed(1)}</td>
-        <td><span class="status-dot ${this.isOnline(u) ? 'status-online' : 'status-offline'}"></span>${this.isOnline(u) ? 'متصل' : 'غير متصل'}</td>
-        <td><button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')">عرض</button></td>
-      </tr>`).join('');
-  },
-
-  async loadSuccessStories() {
-    const filter = document.getElementById('success-stories-filter').value;
-    try {
-      document.getElementById('success-stories-tbody').innerHTML = '<tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
-      const snap = await db.collection('success_stories').where('status', '==', filter).limit(50).get();
-      const stories = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Sort in memory to avoid requiring a composite index
-      stories.sort((a, b) => {
-        const da = a.createdAt && a.createdAt.toDate ? a.createdAt.toDate() : new Date(0);
-        const db = b.createdAt && b.createdAt.toDate ? b.createdAt.toDate() : new Date(0);
-        return db - da;
-      });
-      const tbody = document.getElementById('success-stories-tbody');
-      if (!stories.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا توجد قصص لعرضها</td></tr>';
-        return;
-      }
-      tbody.innerHTML = stories.map(s => {
-        const dateStr = s.createdAt ? s.createdAt.toDate().toLocaleDateString('ar-EG') : '';
-        let actions = '';
-        if (filter === 'pending') {
-          actions = `
-            <button class="btn btn-sm btn-primary" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'approved')">قبول</button>
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'rejected')">رفض</button>
-          `;
-        } else if (filter === 'approved') {
-          actions = `<button class="btn btn-sm btn-danger" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'rejected')">إلغاء القبول</button>`;
-        } else {
-          actions = `<button class="btn btn-sm btn-primary" onclick="AdminApp.updateSuccessStoryStatus('${s.id}', 'approved')">قبول القصة</button>`;
-        }
-        return `
-          <tr>
-            <td>
-              <div style="display:flex; align-items:center; gap:8px;">
-                <img src="${s.userImage || 'https://ui-avatars.com/api/?name='+encodeURIComponent(s.userName)}" style="width:32px; height:32px; border-radius:50%;">
-                <strong>${s.userName}</strong>
-              </div>
-            </td>
-            <td><strong>${s.title}</strong></td>
-            <td><div style="max-width:300px; max-height:80px; overflow:hidden; text-overflow:ellipsis;">${s.content}</div></td>
-            <td>${dateStr}</td>
-            <td style="display:flex; gap:8px;">${actions}</td>
-          </tr>
-        `;
-      }).join('');
-    } catch (e) {
-      console.error(e);
-      document.getElementById('success-stories-tbody').innerHTML = '<tr><td colspan="5" class="empty-state" style="color:red">خطأ في التحميل</td></tr>';
-    }
-  },
-
-  async updateSuccessStoryStatus(id, status) {
-    if (!confirm('هل أنت متأكد من تغيير حالة القصة؟')) return;
-    try {
-      await db.collection('success_stories').doc(id).update({ status, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      showToast('تم تغيير الحالة بنجاح');
-      this.loadSuccessStories();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  async loadBannedUsers() {
-    const snap = await db.collection('users').where('isBanned', '==', true).get();
-    const banned = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    this.renderBannedUsers(banned);
-  },
-
-  renderBannedUsers(banned) {
-    this.bannedUsersData = banned; // Store for filtering
-    this.displayBannedUsers(banned);
-  },
-
-  displayBannedUsers(banned) {
-    const tbody = document.getElementById('banned-tbody');
-    if (!tbody) return;
-    if (!banned.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">لا يوجد مستخدمون محظورون حالياً</td></tr>'; return; }
-    tbody.innerHTML = banned.map(u => {
-      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}&background=ff4757&color=fff`;
-      const bannedAt = u.bannedAt ? (u.bannedAt.toDate ? u.bannedAt.toDate().toLocaleDateString('ar-EG') : new Date(u.bannedAt).toLocaleDateString('ar-EG')) : (u.updatedAt && u.updatedAt.toDate ? u.updatedAt.toDate().toLocaleDateString('ar-EG') : '—');
-      return `
-        <tr>
-          <td><img class="user-avatar" src="${avatar}" alt=""></td>
-          <td><strong>${u.name}</strong>${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:16px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}<br><small style="color:var(--text-muted)">${u.email || u.phoneNumber || 'لا يوجد بريد'}</small></td>
-          <td style="color:var(--danger)">${u.banReason || 'مخالفة الشروط والأحكام'}</td>
-          <td>${bannedAt}</td>
-          <td>
-            <button class="btn btn-sm btn-ghost" onclick="AdminApp.showUserDetail('${u.id}')">عرض الملف</button>
-            <button class="btn btn-sm btn-success" onclick="AdminApp.toggleUserBan('${u.id}', true)">فك الحظر</button>
-          </td>
-        </tr>`;
-    }).join('');
-  },
-
-  filterBannedUsers() {
-    const search = document.getElementById('banned-search').value.toLowerCase();
-    if (!this.bannedUsersData) return;
-    let filtered = this.bannedUsersData;
-    if (search) {
-      filtered = filtered.filter(u => u.name.toLowerCase().includes(search) || (u.email||'').toLowerCase().includes(search) || (u.phoneNumber||'').toLowerCase().includes(search));
-    }
-    this.displayBannedUsers(filtered);
-  },
-
-  isOnline(u) {
-    if (!u.lastActive) return false;
-    const d = u.lastActive.toDate ? u.lastActive.toDate() : new Date(u.lastActive);
-    return (Date.now() - d.getTime()) < 300000;
-  },
-
-  searchDebounceTimeout: null,
-  
-  filterUsers(immediate = false) {
-    if (!immediate) {
-      clearTimeout(this.searchDebounceTimeout);
-      this.searchDebounceTimeout = setTimeout(() => this.executeFilter(), 600);
-    } else {
-      clearTimeout(this.searchDebounceTimeout);
-      this.executeFilter();
-    }
-  },
-
-  async executeFilter() {
-    const searchRaw = document.getElementById('users-search').value;
-    const search = searchRaw.trim();
-    const searchLower = searchRaw.toLowerCase();
-    const role = document.getElementById('users-role-filter').value;
-    const state = document.getElementById('users-state-filter').value;
-    const verified = document.getElementById('users-verified-filter').value;
-    const online = document.getElementById('users-online-filter') ? document.getElementById('users-online-filter').value : '';
-    
-    // Initialize if undefined
-    if (this.lastOnlineFilterState === undefined) {
-        this.lastOnlineFilterState = online;
-    }
-    
-    // Check if online filter changed compared to last load state
-    if (this.lastOnlineFilterState !== online) {
-        this.lastOnlineFilterState = online;
-        this.loadUsers();
-        return;
-    }
-    
-    if (search) {
-      const tbody = document.getElementById('users-tbody');
-      tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr>';
-      
-      let query;
-      if (search.includes('@')) {
-        query = db.collection('users').where('email', '==', search);
-      } else if (/^[+0-9]/.test(search)) {
-        query = db.collection('users').where('phoneNumber', '==', search);
-      } else {
-        // Prefix search for name (Note: \uf8ff is used for high unicode bound)
-        query = db.collection('users')
-                  .where('name', '>=', search)
-                  .where('name', '<=', search + '\uf8ff');
-      }
-      
-      try {
-        const snap = await query.limit(50).get();
-        let serverResults = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        
-        // Also get local matches (which supports substring / middle name matches)
-        const localMatches = this.allUsers.filter(u => 
-          (u.name||'').toLowerCase().includes(searchLower) || 
-          (u.email||'').toLowerCase().includes(searchLower) ||
-          (u.phoneNumber||'').includes(searchLower)
-        );
-        
-        // Merge and remove duplicates
-        const mergedMap = new Map();
-        localMatches.forEach(u => mergedMap.set(u.id, u));
-        serverResults.forEach(u => mergedMap.set(u.id, u));
-        let results = Array.from(mergedMap.values());
-        
-        // Apply other dropdown filters
-        if (role) results = results.filter(u => u.role === role);
-        if (state) results = results.filter(u => u.state === state);
-        if (verified) results = results.filter(u => String(u.isVerified||false) === verified);
-        if (online === 'true') results = results.filter(u => this.isOnline(u));
-        
-        this.renderUsers(results);
-      } catch (e) {
-        console.error("Search error", e);
-        this.renderUsers([]);
-      }
-      return;
-    }
-    
-    // Local filtering when search is empty
-    let filtered = this.allUsers;
-    if (role) filtered = filtered.filter(u => u.role === role);
-    if (state) filtered = filtered.filter(u => u.state === state);
-    if (verified) filtered = filtered.filter(u => String(u.isVerified||false) === verified);
-    if (online === 'true') filtered = filtered.filter(u => this.isOnline(u));
-    this.renderUsers(filtered);
-  },
-
-  async showUserDetail(id) {
-    let u = this.allUsers.find(x => x.id === id);
-    if (!u && this.bannedUsersData) {
-      u = this.bannedUsersData.find(x => x.id === id);
-    }
-    if (!u) {
-      document.getElementById('modal-user-name').textContent = 'جاري التحميل...';
-      document.getElementById('modal-user-body').innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-      document.getElementById('user-modal').style.display = 'flex';
-      
-      try {
-        const doc = await db.collection('users').doc(id).get();
-        if (doc.exists) {
-          u = { id: doc.id, ...doc.data() };
-        }
-      } catch (e) {
-        console.error("Error fetching user details", e);
-      }
-    }
-    
-    if (!u) {
-      AdminApp.showToast('لم يتم العثور على بيانات المستخدم', 'error');
-      AdminApp.closeModal('user-modal');
-      return;
-    }
-
-    document.getElementById('modal-user-name').textContent = u.name || 'مستخدم';
-    document.getElementById('modal-user-body').innerHTML = `
-      <div class="user-detail-header">
-        <img src="${u.profileImageUrl || 'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name)+'&background=6c5ce7&color=fff'}" alt="">
-        <div><h4>${u.name} ${u.isVerified ? '<span class="verified-badge material-icons-outlined">verified</span>' : ''}</h4>
-        <p style="color:var(--text-muted)">${ROLE_NAMES[u.role]||u.role} — ${u.state||'غير محدد'}</p></div>
-      </div>
-      <div class="detail-grid">
-        <div class="detail-item"><div class="label">البريد</div><div class="value">${u.email||'—'}</div></div>
-        <div class="detail-item"><div class="label">الهاتف</div><div class="value">${u.phoneNumber||'—'}</div></div>
-        <div class="detail-item"><div class="label">التقييم</div><div class="value">⭐ ${(u.rating||0).toFixed(1)} (${u.reviewsCount||0} تقييم)</div></div>
-        <div class="detail-item"><div class="label">الأعمال المنجزة</div><div class="value">${u.completedJobs||0}</div></div>
-        <div class="detail-item"><div class="label">المحلية</div><div class="value">${u.locality||'—'}</div></div>
-        <div class="detail-item"><div class="label">المهارات</div><div class="value">${(u.skills||[]).join(', ')||'—'}</div></div>
-        <div class="detail-item"><div class="label">حالة التوثيق</div><div class="value">${u.verificationStatus||'none'}</div></div>
-        <div class="detail-item"><div class="label">الرصيد</div><div class="value">${u.walletBalance||0} SDG</div></div>
-        <div class="detail-item"><div class="label">حالة الحظر</div><div class="value">${u.isBanned ? '<span style="color:red;font-weight:bold;">محظور</span>' : '<span style="color:green;">نشط</span>'}</div></div>
-      </div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);display:flex;gap:10px;">
-        <button class="btn ${u.isVerified ? 'btn-danger' : 'btn-success'}" onclick="AdminApp.toggleUserVerification('${u.id}', ${!!u.isVerified})" style="flex:1;">
-          <span class="material-icons-outlined">${u.isVerified ? 'verified_user' : 'verified'}</span> ${u.isVerified ? 'نزع شارة التوثيق' : 'توثيق الحساب'}
-        </button>
-        <button class="btn ${u.isBanned ? 'btn-success' : 'btn-danger'}" onclick="AdminApp.toggleUserBan('${u.id}', ${!!u.isBanned})" style="flex:1;">
-          <span class="material-icons-outlined">${u.isBanned ? 'check_circle' : 'block'}</span> ${u.isBanned ? 'فك الحظر' : 'حظر المستخدم'}
-        </button>
-        <button class="btn btn-primary" onclick="AdminApp.showPersonalNotifForm('${u.id}', '${(u.name||"").replace(/'/g,"\\'")}')" style="flex:1;">
-          <span class="material-icons-outlined">send</span> تنبيه
-        </button>
-      </div>
-      <div id="personal-notif-form-${u.id}" style="display:none;margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-        <h4 style="margin-bottom:10px;font-size:14px;">📩 إرسال تنبيه شخصي</h4>
-        <input type="text" id="personal-notif-title-${u.id}" class="text-input" placeholder="عنوان التنبيه" style="width:100%;margin-bottom:8px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;font-family:inherit;">
-        <textarea id="personal-notif-body-${u.id}" placeholder="نص التنبيه..." style="width:100%;min-height:70px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;resize:vertical;font-family:inherit;"></textarea>
-        <button class="btn btn-primary" onclick="AdminApp.sendPersonalNotification('${u.id}')" style="margin-top:8px;">
-          <span class="material-icons-outlined" style="font-size:16px;">send</span> إرسال
-        </button>
-      </div>
-      <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-        <h4 style="margin-bottom:10px;font-size:14px;">⭐ ترويج هذا المستخدم في الصفحة الرئيسية</h4>
-        <textarea id="promo-text-input" placeholder="اكتب نص ترويجي مميز يظهر في الصفحة الرئيسية..." style="width:100%;min-height:80px;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:14px;resize:vertical;font-family:inherit;"></textarea>
-        <div style="display:flex;align-items:center;gap:10px;margin-top:10px;">
-          <label style="font-size:13px;">مدة الترويج:</label>
-          <select id="promo-duration" style="padding:6px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg-card);color:var(--text-primary);font-size:13px;">
-            <option value="7">أسبوع</option>
-            <option value="14">أسبوعين</option>
-            <option value="30" selected>شهر</option>
-            <option value="90">3 أشهر</option>
-          </select>
-          <button class="btn btn-primary" onclick="AdminApp.promoteUser('${u.id}')" style="margin-right:auto;">
-            <span class="material-icons-outlined" style="font-size:16px;">campaign</span> نشر الترويج
-          </button>
-        </div>
-      </div>`;
-    document.getElementById('user-modal').style.display = 'flex';
-  },
-
-  async promoteUser(userId) {
-    const promoText = document.getElementById('promo-text-input').value.trim();
-    if (!promoText) { alert('يرجى كتابة نص ترويجي'); return; }
-    if (!confirm('هل تريد نشر هذا الترويج في الصفحة الرئيسية؟')) return;
-    const days = parseInt(document.getElementById('promo-duration').value) || 30;
-    const now = new Date();
-    const expiry = new Date(now.getTime() + days * 24 * 60 * 60 * 1000);
-    try {
-      await db.collection('promotions').add({
-        userId: userId,
-        promoText: promoText,
-        isActive: true,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        expiryDate: firebase.firestore.Timestamp.fromDate(expiry),
-      });
-      alert('✅ تم نشر الترويج بنجاح! سيظهر في الصفحة الرئيسية.');
-      document.getElementById('user-modal').style.display = 'none';
-    } catch (e) {
-      console.error('Error creating promotion:', e);
-      alert('❌ حدث خطأ: ' + e.message);
-    }
-  },
-
-  showPersonalNotifForm(userId, userName) {
-    const form = document.getElementById('personal-notif-form-' + userId);
-    if (form) form.style.display = form.style.display === 'none' ? 'block' : 'none';
-  },
-
-  async sendPersonalNotification(userId) {
-    const title = document.getElementById('personal-notif-title-' + userId)?.value.trim();
-    const body = document.getElementById('personal-notif-body-' + userId)?.value.trim();
-    if (!title || !body) { showToast('يرجى ملء العنوان والمحتوى', 'error'); return; }
-    if (!confirm('إرسال هذا التنبيه الشخصي؟')) return;
-    try {
-      await db.collection('notifications').add({
-        userId: userId,
-        title: title,
-        message: body,
-        type: 'system',
-        isRead: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        relatedId: 'personal_admin_notification'
-      });
-      showToast('تم إرسال التنبيه الشخصي بنجاح ✅');
-      document.getElementById('personal-notif-title-' + userId).value = '';
-      document.getElementById('personal-notif-body-' + userId).value = '';
-      document.getElementById('personal-notif-form-' + userId).style.display = 'none';
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  async toggleUserVerification(userId, isCurrentlyVerified) {
-    if (!confirm(isCurrentlyVerified ? 'هل أنت متأكد من نزع شارة التوثيق عن هذا المستخدم؟' : 'هل أنت متأكد من توثيق حساب هذا المستخدم؟')) return;
-    try {
-      const updateData = { 
-        isVerified: !isCurrentlyVerified,
-        verificationStatus: !isCurrentlyVerified ? 'verified' : 'none',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
-      
-      if (!isCurrentlyVerified) {
-        updateData.verifiedAt = firebase.firestore.FieldValue.serverTimestamp();
-      } else {
-        updateData.verifiedAt = null;
-      }
-      
-      await db.collection('users').doc(userId).update(updateData);
-      
-      // Notify the user
-      await db.collection('notifications').add({
-        userId: userId, 
-        type: 'system',
-        title: !isCurrentlyVerified ? 'تم توثيق حسابك! ✅' : 'إلغاء التوثيق',
-        message: !isCurrentlyVerified ? 'مبروك! تم توثيق حسابك بنجاح من قبل الإدارة.' : 'تم نزع شارة التوثيق عن حسابك بواسطة الإدارة.',
-        isRead: false, 
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      showToast(!isCurrentlyVerified ? 'تم توثيق حساب المستخدم بنجاح' : 'تم نزع شارة التوثيق');
-      document.getElementById('user-modal').style.display = 'none';
-      this.loadUsers();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  async toggleUserBan(userId, isCurrentlyBanned) {
-    if (!confirm(isCurrentlyBanned ? 'هل أنت متأكد من فك الحظر عن هذا المستخدم؟' : 'هل أنت متأكد من حظر هذا المستخدم؟')) return;
-    try {
-      const updateData = { isBanned: !isCurrentlyBanned };
-      if (!isCurrentlyBanned) {
-        // Asking for optional reason when banning
-        const reason = prompt('أدخل سبب الحظر (اختياري):', '') || null;
-        updateData.bannedAt = firebase.firestore.FieldValue.serverTimestamp();
-        updateData.bannedBy = auth.currentUser ? auth.currentUser.uid : null;
-        updateData.banReason = reason;
-      } else {
-        // Clearing ban metadata when unbanning
-        updateData.bannedAt = null;
-        updateData.bannedBy = null;
-        updateData.banReason = null;
-      }
-      await db.collection('users').doc(userId).update(updateData);
-      showToast(isCurrentlyBanned ? 'تم فك الحظر بنجاح' : 'تم حظر المستخدم بنجاح');
-      document.getElementById('user-modal').style.display = 'none';
-      this.loadUsers();
-      if (this.currentPage === 'banned') this.loadBannedUsers();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  // ── Verification ──
-  listenVerifications() {
-    db.collection('verification_requests').where('status','==','pending').onSnapshot(async snap => {
-      const badge = document.getElementById('verification-badge');
-      badge.textContent = snap.size;
-      badge.style.display = snap.size > 0 ? 'inline' : 'none';
-
-      // Get user data for each request
-      const requestsWithUsers = await Promise.all(snap.docs.map(async doc => {
-        const request = { id: doc.id, ...doc.data() };
-        try {
-          const userDoc = await db.collection('users').doc(request.userId).get();
-          const userData = userDoc.exists ? userDoc.data() : {};
-          return { ...request, user: userData };
-        } catch (e) {
-          console.error('Error fetching user for verification request:', e);
-          return { ...request, user: {} };
-        }
-      }));
-
-      this.verificationsData = requestsWithUsers;
-      this.displayVerifications(requestsWithUsers);
-
-      // Dashboard mini-list
-      const dashEl = document.getElementById('dashboard-pending-verifications');
-      if (snap.empty) { dashEl.innerHTML = '<p class="empty-state">لا توجد طلبات معلقة</p>'; return; }
-      dashEl.innerHTML = requestsWithUsers.slice(0,3).map(req => {
-        const u = req.user || {};
-        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <img style="width:40px;height:40px;border-radius:50%;object-fit:cover" src="${u.profileImageUrl||'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name||'User')+'&background=6c5ce7&color=fff'}" alt="">
-          <div style="flex:1"><strong>${u.name||'مستخدم'}</strong>${(u.isVerified || (req.user && req.user.isVerified)) ? ' <span class="verified-badge material-icons-outlined" style="font-size:16px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}<br><small style="color:var(--text-muted)">${ROLE_NAMES[u.role]||''}</small></div>
-          <button class="btn btn-sm btn-primary" onclick="AdminApp.navigateTo('verification')">مراجعة</button>
-        </div>`;
-      }).join('');
-    });
-  },
-
-  displayVerifications(requests) {
-    const el = document.getElementById('verification-list');
-    if (!requests.length) { el.innerHTML = '<p class="empty-state">لا توجد طلبات توثيق معلقة 🎉</p>'; return; }
-    el.innerHTML = requests.map(req => {
-      const u = req.user || {};
-      return `
-      <div class="verify-card">
-        <div class="verify-card-header">
-          <img src="${u.profileImageUrl||'https://ui-avatars.com/api/?name='+encodeURIComponent(u.name||'User')+'&background=6c5ce7&color=fff'}" alt="">
-          <div class="verify-card-info"><h4>${u.name||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:18px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}</h4><p>${ROLE_NAMES[u.role]||u.role} — ${u.state||''} ${u.locality||''}</p><p>${u.phoneNumber||u.email||''}</p></div>
-        </div>
-        <div class="verify-card-body">
-          <div style="display: flex; gap: 10px; overflow-x: auto;">
-            ${u.idCardUrl ? `<div><p style="margin:0;font-size:12px;font-weight:bold;">الهوية:</p><img class="verify-id-image" style="max-width: 150px; cursor: pointer; border-radius: 8px;" src="${u.idCardUrl}" onclick="AdminApp.previewImage('${u.idCardUrl}')" alt="صورة الهوية"></div>` : '<p class="empty-state">لم يرفق صورة هوية</p>'}
-            ${req.submittedData?.receiptUrl ? `<div><p style="margin:0;font-size:12px;font-weight:bold;">إيصال رسوم التوثيق:</p><img class="verify-id-image" style="max-width: 150px; cursor: pointer; border-radius: 8px;" src="${req.submittedData.receiptUrl}" onclick="AdminApp.previewImage('${req.submittedData.receiptUrl}')" alt="إيصال الدفع"></div>` : ''}
-          </div>
-          ${req.submittedData?.notes ? `<p><strong>ملاحظات:</strong> ${req.submittedData.notes}</p>` : ''}
-        </div>
-        <div class="verify-card-actions">
-          <button class="btn btn-success btn-sm" onclick="AdminApp.approveVerification('${req.id}')"><span class="material-icons-outlined">check</span>توثيق</button>
-          <button class="btn btn-danger btn-sm" onclick="AdminApp.rejectVerification('${req.id}')"><span class="material-icons-outlined">close</span>رفض</button>
-        </div>
-      </div>`;
-    }).join('');
-  },
-
-  filterVerificationsList() {
-    const search = document.getElementById('verification-search').value.toLowerCase();
-    if (!this.verificationsData) return;
-    let filtered = this.verificationsData;
-    if (search) {
-      filtered = filtered.filter(req => {
-        const u = req.user || {};
-        return (u.name || '').toLowerCase().includes(search) || 
-               (u.email || '').toLowerCase().includes(search) || 
-               (u.state || '').toLowerCase().includes(search) || 
-               (u.locality || '').toLowerCase().includes(search);
-      });
-    }
-    this.displayVerifications(filtered);
-  },
-
-  async approveVerification(requestId) {
-    if (!confirm('هل تريد توثيق هذا الحساب؟')) return;
-
-    try {
-      // Get the verification request
-      const requestDoc = await db.collection('verification_requests').doc(requestId).get();
-      if (!requestDoc.exists) {
-        showToast('طلب التوثيق غير موجود', 'error');
-        return;
-      }
-
-      const requestData = requestDoc.data();
-      const userId = requestData.userId;
-
-      // Update verification request
-      await db.collection('verification_requests').doc(requestId).update({
-        status: 'approved',
-        reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Update user document
-      await db.collection('users').doc(userId).update({
-        isVerified: true,
-        verifiedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        verificationStatus: 'verified',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Send notification
-      await db.collection('notifications').add({
-        userId: userId, type: 'system',
-        title: 'تم توثيق حسابك! ✅',
-        message: 'مبروك! تم توثيق حسابك بنجاح. ستظهر شارة التحقق على ملفك الآن.',
-        isRead: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      showToast('تم توثيق الحساب بنجاح');
-    } catch (error) {
-      console.error('Error approving verification:', error);
-      showToast('حدث خطأ أثناء توثيق الحساب', 'error');
-    }
-  },
-
-  async rejectVerification(requestId) {
-    if (!confirm('هل تريد رفض طلب التوثيق؟')) return;
-
-    try {
-      // Get the verification request
-      const requestDoc = await db.collection('verification_requests').doc(requestId).get();
-      if (!requestDoc.exists) {
-        showToast('طلب التوثيق غير موجود', 'error');
-        return;
-      }
-
-      const requestData = requestDoc.data();
-      const userId = requestData.userId;
-
-      // Update verification request
-      await db.collection('verification_requests').doc(requestId).update({
-        status: 'rejected',
-        reviewedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Update user document (don't set isVerified to false, just update status)
-      await db.collection('users').doc(userId).update({
-        verificationStatus: 'rejected',
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Send notification
-      await db.collection('notifications').add({
-        userId: userId, type: 'system',
-        title: 'طلب التوثيق',
-        message: 'عذراً، تم رفض طلب التوثيق. تأكد من وضوح صورة الهوية وإعادة المحاولة.',
-        isRead: false, createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      showToast('تم رفض الطلب');
-    } catch (error) {
-      console.error('Error rejecting verification:', error);
-      showToast('حدث خطأ أثناء رفض الطلب', 'error');
-    }
-  },
-
-  // ── OTP Requests ──
-  otpData: [],
-  listenOtpRequests() {
-    db.collection('otp_codes').where('deliveryStatus', '==', 'pending_admin').onSnapshot(snap => {
-      const badge = document.getElementById('otp-badge');
-      if (snap.empty) {
-        badge.style.display = 'none';
-        this.otpData = [];
-        this.displayOtpRequests([]);
-        return;
-      }
-      badge.textContent = snap.size;
-      badge.style.display = 'inline';
-      
-      const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      // Sort by createdAt desc manually since we don't have a composite index
-      requests.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
-      
-      this.otpData = requests;
-      this.displayOtpRequests(this.otpData);
-    }, error => {
-      console.error('Error listening to OTP requests:', error);
-    });
-  },
-
-  displayOtpRequests(requests) {
-    const el = document.getElementById('otp-list');
-    if (!el) return;
-    if (!requests || requests.length === 0) {
-      el.innerHTML = '<p class="empty-state">لا توجد طلبات أكواد تحقق معلقة</p>';
-      return;
-    }
-
-    let html = '';
-    requests.forEach(req => {
-      const timeStr = timeAgo(req.createdAt);
-      // Remove + and leading zeros to format for wa.me
-      let phoneForWa = req.phoneNumber || '';
-      if (phoneForWa.startsWith('+')) phoneForWa = phoneForWa.substring(1);
-      
-      const msg = encodeURIComponent(`كود التحقق الخاص بك في منصة سودان فري هو: ${req.otp}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.`);
-      const waLink = `https://wa.me/${phoneForWa}?text=${msg}`;
-
-      html += `
-        <div class="card fade-in">
-          <div class="card-body">
-            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
-              <strong>رقم الهاتف: <span dir="ltr">${req.phoneNumber}</span></strong>
-              <div>
-                <span class="badge" style="background: ${req.channel === 'whatsapp' ? '#25D366' : '#1976D2'}; margin-left: 5px;">
-                  ${req.channel === 'whatsapp' ? 'واتساب' : 'SMS'}
-                </span>
-                <span class="badge" style="background:#ff9800;">بانتظار الإرسال</span>
-              </div>
-            </div>
-            <div class="detail-item"><div class="label">كود التحقق (OTP)</div><div class="value" style="font-size:24px; font-weight:bold; letter-spacing:3px; color:var(--primary);">${req.otp}</div></div>
-            <div class="detail-item"><div class="label">تاريخ الطلب</div><div class="value">${timeStr}</div></div>
-          </div>
-          <div class="card-footer" style="display:flex; gap:10px;">
-            ${req.channel === 'whatsapp' 
-              ? `<a href="${waLink}" target="_blank" class="btn btn-success" style="flex:1; text-align:center; text-decoration:none;">
-                  <span class="material-icons-outlined">chat</span> إرسال عبر الواتساب
-                 </a>` 
-              : `<a href="sms:${phoneForWa}?body=${msg}" class="btn btn-primary" style="flex:1; text-align:center; text-decoration:none;">
-                  <span class="material-icons-outlined">sms</span> إرسال رسالة SMS
-                 </a>`
-            }
-            <button class="btn btn-primary" onclick="AdminApp.markOtpSent('${req.id}')" style="flex:1;">
-              <span class="material-icons-outlined">done_all</span> تحديد كمُرسل
-            </button>
-          </div>
-        </div>
-      `;
-    });
-    el.innerHTML = html;
-  },
-
-  filterOtpList() {
-    const search = document.getElementById('otp-search').value.toLowerCase();
-    if (!this.otpData) return;
-    let filtered = this.otpData;
-    if (search) {
-      filtered = filtered.filter(req => 
-        (req.phoneNumber || '').toLowerCase().includes(search) || 
-        (req.otp || '').toLowerCase().includes(search)
-      );
-    }
-    this.displayOtpRequests(filtered);
-  },
-
-  async markOtpSent(requestId) {
-    if (!confirm('هل أنت متأكد أنك قمت بإرسال الكود للمستخدم عبر الواتساب؟')) return;
-    try {
-      await db.collection('otp_codes').doc(requestId).update({
-        deliveryStatus: 'sent',
-        sentAt: firebase.firestore.FieldValue.serverTimestamp(),
-        sentByAdmin: true
-      });
-      showToast('تم تحديد الكود كمُرسل بنجاح');
-    } catch (error) {
-      console.error('Error marking OTP as sent:', error);
-      showToast('حدث خطأ أثناء التحديث', 'error');
-    }
-  },
-
-  // ── Reports ──
-  async loadReports() {
-    const snap = await db.collection('reports').orderBy('createdAt','desc').limit(200).get();
-    this.allReports = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    this.renderReports(this.allReports);
-    // Badge
-    const pending = this.allReports.filter(r => (r.status||'pending') === 'pending').length;
-    const badge = document.getElementById('reports-badge');
-    badge.textContent = pending;
-    badge.style.display = pending > 0 ? 'inline' : 'none';
-    // Dashboard
-    const dashEl = document.getElementById('dashboard-recent-reports');
-    if (!this.allReports.length) { dashEl.innerHTML = '<p class="empty-state">لا توجد بلاغات</p>'; return; }
-    dashEl.innerHTML = this.allReports.slice(0,3).map(r => `
-      <div class="dashboard-list-item">
-        <div style="display:flex;justify-content:space-between"><strong>بلاغ ضد: ${r.reportedUserName||'مستخدم'}</strong><span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span></div>
-        <div class="item-meta">${timeAgo(r.createdAt)}</div>
-      </div>
-    `).join('');
-  },
-
-  async renderReports(reports) {
-    const el = document.getElementById('reports-list');
-    if (!reports.length) { el.innerHTML = '<p class="empty-state">لا توجد بلاغات</p>'; return; }
-    
-    // Fetch user data for both reporter and reported
-    const enriched = await Promise.all(reports.map(async r => {
-      let reportedUser = {};
-      let reporterUser = {};
-      try {
-        if (r.reportedUserId) {
-          const uDoc = await db.collection('users').doc(r.reportedUserId).get();
-          if (uDoc.exists) reportedUser = uDoc.data();
-        }
-        if (r.reporterId) {
-          const uDoc = await db.collection('users').doc(r.reporterId).get();
-          if (uDoc.exists) reporterUser = uDoc.data();
-        }
-      } catch(e) {}
-      return { ...r, _reported: reportedUser, _reporter: reporterUser };
-    }));
-
-    el.innerHTML = enriched.map(r => {
-      let partiesHtml = `
-        <div style="display:flex; flex-direction:column; gap:8px; margin:16px 0; border-top:1px solid var(--border-glass); border-bottom:1px solid var(--border-glass); padding:16px 0;">
-      `;
-
-      // Reporter
-      if (r.reporterId) {
-        const u = r._reporter;
-        const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name||r.reporterName||'U')}&background=00b894&color=fff`;
-        partiesHtml += `
-          <div style="display:flex; align-items:center; gap:12px; background:rgba(0,184,148,0.1); padding:10px; border-radius:8px; border:1px solid rgba(0,184,148,0.3);">
-            <div style="font-size:11px; font-weight:bold; color:#00b894; width:50px; flex-shrink:0;">المُبلِّغ:</div>
-            <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #00b894; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reporterId}')">
-            <div style="flex:1; min-width:0; overflow:hidden;">
-              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reporterId}')">${u.name||r.reporterName||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:14px; vertical-align:middle; margin-right:2px;">verified</span>' : ''}</div>
-              <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
-            </div>
-            <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#00b894;" onclick="AdminApp.showUserDetail('${r.reporterId}')">ملف</button>
-          </div>
-        `;
-      }
-
-      // Reported
-      if (r.reportedUserId) {
-        const u = r._reported;
-        const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name||r.reportedUserName||'U')}&background=d63031&color=fff`;
-        partiesHtml += `
-          <div style="display:flex; align-items:center; gap:12px; background:rgba(214,48,49,0.1); padding:10px; border-radius:8px; border:1px solid rgba(214,48,49,0.3);">
-            <div style="font-size:11px; font-weight:bold; color:#d63031; width:50px; flex-shrink:0;">المُشتكى<br>ضده:</div>
-            <img src="${avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:2px solid #d63031; cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">
-            <div style="flex:1; min-width:0; overflow:hidden;">
-              <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">${u.name||r.reportedUserName||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:14px; vertical-align:middle; margin-right:2px;">verified</span>' : ''}</div>
-              <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${u.phoneNumber||u.email||''}</div>
-            </div>
-            <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0; color:#d63031;" onclick="AdminApp.showUserDetail('${r.reportedUserId}')">ملف</button>
-          </div>
-        `;
-      }
-
-      partiesHtml += `</div>`;
-
-      return `
-      <div class="verify-card" style="padding:20px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-          <h4 style="margin:0; font-size:16px; display:flex; align-items:center; gap:8px;">
-            <span class="material-icons-outlined" style="color:var(--danger)">gavel</span>
-            تفاصيل البلاغ
-          </h4>
-          <span class="report-status ${r.status||'pending'}">${r.status==='reviewed'?'تمت المراجعة':r.status==='dismissed'?'مرفوض':'معلق'}</span>
-        </div>
-        
-        <div class="verify-card-body" style="padding:0; gap:8px;">
-          <p style="margin:0; font-size:14px;"><strong>السبب:</strong> ${r.reason||'لا توجد تفاصيل'}</p>
-          <p style="margin:0; color:var(--text-muted); font-size:12px;">${timeAgo(r.createdAt)}</p>
-          ${r.imageUrl ? `<div style="margin-top:12px;"><img src="${r.imageUrl}" onclick="AdminApp.previewImage('${r.imageUrl}')" style="max-width:100%; max-height:200px; border-radius:8px; border:1px solid var(--border-glass); cursor:pointer; object-fit:cover;" alt=""/></div>` : ''}
-        </div>
-
-        ${partiesHtml}
-
-        <div class="verify-card-actions" style="margin-top:0;">
-          ${(r.status||'pending')==='pending' ? `
-            <button class="btn btn-sm btn-success" onclick="AdminApp.updateReport('${r.id}','reviewed')"><span class="material-icons-outlined">check</span>تمت المراجعة</button>
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.updateReport('${r.id}','dismissed')"><span class="material-icons-outlined">close</span>رفض</button>
-          ` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  },
-
-  filterReports() {
-    const status = document.getElementById('reports-status-filter').value;
-    let filtered = this.allReports;
-    if (status) filtered = filtered.filter(r => (r.status||'pending') === status);
-    this.renderReports(filtered);
-  },
-
-  async updateReport(id, status) {
-    await db.collection('reports').doc(id).update({ status, reviewedAt: firebase.firestore.FieldValue.serverTimestamp() });
-    showToast('تم تحديث البلاغ');
-    this.loadReports();
-  },
-
-  // ── Deletions ──
-  async loadDeletions() {
-    const snap = await db.collection('deletion_requests').orderBy('createdAt','desc').limit(200).get();
-    const requests = snap.docs.map(d => ({ id:d.id, ...d.data() }));
-    this.renderDeletions(requests);
-    
-    // Badge
-    const pending = requests.filter(r => (r.status||'pending') === 'pending').length;
-    const badge = document.getElementById('deletions-badge');
-    badge.textContent = pending;
-    badge.style.display = pending > 0 ? 'inline' : 'none';
-  },
-
-  async renderDeletions(requests) {
-    const el = document.getElementById('deletions-list');
-    if (!requests.length) { el.innerHTML = '<p class="empty-state">لا توجد طلبات حذف معلقة 🎉</p>'; return; }
-    // Enrich with user profile data
-    const enriched = await Promise.all(requests.map(async r => {
-      let user = {};
-      try {
-        if (r.userId) {
-          const uDoc = await db.collection('users').doc(r.userId).get();
-          if (uDoc.exists) user = uDoc.data();
-        }
-      } catch(e) {}
-      return { ...r, _user: user };
-    }));
-    el.innerHTML = enriched.map(r => {
-      const u = r._user;
-      const avatar = u.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(r.name||'U')}&background=e17055&color=fff`;
-      const jobTitle = u.jobTitle || u.skills?.join(', ') || ROLE_NAMES[u.role] || '';
-      const location = [u.locality, u.state].filter(Boolean).join(' — ') || '';
-      return `
-      <div class="verify-card">
-        <div class="verify-card-header">
-          <img src="${avatar}" alt="" style="border-color:var(--desert-orange);">
-          <div class="verify-card-info">
-            <h4>${r.name||'مستخدم'}${u.isVerified ? ' <span class="verified-badge material-icons-outlined" style="font-size:18px; vertical-align:middle; margin-right:4px;">verified</span>' : ''}</h4>
-            <p>${r.email||'بدون بريد'}${jobTitle ? ' — '+jobTitle : ''}</p>
-            ${location ? '<p>📍 '+location+'</p>' : ''}
-          </div>
-          <span class="report-status ${r.status||'pending'}" style="margin-right:auto;">${r.status==='approved'?'تم الحذف':r.status==='rejected'?'مرفوض':'معلق'}</span>
-        </div>
-        <div class="verify-card-body">
-          <p style="margin:0 0 6px;"><strong>السبب:</strong> ${r.reason||'لم يذكر'}</p>
-          <p style="margin:0;color:var(--text-muted);font-size:12px;">${timeAgo(r.createdAt)}</p>
-        </div>
-        <div class="verify-card-actions">
-          ${(r.status||'pending')==='pending' ? `
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.approveDeletion('${r.id}', '${r.userId}')"><span class="material-icons-outlined">delete</span>موافقة وحذف</button>
-            <button class="btn btn-sm btn-ghost" onclick="AdminApp.rejectDeletion('${r.id}')"><span class="material-icons-outlined">close</span>رفض الطلب</button>
-          ` : ''}
-        </div>
-      </div>`;
-    }).join('');
-  },
-
-  async approveDeletion(reqId, userId) {
-    if (!confirm('هل أنت متأكد من حذف حساب هذا المستخدم نهائياً؟ ستُحذف جميع بياناته.')) return;
-    try {
-      const result = await deleteUserAccount({ userId });
-      if (result?.data?.success) {
-        await db.collection('deletion_requests').doc(reqId).update({ status: 'approved', processedAt: firebase.firestore.FieldValue.serverTimestamp() });
-        showToast('تمت الموافقة وحذف بيانات المستخدم بنجاح');
-        this.loadDeletions();
-        this.loadUsers();
-      } else {
-        throw new Error('Failed to delete account');
-      }
-    } catch (e) {
-      console.error('approveDeletion error', e);
-      showToast('حدث خطأ أثناء الحذف: ' + (e.message || e), 'error');
-    }
-  },
-
-  async rejectDeletion(reqId) {
-    if (!confirm('هل تريد رفض طلب الحذف؟')) return;
-    try {
-      await db.collection('deletion_requests').doc(reqId).update({ status: 'rejected', processedAt: firebase.firestore.FieldValue.serverTimestamp() });
-      showToast('تم رفض طلب الحذف');
-      this.loadDeletions();
-    } catch (e) {
-      showToast('حدث خطأ: ' + e.message, 'error');
-    }
-  },
-
-  // ── Admins Management ──
-  async loadAdmins() {
-    const snap = await db.collection('users').where('role', '==', 'admin').get();
-    const tbody = document.getElementById('admins-tbody');
-    if (snap.empty) {
-      tbody.innerHTML = '<tr><td colspan="3" class="empty-state">لا يوجد مشرفون</td></tr>';
-      return;
-    }
-    const currentUid = auth.currentUser.uid;
-    tbody.innerHTML = snap.docs.map(d => {
-      const a = d.data();
-      const isMe = d.id === currentUid;
-      const isSuperAdmin = a.email === 'ja5009006@gmail.com';
-      return `
-        <tr>
-          <td><strong>${a.name || 'مشرف'}</strong> ${isMe ? '<span style="color:var(--success);font-size:12px;">(أنت)</span>' : ''} ${isSuperAdmin ? '👑' : ''}</td>
-          <td>${a.email}</td>
-          <td>
-            ${(!isMe && !isSuperAdmin) ? `<button class="btn btn-sm btn-danger" onclick="AdminApp.removeAdmin('${d.id}')">إزالة الصلاحية</button>` : '-'}
-          </td>
-        </tr>`;
-    }).join('');
-  },
-
-  async createAdmin() {
-    const email = document.getElementById('new-admin-email').value.trim();
-    const pass = document.getElementById('new-admin-pass').value.trim();
-    const name = document.getElementById('new-admin-name').value.trim();
-
-    if (!email || pass.length < 6 || !name) {
-      showToast('الرجاء إدخال بيانات صحيحة (كلمة المرور 6 أحرف على الأقل)', 'error');
-      return;
-    }
-
-    // Initialize secondary app BEFORE try block so finally can always sign it out
-    if (!window.secondaryApp) {
-      window.secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
-      await window.secondaryApp.auth().setPersistence(firebase.auth.Auth.Persistence.NONE);
-    }
-
-    try {
-      showToast('جاري إنشاء حساب المشرف...');
-      const cred = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-
-      // ✅ استخدام secondaryApp.firestore() بدلاً من db
-      // هذا يضمن أن الكتابة تتم بمصادقة المستخدم الجديد، وليس بمصادقة الأدمن الحالي
-      // مما يمنع أي تعارض مع قواعد Firestore التي تشترط تطابق uid
-      await secondaryApp.firestore().collection('users').doc(cred.user.uid).set({
-        email:     email,
-        name:      name,
-        role:      'admin',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      showToast('تم إنشاء حساب المشرف بنجاح! 🎉');
-      document.getElementById('new-admin-email').value = '';
-      document.getElementById('new-admin-pass').value = '';
-      document.getElementById('new-admin-name').value = '';
-      this.loadAdmins();
-
-    } catch (e) {
-      if (e.code === 'auth/email-already-in-use') {
-        // البريد موجود في Firebase Auth — ابحث عن وثيقة Firestore أو أنشئها
-        if (confirm('البريد الإلكتروني مسجل بالفعل. هل تريد ترقية حسابه إلى مشرف؟')) {
-          try {
-            const snap = await db.collection('users').where('email', '==', email).get();
-            if (!snap.empty) {
-              // الوثيقة موجودة → فقط حدّث الدور
-              await db.collection('users').doc(snap.docs[0].id).update({ role: 'admin', name: name });
-              showToast('تمت ترقية الحساب إلى مشرف بنجاح!');
-            } else {
-              // الوثيقة غائبة (حساب Auth موجود لكن لا سجل في Firestore)
-              // سجّل الدخول مؤقتاً عبر secondaryApp للحصول على uid ثم أنشئ الوثيقة
-              const tempCred = await secondaryApp.auth().signInWithEmailAndPassword(email, pass);
-              await secondaryApp.firestore().collection('users').doc(tempCred.user.uid).set({
-                email:     email,
-                name:      name,
-                role:      'admin',
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-              showToast('تم إنشاء سجل المشرف المفقود وترقيته بنجاح!');
-            }
-            this.loadAdmins();
-          } catch (upgradeError) {
-            showToast('خطأ أثناء الترقية: ' + upgradeError.message, 'error');
-            console.error('createAdmin upgrade error:', upgradeError);
-          }
-        }
-      } else {
-        showToast('خطأ: ' + e.message, 'error');
-        console.error('createAdmin error:', e);
-      }
-    } finally {
-      // دائماً أغلق جلسة secondaryApp لتجنب حالات المصادقة الزائفة
-      try { await secondaryApp.auth().signOut(); } catch (_) {}
-    }
-  },
-
-  async removeAdmin(uid) {
-    if (!confirm('هل أنت متأكد من إزالة صلاحية الإشراف عن هذا المستخدم؟')) return;
-    try {
-      await db.collection('users').doc(uid).update({ role: 'client' });
-      showToast('تمت إزالة الصلاحية بنجاح');
-      this.loadAdmins();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  // ── Notifications ──
-  toggleNotifFilters() {
-    const type = document.getElementById('notif-type').value;
-    document.getElementById('notif-role-group').style.display = (type==='role'||type==='role_state') ? 'block' : 'none';
-    document.getElementById('notif-state-group').style.display = (type==='state'||type==='role_state') ? 'block' : 'none';
-    document.getElementById('notif-locality-group').style.display = (type==='state'||type==='role_state') ? 'block' : 'none';
-  },
-
-  async sendNotification() {
-    const title = document.getElementById('notif-title').value.trim();
-    const body = document.getElementById('notif-body').value.trim();
-    if (!title || !body) { showToast('يرجى ملء العنوان والمحتوى','error'); return; }
-
-    const type = document.getElementById('notif-type').value;
-    let targetRole = 'all';
-    let targetState = 'all';
-    let targetLocality = 'all';
-    
-    if (type === 'role' || type === 'role_state') {
-      targetRole = document.getElementById('notif-role').value;
-    }
-    if (type === 'state' || type === 'role_state') {
-      targetState = document.getElementById('notif-state').value;
-      targetLocality = document.getElementById('notif-locality').value || 'all';
-    }
-
-    if (!confirm('هل أنت متأكد من إرسال هذا التنبيه المستهدف؟')) return;
-
-    const btn = document.querySelector('button[onclick="AdminApp.sendNotification()"]');
-    const oldText = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner"></div> جاري الإرسال...';
-    btn.disabled = true;
-
-    try {
-      let usersQuery = db.collection('users');
-      if (targetRole && targetRole !== 'all') usersQuery = usersQuery.where('role', '==', targetRole);
-      if (targetState && targetState !== 'all') usersQuery = usersQuery.where('state', '==', targetState);
-      if (targetLocality && targetLocality !== 'all') usersQuery = usersQuery.where('locality', '==', targetLocality);
-
-      const snap = await usersQuery.get();
-      if (snap.empty) {
-        showToast('لم يتم العثور على مستخدمين مطابقين لهذه المعايير', 'error');
-      } else {
-        const docs = snap.docs;
-        for (let i = 0; i < docs.length; i += 400) {
-          const batch = db.batch();
-          const chunk = docs.slice(i, i + 400);
-          chunk.forEach(doc => {
-            const notifRef = db.collection('notifications').doc();
-            batch.set(notifRef, {
-              userId: doc.id,
-              title: title,
-              message: body,
-              type: 'system',
-              isRead: false,
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              relatedId: 'bulk_notification'
-            });
-          });
-          await batch.commit();
-        }
-        showToast(`تم إرسال التنبيه إلى ${docs.length} مستخدم بنجاح`);
-      }
-      
-      document.getElementById('notif-title').value = '';
-      document.getElementById('notif-body').value = '';
-      this.loadNotifHistory();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    } finally {
-      btn.innerHTML = oldText;
-      btn.disabled = false;
-    }
-  },
-
-  async loadNotifHistory() {
-    const snap = await db.collection('bulk_notifications').orderBy('createdAt','desc').limit(20).get();
-    const el = document.getElementById('notif-history');
-    if (snap.empty) { el.innerHTML = '<p class="empty-state">لم يتم إرسال إشعارات بعد</p>'; return; }
-    el.innerHTML = snap.docs.map(d => {
-      const n = d.data();
-      return `<div style="padding:12px 0;border-bottom:1px solid var(--border)">
-        <div style="display:flex; justify-content:space-between;">
-          <strong>${n.title}</strong>
-          <button class="btn btn-sm btn-ghost" onclick="AdminApp.deleteNotificationLog('${d.id}')" style="color:red;"><span class="material-icons-outlined" style="font-size:16px;">delete</span></button>
-        </div>
-        <span style="color:var(--text-muted);font-size:13px">${n.message}</span><br>
-        <small style="color:var(--text-muted)">${timeAgo(n.createdAt)} — أُرسل لـ ${n.fcmSent || n.matchedUsers || 0} مستخدم</small>
-      </div>`;
-    }).join('');
-  },
-
-  async deleteNotificationLog(id) {
-    if (!confirm('هل أنت متأكد من حذف هذا السجل؟')) return;
-    try {
-      await db.collection('bulk_notifications').doc(id).delete();
-      this.loadNotifHistory();
-      showToast('تم حذف السجل');
-    } catch (e) {
-      showToast('خطأ في الحذف: ' + e.message, 'error');
-    }
-  },
-
-  // ── Statistics ──
-  async loadStatistics() {
-    try {
-      // 1. Total users
-      const total = await AdminApp.getCount(db.collection('users'));
-
-      // 2. Roles distribution
-      const rolesToCount = ['client', 'freelancer', 'techService', 'privateService', 'shop', 'admin'];
-      const byRole = {};
-      await Promise.all(rolesToCount.map(async (role) => {
-        byRole[role] = await AdminApp.getCount(db.collection('users').where('role', '==', role));
-      }));
-
-      // Render Role Chart
-      const roleCtx = document.getElementById('roleChart');
-      if (roleCtx) {
-        if (window.roleChartInstance) window.roleChartInstance.destroy();
-        window.roleChartInstance = new Chart(roleCtx, {
-          type: 'doughnut',
-          data: {
-            labels: Object.keys(byRole).map(k => (typeof ROLE_NAMES !== 'undefined' ? ROLE_NAMES[k] : null) || k),
-            datasets: [{
-              data: Object.values(byRole),
-              backgroundColor: ['#6c5ce7', '#00b894', '#fdcb6e', '#e17055', '#00cec9', '#74b9ff']
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { position: 'left', labels: { color: '#f8f9fa' } } }
-          }
-        });
-      }
-
-      // 3. Growth Chart (Last 7 days)
-      const last7Days = [];
-      const now = new Date();
-      // Using a loop to create promises for concurrent execution
-      const dayPromises = [];
-      for (let i = 0; i < 7; i++) {
-        const d = new Date(now);
-        d.setDate(d.getDate() - (6 - i));
-        d.setHours(0,0,0,0);
-        const nextDay = new Date(d);
-        nextDay.setDate(nextDay.getDate() + 1);
-
-        const promise = AdminApp.getCount(
-          db.collection('users')
-            .where('createdAt', '>=', d)
-            .where('createdAt', '<', nextDay)
-        ).then(count => ({
-            index: i,
-            dateStr: d.toLocaleDateString('en-GB', {day:'2-digit', month:'short'}),
-            count: count
-          }));
-        dayPromises.push(promise);
-      }
-      
-      const dayResults = await Promise.all(dayPromises);
-      dayResults.sort((a,b) => a.index - b.index);
-      dayResults.forEach(r => last7Days.push(r));
-
-      const growthCtx = document.getElementById('growthChart');
-      if (growthCtx) {
-        if (window.growthChartInstance) window.growthChartInstance.destroy();
-        window.growthChartInstance = new Chart(growthCtx, {
-          type: 'line',
-          data: {
-            labels: last7Days.map(d => d.dateStr),
-            datasets: [{
-              label: 'مستخدمين جدد',
-              data: last7Days.map(d => d.count),
-              borderColor: '#00b894', backgroundColor: 'rgba(0,184,148,0.2)', fill: true, tension: 0.4
-            }]
-          },
-          options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-              y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.1)' }, ticks: { color: '#a0aab2' } },
-              x: { grid: { display: false }, ticks: { color: '#a0aab2' } }
-            }
-          }
-        });
-      }
-
-      // 4. By state (For simplicity, we show a message or just don't load this costly one fully unless requested)
-      // Since Sudan has 18 states, doing 18 queries is okay. Let's do the top ones or just show a simplified version.
-      const states = ['ولاية الخرطوم', 'ولاية الجزيرة', 'ولاية البحر الأحمر', 'ولاية نهر النيل', 'ولاية شمال كردفان'];
-      const byState = {};
-      await Promise.all(states.map(async (state) => {
-         const count = await AdminApp.getCount(db.collection('users').where('state', '==', state));
-         if (count > 0) byState[state] = count;
-      }));
-
-      const stateEl = document.getElementById('stats-by-region');
-      if (Object.keys(byState).length > 0) {
-        stateEl.innerHTML = '<div class="bar-chart">' + Object.entries(byState).sort((a,b)=>b[1]-a[1]).map(([state,count]) => {
-          const pct = total ? Math.round(count/total*100) : 0;
-          return `<div class="bar-row"><span class="bar-label">${state}</span><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:var(--accent)">${count}</div></div></div>`;
-        }).join('') + '</div>';
-      } else {
-        stateEl.innerHTML = '<p class="empty-state">لا توجد بيانات للمناطق حالياً</p>';
-      }
-
-      // 5. Detailed stats
-      const verified = await AdminApp.getCount(db.collection('users').where('isVerified', '==', true));
-      
-      const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
-      const online = await AdminApp.getCount(db.collection('users').where('lastActive', '>=', fiveMinsAgo));
-
-      const clients = byRole.client || 0;
-      const craftsmen = byRole.freelancer || 0;
-      
-      document.getElementById('stats-grid-detailed').innerHTML = [
-        { icon:'people', label:'إجمالي المستخدمين', value:total, color:'#6c5ce7' },
-        { icon:'verified', label:'موثقون', value:verified, color:'#00cec9' },
-        { icon:'circle', label:'متصلون الآن', value:online, color:'#00b894' },
-        { icon:'person', label:'عملاء', value:clients, color:'#74b9ff' },
-        { icon:'construction', label:'حرفيين (صنايعية)', value:craftsmen, color:'#e17055' },
-        { icon:'store', label:'متاجر', value:byRole.shop||0, color:'#fdcb6e' },
-        { icon:'code', label:'تقنيين', value:byRole.techService||0, color:'#a29bfe' },
-        { icon:'room_service', label:'خدمات خاصة', value:byRole.privateService||0, color:'#fd79a8' },
-      ].map(s => `<div class="stat-card"><div class="stat-icon" style="background:${s.color}22;color:${s.color}"><span class="material-icons-outlined">${s.icon}</span></div><div><div class="stat-value">${s.value}</div><div class="stat-label">${s.label}</div></div></div>`).join('');
-      
-    } catch (error) {
-      console.error("Error loading statistics:", error);
-    }
-  },
-
-  // ── Modals ──
-  closeModal(id) { document.getElementById(id).style.display = 'none'; },
-  previewImage(url) {
-    document.getElementById('image-preview-img').src = url;
-    document.getElementById('image-modal').style.display = 'flex';
-  },
-
-  // ── Promotions Page ──
-  async loadPromotions() {
-    const container = document.getElementById('promotions-list');
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-    try {
-      const now = new Date();
-      const snap = await db.collection('promotions').orderBy('createdAt', 'desc').get();
-      if (snap.empty) {
-        container.innerHTML = '<p class="empty-state">لا توجد ترويجات حالياً</p>';
-        return;
-      }
-      const promos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const htmls = [];
-      for (const p of promos) {
-        let user = {};
-        try {
-          if (p.userId) {
-            const userDoc = await db.collection('users').doc(p.userId).get();
-            if (userDoc.exists) user = userDoc.data();
-          }
-        } catch (err) {}
-        
-        const endDate = p.expiryDate?.toDate ? p.expiryDate.toDate() : new Date(p.expiryDate || p.createdAt);
-        const isActive = endDate > now;
-        const statusClass = isActive ? 'active' : 'dismissed';
-        const statusText = isActive ? 'نشط' : 'منتهي';
-        const endStr = endDate.toLocaleDateString('ar-EG');
-        
-        const userName = user.name || user.username || p.userName || 'مستخدم';
-        const userImage = user.profileImageUrl || p.userImage || '';
-        const userProf = user.jobTitle || user.role || p.userProfession || '';
-        const userLoc = user.state || p.userLocation || '';
-        const rating = typeof user.rating === 'number' ? user.rating : (p.userRating || 0);
-        
-        htmls.push(`<div class="promo-card">
-          <div class="promo-card-header">
-            <img src="${userImage}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect fill=%22%236c5ce7%22 width=%22100%22 height=%22100%22/><text x=%2250%22 y=%2255%22 text-anchor=%22middle%22 fill=%22white%22 font-size=%2240%22>${userName.charAt(0)}</text></svg>'">
-            <div class="promo-card-info">
-              <h4>${userName}</h4>
-              <p>${userProf} — ${userLoc}</p>
-            </div>
-            <span class="report-status ${statusClass}" style="margin-right:auto;">${statusText}</span>
-          </div>
-          <div class="promo-card-body">
-            <div class="promo-text">"${p.promoText || p.promotionText || ''}"</div>
-            <div class="promo-meta">
-              <span><span class="material-icons-outlined" style="font-size:14px;">calendar_today</span> ينتهي: ${endStr}</span>
-              <span><span class="material-icons-outlined" style="font-size:14px;">star</span> التقييم: ${rating.toFixed(1)}</span>
-            </div>
-          </div>
-          <div class="promo-card-actions">
-            <button class="btn btn-sm btn-danger" onclick="AdminApp.deletePromotion('${p.id}')"><span class="material-icons-outlined">delete</span> حذف</button>
-          </div>
-        </div>`);
-      }
-      container.innerHTML = htmls.join('');
-    } catch (e) {
-      container.innerHTML = '<p class="empty-state">خطأ في تحميل الترويجات: ' + e.message + '</p>';
-    }
-  },
-
-  async deletePromotion(id) {
-    if (!confirm('هل أنت متأكد من حذف هذا الترويج؟')) return;
-    try {
-      await db.collection('promotions').doc(id).delete();
-      showToast('تم حذف الترويج بنجاح');
-      this.loadPromotions();
-    } catch (e) {
-      showToast('خطأ: ' + e.message, 'error');
-    }
-  },
-
-  // ── Contracts Page ──
-  async loadContracts() {
-    const container = document.getElementById('contracts-list');
-    container.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
-    try {
-      const snap = await db.collectionGroup('messages').where('type', '==', 'contract').orderBy('createdAt', 'desc').limit(50).get();
-      if (snap.empty) {
-        container.innerHTML = '<p class="empty-state">لا توجد عقود حتى الآن</p>';
-        return;
-      }
-      const STATUS_NAMES = { pending: 'معلق', accepted: 'مقبول', active: 'نشط', completed: 'مكتمل', cancelled: 'ملغي', rejected: 'مرفوض' };
-      const enriched = await Promise.all(snap.docs.map(async doc => {
-        const d = doc.data();
-        let parties = [];
-        try {
-          const chatDoc = await doc.ref.parent.parent.get();
-          if (chatDoc.exists) {
-            const participants = chatDoc.data().participants || [];
-            for (const uid of participants) {
-              const uDoc = await db.collection('users').doc(uid).get();
-              if (uDoc.exists) parties.push({ id: uid, ...uDoc.data() });
-            }
-          }
-        } catch(e) {}
-        return { id: doc.id, ...d, _parties: parties };
-      }));
-
-      this.allContracts = enriched;
-      this.renderContracts(this.allContracts);
-    } catch (e) {
-      container.innerHTML = '<p class="empty-state">خطأ في تحميل العقود: ' + e.message + '</p>';
-    }
-  },
-
-  renderContracts(contracts) {
-    const container = document.getElementById('contracts-list');
-    if (!contracts || !contracts.length) {
-      container.innerHTML = '<p class="empty-state">لا توجد عقود مطابقة للبحث</p>';
-      return;
-    }
-    const STATUS_NAMES = { pending: 'معلق', accepted: 'مقبول', active: 'نشط', completed: 'مكتمل', cancelled: 'ملغي', rejected: 'مرفوض' };
-    container.innerHTML = contracts.map(d => {
-      const status = d.contractStatus || d.status || 'pending';
-      const statusClass = ['active','accepted'].includes(status) ? 'active' : status === 'completed' ? 'completed' : 'cancelled';
-      const date = d.createdAt?.toDate ? d.createdAt.toDate().toLocaleDateString('ar-EG') : '';
-      const details = d.contractDetails || d.title || d.serviceType || 'عقد خدمة';
-      const displayTitle = details.length > 50 ? details.substring(0, 50) + '...' : details;
-      const price = d.contractPrice || d.agreedPrice || d.price || 'غير محدد';
-
-      let partiesHtml = '';
-      if (d._parties && d._parties.length > 0) {
-        partiesHtml = `<div style="display:flex; flex-direction:column; gap:8px; margin-top:16px; border-top:1px solid var(--border-glass); padding-top:16px;">` + 
-          d._parties.map(p => {
-            const avatar = p.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(p.name||'U')}&background=6c5ce7&color=fff`;
-            const roleName = ROLE_NAMES[p.role] || p.role || '';
-            return `
-              <div style="display:flex; align-items:center; gap:12px; background:rgba(0,0,0,0.2); padding:10px; border-radius:8px; border:1px solid var(--border-glass);">
-                <img src="${avatar}" style="width:42px; height:42px; border-radius:50%; object-fit:cover; border:2px solid var(--primary); cursor:pointer; flex-shrink:0;" onclick="AdminApp.showUserDetail('${p.id}')">
-                <div style="flex:1; min-width:0; overflow:hidden;">
-                  <div style="font-size:13px; font-weight:700; color:#fff; cursor:pointer; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" onclick="AdminApp.showUserDetail('${p.id}')">${p.name||'مستخدم'} ${p.isVerified ? '<span class="material-icons-outlined verified-badge" style="font-size:14px; vertical-align:middle;">verified</span>' : ''}</div>
-                  <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${roleName}</div>
-                  <div style="font-size:11px; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" dir="ltr" style="text-align:right;">${p.phoneNumber||p.email||''}</div>
-                </div>
-                <button class="btn btn-sm btn-ghost" style="padding:4px 8px; font-size:11px; flex-shrink:0;" onclick="AdminApp.showUserDetail('${p.id}')"><span class="material-icons-outlined" style="font-size:14px;">person</span> ملف</button>
-              </div>
-            `;
-          }).join('') + 
-        `</div>`;
-      }
-
-      return `<div class="contract-item">
-        <div class="contract-header">
-          <div style="display:flex;align-items:center;gap:8px;">
-            <span class="material-icons-outlined" style="color:var(--primary-light)">description</span>
-            <strong title="${details.replace(/"/g, '&quot;')}">${displayTitle}</strong>
-          </div>
-          <span class="contract-status ${statusClass}">${STATUS_NAMES[status] || status}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="color:var(--text-secondary);font-size:13px;">
-            <span>💰 ${price} SDG</span>
-            <span style="margin-right:16px;">📅 ${date}</span>
-          </div>
-        </div>
-        ${partiesHtml}
-      </div>`;
-    }).join('');
-  },
-
-  filterContracts() {
-    const q = (document.getElementById('contracts-search')?.value || '').toLowerCase();
-    if (!q) {
-      this.renderContracts(this.allContracts);
-      return;
-    }
-    const filtered = (this.allContracts || []).filter(c => {
-      if (!c._parties) return false;
-      return c._parties.some(p => (p.name || '').toLowerCase().includes(q));
-    });
-    this.renderContracts(filtered);
-  },
-
-  // ── Settings Page ──
-  async loadSettings() {
-    try {
-      const doc = await db.collection('app_config').doc('settings').get();
-      if (doc.exists) {
-        const d = doc.data();
-        // Links
-        if (d.playStoreUrl) document.getElementById('setting-playstore').value = d.playStoreUrl;
-        if (d.appStoreUrl) document.getElementById('setting-appstore').value = d.appStoreUrl;
-        if (d.apkUrl) document.getElementById('setting-apk').value = d.apkUrl;
-        // Policies
-        if (d.privacyUrl) document.getElementById('setting-privacy').value = d.privacyUrl;
-        if (d.termsUrl) document.getElementById('setting-terms').value = d.termsUrl;
-        if (d.supportUrl) document.getElementById('setting-support').value = d.supportUrl;
-      }
-      
-      const snap2 = await db.collection('settings').doc('app_settings').get();
-      if (snap2.exists) {
-        const d2 = snap2.data();
-        if (d2.ai_welcome_prompt) {
-          document.getElementById('setting-ai-welcome').value = d2.ai_welcome_prompt;
-        }
-        if (d2.ai_system_prompt) {
-          document.getElementById('setting-ai-system').value = d2.ai_system_prompt;
-        }
-      }
-    } catch (e) {
-      console.error('Error loading settings:', e);
-    }
-  },
-
-  async saveSettings(section) {
-    try {
-      let data = {};
-      if (section === 'links') {
-        data = {
-          playStoreUrl: document.getElementById('setting-playstore').value.trim(),
-          appStoreUrl: document.getElementById('setting-appstore').value.trim(),
-          apkUrl: document.getElementById('setting-apk').value.trim(),
-        };
-      } else if (section === 'policies') {
-        data = {
-          privacyUrl: document.getElementById('setting-privacy').value.trim(),
-          termsUrl: document.getElementById('setting-terms').value.trim(),
-          supportUrl: document.getElementById('setting-support').value.trim(),
-        };
-      } else if (section === 'ai') {
-        data = {
-          ai_welcome_prompt: document.getElementById('setting-ai-welcome').value.trim(),
-          ai_system_prompt: document.getElementById('setting-ai-system').value.trim()
-        };
-        data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-        await db.collection('settings').doc('app_settings').set(data, { merge: true });
-        showToast('تم حفظ توجيهات وقوانين الذكاء الاصطناعي بنجاح ✅');
-        return;
-      }
-      
-      data.updatedAt = firebase.firestore.FieldValue.serverTimestamp();
-      await db.collection('app_config').doc('settings').set(data, { merge: true });
-      showToast('تم حفظ الإعدادات بنجاح ✅');
-    } catch (e) {
-      showToast('خطأ في الحفظ: ' + e.message, 'error');
-    }
-  },
+    if (!confirmed) return;
+    if (id === 'admin-1') return;
+    await jhomeDb.collection('academyUsers').doc(id).delete();
+    await this.renderAcademyUsers();
+  }
 };
 
-// ── Auth State ──
+// Initialize theme immediately
+AdminApp.initTheme();
+
+// ── Auth State Listener ──
 auth.onAuthStateChanged(async user => {
   if (user) {
-    const doc = await db.collection('users').doc(user.uid).get();
-    if (doc.exists && doc.data().role === 'admin') {
-      AdminApp.showDashboard(doc.data().name || 'المشرف');
-      AdminApp.loadNotifHistory();
-      
-      // Auto-sync Jhome auth silently to prevent forced logouts on page refresh
-      const jhomeAuth = firebase.app('jhome').auth();
-      if (!jhomeAuth.currentUser && user.email === 'ja5009006@gmail.com') {
-        try {
-          await jhomeAuth.signInWithEmailAndPassword('ja5009006@gmail.com', 'Jamal@www20');
-        } catch (e) {
-          console.warn("Auto-sync Jhome login failed:", e);
-        }
+    try {
+      const doc = await db.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data().role === 'admin') {
+        AdminApp.showDashboard(doc.data().name || 'المشرف');
+        AdminApp.loadNotifHistory();
+      } else {
+        AdminApp.logout();
       }
-      
-    } else {
-      AdminApp.logout();
+    } catch (e) {
+      console.error('Auth state verification error:', e);
     }
   }
 });
@@ -1946,431 +550,49 @@ const AdminAI = {
   isOpen: false,
   toggleChat() {
     this.isOpen = !this.isOpen;
-    document.getElementById('admin-ai-window').style.display = this.isOpen ? 'flex' : 'none';
-    if (this.isOpen) document.getElementById('ai-input').focus();
+    const win = document.getElementById('admin-ai-window');
+    if (win) win.style.display = this.isOpen ? 'flex' : 'none';
+    if (this.isOpen) document.getElementById('ai-input')?.focus();
   },
   async sendMessage() {
     const inputEl = document.getElementById('ai-input');
-    const text = inputEl.value.trim();
+    const text = inputEl?.value.trim() || '';
     if (!text) return;
-    
+
     inputEl.value = '';
     this.appendMessage('user', text);
     this.appendMessage('system', 'جاري معالجة البيانات...', 'ai-loading');
 
     try {
-      // Calling Cloud Function (must be deployed to support this)
-      const func = firebase.functions().httpsCallable('adminAiAssistant');
+      const func = functions.httpsCallable('adminAiAssistant');
       const res = await func({ query: text });
-      
       this.removeMessage('ai-loading');
-      this.appendMessage('system', res.data.response || 'اكتملت العملية.');
+      this.appendMessage('system', res?.data?.response || 'اكتملت العملية.');
     } catch (e) {
-      console.error("AI Error:", e);
       this.removeMessage('ai-loading');
-      this.appendMessage('system', 'حدث خطأ أثناء التواصل مع الذكاء الاصطناعي.');
+      this.appendMessage('system', 'حدث خطأ أثناء التواصل مع المساعد الذكي.');
     }
   },
   appendMessage(role, text, id = null) {
     const container = document.getElementById('ai-messages-container');
+    if (!container) return;
     const msg = document.createElement('div');
     msg.className = `ai-msg ai-msg-${role}`;
     if (id) msg.id = id;
-    
-    // Simple bolding and line breaks for markdown
-    let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    formattedText = formattedText.replace(/\n/g, '<br>');
-    msg.innerHTML = formattedText;
-    
+
+    // Escape untrusted text before applying simple markdown bold/newlines
+    const safe = escapeHtml(text);
+    msg.innerHTML = safe
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\n/g, '<br>');
+
     container.appendChild(msg);
     container.scrollTop = container.scrollHeight;
   },
-
   removeMessage(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
+    document.getElementById(id)?.remove();
   }
 };
 
-// ── Payment Settings App ──
-const PaymentSettingsApp = {
-  async loadMethods() {
-    try {
-      const grid = document.getElementById('payment-methods-grid');
-      grid.innerHTML = '<div class="loading">جاري التحميل...</div>';
-      
-      const snap = await db.collection('admin_settings').doc('payment_methods').get();
-      const methods = snap.exists ? (snap.data().methods || []) : [];
-      
-      if (methods.length === 0) {
-        grid.innerHTML = '<div class="empty-state">لا توجد حسابات مضافة.</div>';
-        return;
-      }
-
-      let html = '';
-      methods.forEach((m, idx) => {
-        html += `
-          <div class="card" style="padding:15px; border-top:4px solid var(--primary);">
-            <div style="font-weight:bold; font-size:16px; margin-bottom:10px;">${m.bankName}</div>
-            <div style="color:var(--text-secondary); margin-bottom:5px;">اسم الحساب: ${m.accountName}</div>
-            <div style="color:var(--text-secondary); margin-bottom:15px;">رقم الحساب: ${m.accountNumber}</div>
-            <div style="text-align:left;">
-              <button class="btn btn-sm btn-danger" onclick="PaymentSettingsApp.deleteMethod(${idx})">
-                <span class="material-icons-outlined">delete</span>
-              </button>
-            </div>
-          </div>
-        `;
-      });
-      grid.innerHTML = html;
-    } catch (e) {
-      console.error(e);
-      document.getElementById('payment-methods-grid').innerHTML = '<div class="error-msg">فشل تحميل الحسابات</div>';
-    }
-  },
-  openAddModal() {
-    document.getElementById('payment-bank').value = '';
-    document.getElementById('payment-name').value = '';
-    document.getElementById('payment-number').value = '';
-    document.getElementById('payment-modal').style.display = 'flex';
-  }
-};
-
-document.getElementById('payment-method-form')?.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const bankName = document.getElementById('payment-bank').value.trim();
-  const accountName = document.getElementById('payment-name').value.trim();
-  const accountNumber = document.getElementById('payment-number').value.trim();
-  
-  if(!bankName || !accountName || !accountNumber) return;
-
-  const btn = e.target.querySelector('button[type="submit"]');
-  btn.disabled = true;
-  btn.textContent = 'جاري الحفظ...';
-
-  try {
-    const docRef = db.collection('admin_settings').doc('payment_methods');
-    const snap = await docRef.get();
-    let methods = snap.exists ? (snap.data().methods || []) : [];
-    
-    methods.push({ bankName, accountName, accountNumber });
-    
-    await docRef.set({ methods }, { merge: true });
-    
-    AdminApp.closeModal('payment-modal');
-    showToast('تمت الإضافة بنجاح', 'success');
-    PaymentSettingsApp.loadMethods();
-  } catch (err) {
-    console.error(err);
-    showToast('فشل في الحفظ', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'حفظ';
-  }
-});
-
-PaymentSettingsApp.deleteMethod = async function(index) {
-  if(!confirm('هل أنت متأكد من حذف هذا الحساب؟')) return;
-  try {
-    const docRef = db.collection('admin_settings').doc('payment_methods');
-    const snap = await docRef.get();
-    let methods = snap.exists ? (snap.data().methods || []) : [];
-    
-    methods.splice(index, 1);
-    await docRef.set({ methods }, { merge: true });
-    
-    showToast('تم الحذف', 'success');
-    PaymentSettingsApp.loadMethods();
-  } catch (err) {
-    console.error(err);
-    showToast('فشل الحذف', 'error');
-  }
-};
-
-// ── Subscriptions App ──
-const SubscriptionAdminApp = {
-  currentSubId: null,
-  currentUserId: null,
-  
-  async loadSubscriptions() {
-    try {
-      const tbody = document.getElementById('subscriptions-table-body');
-      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
-      
-      const snap = await db.collection('subscriptions').orderBy('createdAt', 'desc').limit(50).get();
-      if(snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا توجد طلبات اشتراك</td></tr>';
-        return;
-      }
-
-      let html = '';
-      for (const doc of snap.docs) {
-        const data = doc.data();
-        const d = data.createdAt ? data.createdAt.toDate() : new Date();
-        const dateStr = d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG');
-        const statusClass = data.status === 'active' ? 'badge-success' : (data.status === 'rejected' ? 'badge-danger' : 'badge-warning');
-        
-        let actions = '';
-        if (data.status === 'pending') {
-          actions = `<button class="btn btn-sm btn-primary" onclick="SubscriptionAdminApp.viewReceipt('${doc.id}', '${data.receiptUrl}', '${data.userId}')">مراجعة</button>`;
-        } else {
-          actions = `<span class="badge ${statusClass}">${data.status}</span>`;
-        }
-
-        html += `
-          <tr>
-            <td>${doc.id.substring(0,6)}...</td>
-            <td><a href="#" onclick="AdminApp.viewUser('${data.userId}')">عرض المستخدم</a></td>
-            <td>${data.plan || 'Pro'}</td>
-            <td>
-              ${data.receiptUrl ? `<a href="#" onclick="SubscriptionAdminApp.viewReceipt('${doc.id}', '${data.receiptUrl}', '${data.userId}')"><span class="material-icons-outlined">image</span> عرض</a>` : 'لا يوجد'}
-            </td>
-            <td><span class="badge ${statusClass}">${data.status === 'pending' ? 'قيد المراجعة' : (data.status==='active' ? 'مفعل' : 'مرفوض')}</span></td>
-            <td>${actions}</td>
-          </tr>
-        `;
-      }
-      tbody.innerHTML = html;
-    } catch(e) {
-      console.error(e);
-      document.getElementById('subscriptions-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
-    }
-  },
-  viewReceipt(subId, url, userId) {
-    this.currentSubId = subId;
-    this.currentUserId = userId;
-    document.getElementById('receipt-img-view').src = url;
-    document.getElementById('receipt-modal').style.display = 'flex';
-    
-    // Only show approve/reject buttons if status is not already set. Actually, always show in modal, but we'll assume the clicker wants to change it.
-    // If we wanted to hide them, we'd fetch status first. For now, assume it's for pending.
-  }
-};
-
-document.getElementById('approve-sub-btn')?.addEventListener('click', async () => {
-  const subId = SubscriptionAdminApp.currentSubId;
-  const userId = SubscriptionAdminApp.currentUserId;
-  if(!subId || !userId) return;
-
-  const btn = document.getElementById('approve-sub-btn');
-  btn.disabled = true;
-  btn.textContent = 'جاري التفعيل...';
-
-  try {
-    const validUntil = new Date();
-    validUntil.setMonth(validUntil.getMonth() + 1); // 1 Month fixed duration
-    
-    // Batch update
-    const batch = db.batch();
-    
-    const subRef = db.collection('subscriptions').doc(subId);
-    batch.update(subRef, { 
-      status: 'active',
-      validUntil: firebase.firestore.Timestamp.fromDate(validUntil),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    const userRef = db.collection('users').doc(userId);
-    batch.update(userRef, {
-      isPremium: true,
-      subscriptionExpiry: firebase.firestore.Timestamp.fromDate(validUntil)
-    });
-    
-    await batch.commit();
-    
-    showToast('تم تفعيل الاشتراك', 'success');
-    AdminApp.closeModal('receipt-modal');
-    SubscriptionAdminApp.loadSubscriptions();
-  } catch(e) {
-    console.error(e);
-    showToast('فشل تفعيل الاشتراك', 'error');
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<span class="material-icons-outlined">check</span> موافقة';
-  }
-});
-
-document.getElementById('reject-sub-btn')?.addEventListener('click', async () => {
-  const subId = SubscriptionAdminApp.currentSubId;
-  if(!subId) return;
-
-  const btn = document.getElementById('reject-sub-btn');
-  btn.disabled = true;
-  
-  try {
-    await db.collection('subscriptions').doc(subId).update({
-      status: 'rejected',
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    showToast('تم رفض الطلب', 'success');
-    AdminApp.closeModal('receipt-modal');
-    SubscriptionAdminApp.loadSubscriptions();
-  } catch(e) {
-    console.error(e);
-    showToast('فشل الرفض', 'error');
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-window.PaymentSettingsApp = PaymentSettingsApp;
-window.SubscriptionAdminApp = SubscriptionAdminApp;
+window.AdminAI = AdminAI;
 window.AdminApp = AdminApp;
-
-
-
-
-// ── Unions App ──
-const UnionsAdminApp = {
-  async loadUnions() {
-    try {
-      const tbody = document.getElementById('unions-table-body');
-      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
-      
-      const snap = await db.collection('unions').orderBy('createdAt', 'desc').get();
-      if(snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا توجد نقابات</td></tr>';
-        return;
-      }
-
-      let html = '';
-      for (const doc of snap.docs) {
-        const data = doc.data();
-        const d = data.createdAt ? data.createdAt.toDate() : new Date();
-        const dateStr = d.toLocaleDateString('ar-EG');
-        
-        html += `
-          <tr>
-            <td>${data.name || 'بدون اسم'}</td>
-            <td>${data.category || '-'}</td>
-            <td>${data.state || '-'}</td>
-            <td>${data.memberCount || 0}</td>
-            <td>${dateStr}</td>
-            <td>
-              <button class="btn btn-sm btn-danger" onclick="UnionsAdminApp.deleteUnion('${doc.id}')">حذف</button>
-            </td>
-          </tr>
-        `;
-      }
-      tbody.innerHTML = html;
-    } catch(e) {
-      console.error(e);
-      document.getElementById('unions-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
-    }
-  },
-
-  showCreateModal() {
-    document.getElementById('create-union-form').reset();
-    document.getElementById('create-union-modal').style.display = 'flex';
-  },
-
-  async createUnion() {
-    const name = document.getElementById('union-name').value;
-    const category = document.getElementById('union-category').value;
-    const state = document.getElementById('union-state').value;
-    const desc = document.getElementById('union-description').value;
-    
-    const fileInput = document.getElementById('union-cover-file');
-    const urlInput = document.getElementById('union-cover-url').value;
-
-    if (!name || !state || !desc) {
-      showToast('يرجى ملء الحقول المطلوبة', 'error');
-      return;
-    }
-
-    // Disable button to prevent double submission
-    const submitBtn = document.querySelector('#create-union-form .btn-primary');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'جاري الإنشاء...';
-
-    try {
-      let finalCoverUrl = urlInput || null;
-
-      // Handle file upload if a file was selected
-      if (fileInput.files && fileInput.files.length > 0) {
-        const file = fileInput.files[0];
-        const storageRef = firebase.storage().ref('unions_covers/' + Date.now() + '_' + file.name);
-        const snapshot = await storageRef.put(file);
-        finalCoverUrl = await snapshot.ref.getDownloadURL();
-      }
-
-      await db.collection('unions').add({
-        name: name,
-        description: desc,
-        category: category,
-        state: state,
-        coverImageUrl: finalCoverUrl,
-        adminIds: [],
-        memberIds: [],
-        memberCount: 0,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      showToast('تم إنشاء النقابة بنجاح', 'success');
-      AdminApp.closeModal('create-union-modal');
-      this.loadUnions();
-    } catch (error) {
-      console.error(error);
-      showToast('حدث خطأ أثناء الإنشاء', 'error');
-    } finally {
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'إنشاء';
-    }
-  },
-
-  async deleteUnion(id) {
-    if (!confirm('هل أنت متأكد من حذف هذه النقابة؟')) return;
-    try {
-      await db.collection('unions').doc(id).delete();
-      showToast('تم الحذف بنجاح', 'success');
-      this.loadUnions();
-    } catch (e) {
-      console.error(e);
-      showToast('خطأ في الحذف', 'error');
-    }
-  }
-};
-
-// ── Pro Users App ──
-const ProUsersAdminApp = {
-  async loadProUsers() {
-    try {
-      const tbody = document.getElementById('pro-users-table-body');
-      tbody.innerHTML = '<tr><td colspan="6" class="loading">جاري التحميل...</td></tr>';
-      
-      const snap = await db.collection('users').where('isPremium', '==', true).get();
-      if(snap.empty) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">لا يوجد مستخدمون في خطة البرو</td></tr>';
-        return;
-      }
-
-      let html = '';
-      for (const doc of snap.docs) {
-        const data = doc.data();
-        const d = data.createdAt ? data.createdAt.toDate() : new Date();
-        const dateStr = d.toLocaleDateString('ar-EG');
-        const verificationStatus = data.isVerified ? 'موثق' : 'غير موثق';
-        
-        html += `
-          <tr>
-            <td>${data.name || 'بدون اسم'}</td>
-            <td>${data.email || '-'}</td>
-            <td>${data.phoneNumber || '-'}</td>
-            <td>${verificationStatus}</td>
-            <td>${dateStr}</td>
-            <td>
-              <button class="btn btn-sm btn-primary" onclick="AdminApp.viewUser('${doc.id}')">عرض الحساب</button>
-            </td>
-          </tr>
-        `;
-      }
-      tbody.innerHTML = html;
-    } catch(e) {
-      console.error(e);
-      document.getElementById('pro-users-table-body').innerHTML = '<tr><td colspan="6" class="error-msg">حدث خطأ</td></tr>';
-    }
-  }
-};
-
-window.UnionsAdminApp = UnionsAdminApp;
-window.ProUsersAdminApp = ProUsersAdminApp;
