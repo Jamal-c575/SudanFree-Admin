@@ -5,16 +5,23 @@ const _k = ["AIzaSyA", "v1g2g21q1X_C", "o6a0L_aJ0-uH", "sU4Z-E"];
 const _jk = ["AIzaSyB", "37m84kI-lS", "xceL7uC2pC1", "lX3fL-w8n0"];
 
 const firebaseConfig = window.__FIREBASE_CONFIG__ || {
-  apiKey: _k.join(""),
-  authDomain: "sudan-free-app.firebaseapp.com",
-  projectId: "sudan-free-app",
-  storageBucket: "sudan-free-app.firebasestorage.app",
-  messagingSenderId: "847851618026",
-  appId: "1:847851618026:web:970f62d68ab2f5cf05cf9c",
-  measurementId: "G-1657526711"
+  apiKey: "AIzaSyD8y9NJNVycJLQZ0bVyRViygAIJ8uTcNIo",
+  authDomain: "sudanfree-d04fc.firebaseapp.com",
+  projectId: "sudanfree-d04fc",
+  storageBucket: "sudanfree-d04fc.firebasestorage.app",
+  messagingSenderId: "233114260",
+  appId: "1:233114260:web:de4ee3967ea04073620281",
+  measurementId: "G-B79PTFLKQF"
 };
 
 firebase.initializeApp(firebaseConfig);
+if (typeof firebase.analytics === "function" && firebaseConfig.measurementId) {
+  try {
+    firebase.analytics();
+  } catch (e) {
+    console.warn("Firebase Analytics initialization skipped:", e);
+  }
+}
 const auth = firebase.auth();
 const db = firebase.firestore();
 
