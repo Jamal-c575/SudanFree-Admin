@@ -18,9 +18,14 @@
     },
     verificationsData: [],
     otpData: [],
+    otpRecentData: [],
+    otpViewMode: 'pending',
+    otpSenderEmail: (typeof localStorage !== 'undefined' && localStorage.getItem('avyra_otp_sender_email')) || '',
     selectedOtpLangs: {},
     _verifUnsub: null,
     _otpUnsub: null,
+    _otpUiBound: false,
+    _otpConfigLoaded: false,
 
     initPaymentSelects() {
       const countryFilter = document.getElementById('payment-country-filter');
@@ -633,8 +638,157 @@
       id: { name: 'Bahasa Indonesia', isRtl: false, subject: 'Kode Verifikasi AVYRA Anda', msg: (code) => `Kode verifikasi AVYRA Anda adalah: ${code}\n\nKode ini berlaku selama 24 jam. Harap jangan bagikan kepada siapa pun.` }
     },
 
+    initOtpPage() {
+      this.initOtpEmailConfigUI();
+      if (!this._otpConfigLoaded) {
+        this.loadOtpEmailConfig();
+      } else {
+        this.updateOtpEmailShortcuts();
+      }
+      if (this.otpViewMode === 'recent') {
+        this.loadRecentOtps();
+      } else {
+        this.filterOtpList();
+      }
+    },
+
+    initOtpEmailConfigUI() {
+      if (this._otpUiBound) return;
+      this._otpUiBound = true;
+
+      const form = document.getElementById('otp-email-config-form');
+      if (form) {
+        form.addEventListener('submit', (e) => {
+          e.preventDefault();
+          this.saveOtpEmailConfig();
+        });
+      }
+
+      const senderInput = document.getElementById('otp-sender-email');
+      if (senderInput) {
+        senderInput.value = this.otpSenderEmail || '';
+        senderInput.addEventListener('input', () => {
+          senderInput.setCustomValidity('');
+          senderInput.removeAttribute('aria-invalid');
+          senderInput.style.borderColor = '';
+        });
+      }
+
+      const tabPending = document.getElementById('otp-tab-pending');
+      if (tabPending) {
+        tabPending.addEventListener('click', () => this.switchOtpView('pending'));
+      }
+
+      const tabRecent = document.getElementById('otp-tab-recent');
+      if (tabRecent) {
+        tabRecent.addEventListener('click', () => this.switchOtpView('recent'));
+      }
+
+      const channelFilter = document.getElementById('otp-channel-filter');
+      if (channelFilter) {
+        channelFilter.addEventListener('change', () => this.filterOtpList());
+      }
+
+      this.updateOtpEmailShortcuts();
+    },
+
+    async loadOtpEmailConfig() {
+      this.initOtpEmailConfigUI();
+      const cached = (typeof localStorage !== 'undefined' && localStorage.getItem('avyra_otp_sender_email')) || '';
+      if (cached && !this.otpSenderEmail) {
+        this.otpSenderEmail = cached.trim();
+        this.updateOtpEmailShortcuts();
+      }
+
+      try {
+        const doc = await db.collection('admin_settings').doc('otp_settings').get();
+        this._otpConfigLoaded = true;
+        if (doc.exists) {
+          const sender = String(doc.data()?.senderEmail || '').trim();
+          this.otpSenderEmail = sender;
+          try { localStorage.setItem('avyra_otp_sender_email', sender); } catch (_) {}
+          this.updateOtpEmailShortcuts();
+          this.filterOtpList();
+        }
+      } catch (e) {
+        console.warn('Error loading OTP sender email config:', e);
+      }
+    },
+
+    async saveOtpEmailConfig() {
+      const senderInput = document.getElementById('otp-sender-email');
+      const saveBtn = document.getElementById('otp-save-sender-btn');
+      const rawEmail = String(senderInput?.value || '').trim();
+
+      if (rawEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(rawEmail)) {
+        if (senderInput) {
+          senderInput.setAttribute('aria-invalid', 'true');
+          senderInput.style.borderColor = 'var(--danger)';
+          senderInput.setCustomValidity('يرجى إدخال بريد إلكتروني صحيح');
+          senderInput.focus();
+        }
+        showToast('يرجى إدخال بريد إلكتروني صحيح', 'warning');
+        return;
+      }
+
+      if (saveBtn) saveBtn.disabled = true;
+      try {
+        await db.collection('admin_settings').doc('otp_settings').set({
+          senderEmail: rawEmail,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        this.otpSenderEmail = rawEmail;
+        this._otpConfigLoaded = true;
+        try { localStorage.setItem('avyra_otp_sender_email', rawEmail); } catch (_) {}
+        this.updateOtpEmailShortcuts();
+        this.filterOtpList();
+        showToast(
+          rawEmail ? 'تم حفظ معرّف بريد الإرسال وتحديث روابط Gmail بنجاح' : 'تم مسح معرّف بريد الإرسال واستخدام الحساب الافتراضي',
+          'success'
+        );
+      } catch (error) {
+        console.error('Error saving OTP sender email:', error);
+        showToast('تعذر حفظ معرّف البريد: ' + error.message, 'error');
+      } finally {
+        if (saveBtn) saveBtn.disabled = false;
+      }
+    },
+
+    updateOtpEmailShortcuts() {
+      const sender = String(this.otpSenderEmail || '').trim();
+      const senderInput = document.getElementById('otp-sender-email');
+      if (senderInput && document.activeElement !== senderInput) {
+        senderInput.value = sender;
+      }
+
+      const gmailShortcut = document.getElementById('otp-open-gmail-shortcut');
+      if (gmailShortcut) {
+        gmailShortcut.href = sender
+          ? `https://mail.google.com/mail/?authuser=${encodeURIComponent(sender)}`
+          : 'https://mail.google.com/mail/';
+      }
+
+      const statusEl = document.getElementById('otp-email-config-status');
+      if (statusEl) {
+        statusEl.textContent = sender
+          ? `حساب الإرسال النشط (Gmail): ${sender}`
+          : 'سيُفتح Gmail بالحساب الافتراضي في المتصفح (أدخل بريد المشرف أعلاه لتثبيت حساب محدد).';
+      }
+    },
+
+    buildGmailComposeLink(toEmail, subject, bodyText) {
+      const sender = String(this.otpSenderEmail || '').trim();
+      const authParam = sender ? `&authuser=${encodeURIComponent(sender)}` : '';
+      return `https://mail.google.com/mail/?view=cm&fs=1&tf=cm${authParam}&to=${encodeURIComponent(toEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    },
+
+    buildMailtoLink(toEmail, subject, bodyText) {
+      return `mailto:${encodeURIComponent(toEmail)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+    },
+
     resolveOtpMeta(req) {
-      const rawTarget = String(req.email || req.phoneNumber || '').trim();
+      const rawTarget = String(req.email || req.phoneNumber || req.rawPhoneNumber || '').trim();
       const channelRaw = String(req.method || req.channel || (rawTarget.includes('@') ? 'email' : 'whatsapp')).toLowerCase();
       const isEmail = channelRaw === 'email' || req.targetType === 'email' || rawTarget.includes('@');
       const isSms = !isEmail && channelRaw === 'sms';
@@ -650,11 +804,58 @@
       const isRtl = template.isRtl !== false;
       const subject = template.subject || 'AVYRA Verification Code';
       const rawMsg = template.msg(otpCode);
+      const fallbackUserEmail = String(req.userEmail || '').trim();
 
-      return { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg };
+      return { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg, fallbackUserEmail };
+    },
+
+    _enrichOtpUserMeta(requests) {
+      const applyUserDoc = (req, uData) => {
+        if (!uData) return;
+        let changed = false;
+        if (!req.language && (uData.preferredLanguage || uData.language)) {
+          req.language = uData.preferredLanguage || uData.language;
+          changed = true;
+        }
+        if (!req.userName && uData.name) {
+          req.userName = uData.name;
+          changed = true;
+        }
+        if (!req.userEmail && uData.email) {
+          req.userEmail = uData.email;
+          changed = true;
+        }
+        if (changed) {
+          this.filterOtpList();
+        }
+      };
+
+      (requests || []).forEach(req => {
+        if (req.language && req.userName && req.userEmail) return;
+        if (req.userId) {
+          db.collection('users').doc(req.userId).get()
+            .then(uDoc => { if (uDoc.exists) applyUserDoc(req, uDoc.data()); })
+            .catch(() => {});
+        } else {
+          const targetEmail = String(req.email || (String(req.phoneNumber || '').includes('@') ? req.phoneNumber : '')).trim().toLowerCase();
+          const targetPhone = String(req.phoneNumber || '').trim();
+          if (targetEmail) {
+            db.collection('users').where('email', '==', targetEmail).limit(1).get()
+              .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
+              .catch(() => {});
+          } else if (targetPhone) {
+            db.collection('users').where('phoneNumber', '==', targetPhone).limit(1).get()
+              .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
+              .catch(() => {});
+          }
+        }
+      });
     },
 
     listenOtpRequests() {
+      this.initOtpEmailConfigUI();
+      if (!this._otpConfigLoaded) this.loadOtpEmailConfig();
+
       if (this._otpUnsub) this._otpUnsub();
       this._otpUnsub = db.collection('otp_codes')
         .where('deliveryStatus', '==', 'pending_admin')
@@ -663,7 +864,7 @@
           if (snap.empty) {
             if (badge) badge.style.display = 'none';
             this.otpData = [];
-            this.displayOtpRequests([]);
+            if (this.otpViewMode !== 'recent') this.filterOtpList();
             return;
           }
           if (badge) {
@@ -673,87 +874,132 @@
           const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
           requests.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
           this.otpData = requests;
-          this.displayOtpRequests(requests);
-
-          // إثراء الطلبات تلقائياً باللغة واسم المستخدم من ملف المستخدم إن لم تكن مسجلة مسبقاً
-          const applyUserDoc = (req, uData) => {
-            if (!uData) return;
-            let changed = false;
-            if (!req.language && (uData.preferredLanguage || uData.language)) {
-              req.language = uData.preferredLanguage || uData.language;
-              changed = true;
-            }
-            if (!req.userName && uData.name) {
-              req.userName = uData.name;
-              changed = true;
-            }
-            if (changed) {
-              this.displayOtpRequests(this.otpData);
-            }
-          };
-
-          requests.forEach(req => {
-            if (req.language && req.userName) return;
-            if (req.userId) {
-              db.collection('users').doc(req.userId).get()
-                .then(uDoc => { if (uDoc.exists) applyUserDoc(req, uDoc.data()); })
-                .catch(() => {});
-            } else {
-              const targetEmail = String(req.email || (String(req.phoneNumber || '').includes('@') ? req.phoneNumber : '')).trim().toLowerCase();
-              const targetPhone = String(req.phoneNumber || '').trim();
-              if (targetEmail) {
-                db.collection('users').where('email', '==', targetEmail).limit(1).get()
-                  .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
-                  .catch(() => {});
-              } else if (targetPhone) {
-                db.collection('users').where('phoneNumber', '==', targetPhone).limit(1).get()
-                  .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
-                  .catch(() => {});
-              }
-            }
-          });
+          if (this.otpViewMode !== 'recent') this.filterOtpList();
+          this._enrichOtpUserMeta(requests);
         }, err => console.error('Error listening to OTP requests:', err));
+    },
+
+    switchOtpView(mode) {
+      this.otpViewMode = mode === 'recent' ? 'recent' : 'pending';
+      const tabPending = document.getElementById('otp-tab-pending');
+      const tabRecent = document.getElementById('otp-tab-recent');
+      if (tabPending) {
+        tabPending.classList.toggle('active', this.otpViewMode === 'pending');
+        tabPending.setAttribute('aria-pressed', this.otpViewMode === 'pending' ? 'true' : 'false');
+      }
+      if (tabRecent) {
+        tabRecent.classList.toggle('active', this.otpViewMode === 'recent');
+        tabRecent.setAttribute('aria-pressed', this.otpViewMode === 'recent' ? 'true' : 'false');
+      }
+      if (this.otpViewMode === 'recent') {
+        this.loadRecentOtps();
+      } else {
+        this.filterOtpList();
+      }
+    },
+
+    async loadRecentOtps() {
+      const el = document.getElementById('otp-list');
+      if (el && this.otpViewMode === 'recent') {
+        el.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+      }
+      try {
+        let snap;
+        try {
+          snap = await db.collection('otp_codes').orderBy('createdAt', 'desc').limit(15).get();
+        } catch (_) {
+          snap = await db.collection('otp_codes').limit(15).get();
+        }
+        const requests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        requests.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        this.otpRecentData = requests;
+        if (this.otpViewMode === 'recent') {
+          this.filterOtpList();
+        }
+        this._enrichOtpUserMeta(requests);
+      } catch (err) {
+        console.error('Error loading recent OTP requests:', err);
+        showToast('تعذر تحميل سجل أكواد التحقق: ' + err.message, 'error');
+        if (this.otpViewMode === 'recent') this.displayOtpRequests([]);
+      }
+    },
+
+    findOtpRequest(reqId) {
+      return (this.otpData || []).find(r => r.id === reqId)
+        || (this.otpRecentData || []).find(r => r.id === reqId)
+        || null;
     },
 
     changeOtpLang(reqId, lang) {
       this.selectedOtpLangs[reqId] = lang;
-      this.displayOtpRequests(this.otpData);
+      this.filterOtpList();
     },
 
-    async copyOtpMessage(reqId) {
-      const req = (this.otpData || []).find(r => r.id === reqId);
-      if (!req) return;
-      const { rawMsg } = this.resolveOtpMeta(req);
+    async _copyTextToClipboard(text, successMsg) {
+      const val = String(text || '');
+      if (!val) return;
       try {
-        await navigator.clipboard.writeText(rawMsg);
-        showToast('تم نسخ نص الرسالة المترجمة بنجاح', 'success');
+        await navigator.clipboard.writeText(val);
+        showToast(successMsg, 'success');
       } catch (_) {
         const ta = document.createElement('textarea');
-        ta.value = rawMsg;
+        ta.value = val;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
         document.body.removeChild(ta);
-        showToast('تم نسخ نص الرسالة المترجمة بنجاح', 'success');
+        showToast(successMsg, 'success');
       }
+    },
+
+    copyOtpMessage(reqId) {
+      const req = this.findOtpRequest(reqId);
+      if (!req) return;
+      const { rawMsg } = this.resolveOtpMeta(req);
+      return this._copyTextToClipboard(rawMsg, 'تم نسخ نص الرسالة المترجمة بنجاح');
+    },
+
+    copyOtpTarget(reqId) {
+      const req = this.findOtpRequest(reqId);
+      if (!req) return;
+      const { rawTarget, isEmail } = this.resolveOtpMeta(req);
+      return this._copyTextToClipboard(rawTarget, isEmail ? 'تم نسخ البريد الإلكتروني بنجاح' : 'تم نسخ رقم الهاتف بنجاح');
+    },
+
+    copyOtpCode(reqId) {
+      const req = this.findOtpRequest(reqId);
+      if (!req) return;
+      const { otpCode } = this.resolveOtpMeta(req);
+      return this._copyTextToClipboard(otpCode, 'تم نسخ كود التحقق بنجاح');
     },
 
     displayOtpRequests(requests) {
       const el = document.getElementById('otp-list');
       if (!el) return;
       if (!requests || !requests.length) {
-        el.innerHTML = '<p class="empty-state">لا توجد طلبات أكواد تحقق معلقة حالياً</p>';
+        const emptyText = this.otpViewMode === 'recent'
+          ? 'لا توجد طلبات أكواد تحقق مطابقة في السجل الأخير'
+          : 'لا توجد طلبات أكواد تحقق معلقة حالياً (يمكنك التبديل إلى «السجل الأخير» أعلاه لعرض أو إعادة إرسال الأكواد السابقة)';
+        el.innerHTML = `<p class="empty-state">${escapeHtml(emptyText)}</p>`;
         return;
       }
 
       el.innerHTML = requests.map(req => {
         const timeStr = timeAgo(req.createdAt);
-        const { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg } = this.resolveOtpMeta(req);
+        const { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg, fallbackUserEmail } = this.resolveOtpMeta(req);
         const phoneForWa = rawTarget.replace(/^\+/, '').replace(/[^0-9]/g, '');
         const userName = req.userName || req.name || null;
         const msgEncoded = encodeURIComponent(rawMsg);
+        const isPendingAdmin = req.deliveryStatus === 'pending_admin';
+        const isVerified = req.status === 'verified' || req.used === true;
+        const isSent = req.deliveryStatus === 'sent' || req.deliveryStatus === 'sent_manual';
 
+        const statusClass = isVerified ? 'reviewed' : (isSent ? 'info' : 'pending');
+        const statusLabel = isVerified ? 'تم التحقق ✓' : (isSent ? 'تم الإرسال' : 'بانتظار الإرسال');
+
+        const targetIcon = isEmail ? 'mail' : (isSms ? 'sms' : 'phone_android');
         const targetLabel = isEmail ? 'البريد الإلكتروني:' : 'رقم الهاتف:';
+        const copyTargetLabel = isEmail ? 'نسخ البريد' : 'نسخ الرقم';
         const channelNameAr = isEmail
           ? 'البريد الإلكتروني (Email)'
           : (isSms ? 'رسالة نصية (SMS)' : 'واتساب (WhatsApp)');
@@ -763,18 +1009,19 @@
 
         let actionButtonsHtml = '';
         if (isEmail) {
-          const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(rawTarget)}&su=${encodeURIComponent(subject)}&body=${msgEncoded}`;
-          const mailtoLink = `mailto:${encodeURIComponent(rawTarget)}?subject=${encodeURIComponent(subject)}&body=${msgEncoded}`;
+          const gmailLink = this.buildGmailComposeLink(rawTarget, subject, rawMsg);
+          const mailtoLink = this.buildMailtoLink(rawTarget, subject, rawMsg);
+          const confirmOnclick = isPendingAdmin
+            ? ` onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', 'email')"`
+            : '';
           actionButtonsHtml = `
-              <a href="${escapeAttr(gmailLink)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex:1; min-width:140px;"
-                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', 'email')">
+              <a href="${escapeAttr(gmailLink)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex:1; min-width:140px;"${confirmOnclick}>
                 <span class="material-icons-outlined" style="font-size:18px;">mail</span>
                 إرسال عبر Gmail
               </a>
-              <a href="${escapeAttr(mailtoLink)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"
-                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', 'email')">
+              <a href="${escapeAttr(mailtoLink)}" class="btn btn-secondary btn-sm"${confirmOnclick}>
                 <span class="material-icons-outlined" style="font-size:18px;">alternate_email</span>
-                تطبيق البريد
+                تطبيق البريد (Mail)
               </a>`;
         } else {
           const link = isSms
@@ -782,12 +1029,22 @@
             : `https://wa.me/${phoneForWa}?text=${msgEncoded}`;
           const btnClass = isSms ? 'btn-primary' : 'btn-success';
           const iconName = isSms ? 'sms' : 'chat';
+          const confirmOnclick = isPendingAdmin
+            ? ` onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', '${escapeAttr(channel)}')"`
+            : '';
           actionButtonsHtml = `
-              <a href="${escapeAttr(link)}" target="_blank" rel="noopener" class="btn ${btnClass} btn-sm" style="flex:1; min-width:140px;"
-                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', '${escapeAttr(channel)}')">
+              <a href="${escapeAttr(link)}" target="_blank" rel="noopener" class="btn ${btnClass} btn-sm" style="flex:1; min-width:140px;"${confirmOnclick}>
                 <span class="material-icons-outlined" style="font-size:18px;">${iconName}</span>
                 إرسال عبر ${isSms ? 'SMS' : 'واتساب'}
               </a>`;
+          if (fallbackUserEmail) {
+            const fallbackGmailLink = this.buildGmailComposeLink(fallbackUserEmail, subject, rawMsg);
+            actionButtonsHtml += `
+              <a href="${escapeAttr(fallbackGmailLink)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                <span class="material-icons-outlined" style="font-size:18px;">mail</span>
+                إرسال بديل عبر البريد
+              </a>`;
+          }
         }
 
         const langOptions = Object.entries(this.otpTemplates).map(([code, info]) => {
@@ -797,20 +1054,38 @@
           return `<option value="${escapeAttr(code)}" ${isSelected ? 'selected' : ''}>${escapeHtml(label)}</option>`;
         }).join('');
 
+        const senderHintHtml = isEmail && this.otpSenderEmail
+          ? `<div style="margin-top:6px; font-size:12px; color:var(--primary-light);">سيتم فتح Gmail من الحساب: <span dir="ltr">${escapeHtml(this.otpSenderEmail)}</span></div>`
+          : '';
+
         return `
           <div class="card" style="margin-bottom:16px;">
             <div class="card-body">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <strong>${targetLabel} <span dir="ltr">${escapeHtml(rawTarget)}</span></strong>
-                  ${userName ? `<div style="font-size:13px; color:var(--text-secondary); margin-top:3px;">المستخدم: <strong>${escapeHtml(userName)}</strong></div>` : ''}
+                  <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                    <span class="material-icons-outlined" style="font-size:18px; color:${channelColor};">${targetIcon}</span>
+                    <strong>${targetLabel} <span dir="ltr">${escapeHtml(rawTarget)}</span></strong>
+                    <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px; font-size:12px;" onclick="PaymentsVerificationModule.copyOtpTarget('${escapeAttr(req.id)}')">
+                      <span class="material-icons-outlined" style="font-size:14px;">content_copy</span>
+                      ${copyTargetLabel}
+                    </button>
+                  </div>
+                  ${userName ? `<div style="font-size:13px; color:var(--text-secondary); margin-top:4px;">المستخدم: <strong>${escapeHtml(userName)}</strong></div>` : ''}
+                  ${senderHintHtml}
                 </div>
-                <span class="report-status pending">بانتظار الإرسال</span>
+                <span class="report-status ${statusClass}">${escapeHtml(statusLabel)}</span>
               </div>
               <div class="detail-grid">
                 <div class="detail-item">
                   <div class="label">كود التحقق (OTP)</div>
-                  <div class="value" style="font-size:24px; font-weight:800; letter-spacing:4px; color:var(--primary-light); font-family:monospace;">${escapeHtml(otpCode)}</div>
+                  <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <div class="value" style="font-size:24px; font-weight:800; letter-spacing:4px; color:var(--primary-light); font-family:monospace;">${escapeHtml(otpCode)}</div>
+                    <button type="button" class="btn btn-ghost btn-sm" style="padding:3px 8px; font-size:12px;" onclick="PaymentsVerificationModule.copyOtpCode('${escapeAttr(req.id)}')">
+                      <span class="material-icons-outlined" style="font-size:14px;">content_copy</span>
+                      نسخ الكود
+                    </button>
+                  </div>
                 </div>
                 <div class="detail-item">
                   <div class="label">قناة الإرسال</div>
@@ -838,14 +1113,14 @@ ${escapeHtml(rawMsg)}
               <div style="margin-top:10px; font-size:12px; color:var(--text-muted);">تاريخ الطلب: ${escapeHtml(timeStr)}</div>
             </div>
             <div class="card-footer" style="display:flex; gap:8px; flex-wrap:wrap;">${actionButtonsHtml}
-              <button class="btn btn-secondary btn-sm" onclick="PaymentsVerificationModule.copyOtpMessage('${escapeAttr(req.id)}')">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="PaymentsVerificationModule.copyOtpMessage('${escapeAttr(req.id)}')">
                 <span class="material-icons-outlined" style="font-size:18px;">content_copy</span>
                 نسخ الرسالة
-              </button>
-              <button class="btn btn-ghost btn-sm" onclick="AdminApp.markOtpSent('${escapeAttr(req.id)}', '${escapeAttr(channel)}')">
+              </button>${isPendingAdmin ? `
+              <button type="button" class="btn btn-ghost btn-sm" onclick="AdminApp.markOtpSent('${escapeAttr(req.id)}', '${escapeAttr(channel)}')">
                 <span class="material-icons-outlined" style="font-size:18px;">done_all</span>
                 تأكيد الإرسال
-              </button>
+              </button>` : ''}
             </div>
           </div>
         `;
@@ -853,18 +1128,24 @@ ${escapeHtml(rawMsg)}
     },
 
     filterOtpList() {
-      const search = (document.getElementById('otp-search')?.value || '').toLowerCase();
-      if (!this.otpData) return;
-      if (!search) {
-        this.displayOtpRequests(this.otpData);
-        return;
-      }
-      const filtered = this.otpData.filter(req =>
-        String(req.phoneNumber || '').toLowerCase().includes(search) ||
-        String(req.email || '').toLowerCase().includes(search) ||
-        String(req.userName || '').toLowerCase().includes(search) ||
-        String(req.otp || '').toLowerCase().includes(search)
-      );
+      const search = (document.getElementById('otp-search')?.value || '').toLowerCase().trim();
+      const channelFilter = (document.getElementById('otp-channel-filter')?.value || 'all').toLowerCase();
+      const source = this.otpViewMode === 'recent' ? (this.otpRecentData || []) : (this.otpData || []);
+
+      const filtered = source.filter(req => {
+        if (channelFilter !== 'all') {
+          const { channel } = this.resolveOtpMeta(req);
+          if (channel !== channelFilter) return false;
+        }
+        if (!search) return true;
+        return (
+          String(req.phoneNumber || '').toLowerCase().includes(search) ||
+          String(req.email || '').toLowerCase().includes(search) ||
+          String(req.userEmail || '').toLowerCase().includes(search) ||
+          String(req.userName || '').toLowerCase().includes(search) ||
+          String(req.otp || '').toLowerCase().includes(search)
+        );
+      });
       this.displayOtpRequests(filtered);
     },
 
@@ -893,6 +1174,9 @@ ${escapeHtml(rawMsg)}
           sentByAdmin: true
         });
         showToast('تم تحديد كود التحقق كمُرسل بنجاح', 'success');
+        if (this.otpViewMode === 'recent') {
+          this.loadRecentOtps();
+        }
       } catch (error) {
         console.error('Error marking OTP as sent:', error);
         showToast('حدث خطأ أثناء التحديث: ' + error.message, 'error');

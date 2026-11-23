@@ -804,13 +804,84 @@
 
         <!-- OTP Page -->
         <section id="page-otp" class="page">
-          <div class="filters-bar">
-            <h2 style="font-size:17px;">أكواد التحقق المعلقة (OTP)</h2>
-            <div class="input-group search-input" style="margin-right:auto; max-width:320px;">
-              <span class="material-icons-outlined">search</span>
-              <input type="text" id="otp-search" placeholder="بحث برقم الهاتف أو البريد أو الكود..." oninput="AdminApp.filterOtpList()">
+          <div class="card" style="margin-bottom:18px;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+              <h3 id="otp-email-config-heading" style="margin:0; display:flex; align-items:center; gap:8px;">
+                <span class="material-icons-outlined">alternate_email</span>
+                معرّف بريد الإرسال والتوجيه للبريد الإلكتروني (Gmail / Email)
+              </h3>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <a id="otp-open-gmail-shortcut" href="https://mail.google.com/mail/" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">
+                  <span class="material-icons-outlined" style="font-size:18px;">mail</span>
+                  فتح بريد Gmail
+                </a>
+                <a id="otp-open-mailapp-shortcut" href="mailto:" class="btn btn-ghost btn-sm">
+                  <span class="material-icons-outlined" style="font-size:18px;">forward_to_inbox</span>
+                  فتح تطبيق البريد
+                </a>
+              </div>
+            </div>
+            <div class="card-body">
+              <form id="otp-email-config-form" aria-labelledby="otp-email-config-heading" novalidate>
+                <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                  <div class="form-group" style="flex:1; min-width:250px; margin-bottom:0;">
+                    <label for="otp-sender-email">معرّف البريد الإلكتروني للمرسل (حساب Gmail الذي تُرسل منه الأكواد)</label>
+                    <input
+                      type="email"
+                      id="otp-sender-email"
+                      name="senderEmail"
+                      class="text-input"
+                      style="font-size:max(1rem, 1em);"
+                      dir="ltr"
+                      autocomplete="email"
+                      autocorrect="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      enterkeyhint="done"
+                      placeholder="مثال: avyra.support@gmail.com"
+                      aria-describedby="otp-sender-email-help"
+                    >
+                    <small id="otp-sender-email-help" style="color:var(--text-muted); font-size:12px;">
+                      يتم حفظ هذا المعرّف لتوجيه روابط «إرسال عبر Gmail» مباشرة إلى حساب الإرسال الصحيح مع تعبئة المستلم والعنوان وكود التحقق تلقائياً.
+                    </small>
+                  </div>
+                  <button type="submit" id="otp-save-sender-btn" class="btn btn-primary btn-sm" style="min-height:44px;">
+                    <span class="material-icons-outlined" style="font-size:18px;">save</span>
+                    حفظ معرّف البريد
+                  </button>
+                </div>
+                <div id="otp-email-config-status" role="status" aria-live="polite" style="font-size:12px; color:var(--text-muted); margin-top:8px;"></div>
+              </form>
             </div>
           </div>
+
+          <search>
+            <div class="filters-bar" style="margin-bottom:14px;">
+              <h2 style="font-size:17px;">أكواد التحقق (OTP)</h2>
+              <div class="input-group search-input" style="margin-right:auto; max-width:320px;">
+                <span class="material-icons-outlined">search</span>
+                <input type="search" id="otp-search" placeholder="بحث برقم الهاتف أو البريد أو الكود..." oninput="AdminApp.filterOtpList()" autocorrect="off" autocapitalize="none" spellcheck="false">
+              </div>
+              <select id="otp-channel-filter" class="filter-select" aria-label="تصفية حسب قناة الإرسال">
+                <option value="all">كل القنوات</option>
+                <option value="email">البريد الإلكتروني فقط</option>
+                <option value="whatsapp">واتساب فقط</option>
+                <option value="sms">SMS فقط</option>
+              </select>
+            </div>
+          </search>
+
+          <div class="sub-tabs" role="group" aria-label="عرض طلبات أكواد التحقق" style="margin-bottom:16px;">
+            <button type="button" id="otp-tab-pending" class="sub-tab-btn active" aria-pressed="true">
+              <span class="material-icons-outlined" style="font-size:18px;">pending_actions</span>
+              المعلقة الآن (بانتظار الإرسال)
+            </button>
+            <button type="button" id="otp-tab-recent" class="sub-tab-btn" aria-pressed="false">
+              <span class="material-icons-outlined" style="font-size:18px;">history</span>
+              السجل الأخير (آخر 15 كود)
+            </button>
+          </div>
+
           <div id="otp-list" class="cards-grid"><div class="loading-spinner"><div class="spinner"></div></div></div>
         </section>
 
@@ -2477,7 +2548,7 @@
   <script src="js/AdminHelpers.js?v=11"></script>
 
   <script src="js/modules/markets.js?v=11"></script>
-  <script src="js/modules/payments-verification.js?v=14"></script>
+  <script src="js/modules/payments-verification.js?v=15"></script>
   <script src="js/modules/subscriptions.js?v=11"></script>
   <script src="js/modules/unions-squads.js?v=11"></script>
   <script src="js/modules/news.js?v=11"></script>
@@ -2490,7 +2561,7 @@
   <script src="js/modules/settings-system.js?v=11"></script>
 
   <script src="js/extras.js?v=11"></script>
-  <script src="js/app.js?v=11"></script>
+  <script src="js/app.js?v=12"></script>
   <script type="module" src="js/jhome-app.js?v=23"></script>
 </body>
 </html>

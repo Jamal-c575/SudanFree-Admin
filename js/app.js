@@ -233,7 +233,7 @@ const AdminApp = {
     if (page === 'statistics') this.loadStatistics();
     if (page === 'users') this.loadUsers();
     if (page === 'verification' && window.PaymentsVerificationModule) PaymentsVerificationModule.filterVerificationsList();
-    if (page === 'otp' && window.PaymentsVerificationModule) PaymentsVerificationModule.filterOtpList();
+    if (page === 'otp' && window.PaymentsVerificationModule) PaymentsVerificationModule.initOtpPage();
     if (page === 'unions' && window.UnionsSquadsModule) UnionsSquadsModule.loadAll();
     if (page === 'news' && window.NewsModule) NewsModule.loadNews();
     if (page === 'posts' && window.ModerationModule) ModerationModule.loadPosts();
