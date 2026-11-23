@@ -197,6 +197,12 @@
         <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('projects', this)">
           <span class="material-icons-outlined">work</span><span class="nav-text">المشاريع</span>
         </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('media', this); return false;">
+          <span class="material-icons-outlined">perm_media</span><span class="nav-text">مكتبة الوسائط</span>
+        </a>
+        <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('analytics', this); return false;">
+          <span class="material-icons-outlined">insights</span><span class="nav-text">الإحصائيات والتحليلات</span>
+        </a>
 
         <div class="nav-section-title">أكاديمية Jhome</div>
         <a href="#" class="nav-item jhome-tab-btn" onclick="JhomeApp.showTab('academy-courses', this)">
@@ -656,6 +662,12 @@
               </div>
             </div>
           </div>
+
+          <!-- Jhome: Media Library Tab -->
+          <div id="jhome-tab-media" class="jhome-tab" style="display:none;"></div>
+
+          <!-- Jhome: Analytics Hub Tab -->
+          <div id="jhome-tab-analytics" class="jhome-tab" style="display:none;"></div>
         </section>
 
         <!-- Dashboard Page -->
@@ -2562,6 +2574,6 @@
 
   <script src="js/extras.js?v=11"></script>
   <script src="js/app.js?v=12"></script>
-  <script type="module" src="js/jhome-app.js?v=23"></script>
+  <script type="module" src="js/jhome-app.js?v=24"></script>
 </body>
 </html>
