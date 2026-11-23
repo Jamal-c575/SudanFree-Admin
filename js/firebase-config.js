@@ -5,7 +5,7 @@ const _k = ["AIzaSyA", "v1g2g21q1X_C", "o6a0L_aJ0-uH", "sU4Z-E"];
 const _jk = ["AIzaSyB", "37m84kI-lS", "xceL7uC2pC1", "lX3fL-w8n0"];
 
 const firebaseConfig = window.__FIREBASE_CONFIG__ || {
-  apiKey: "AIzaSyD8y9NJNVycJLQZ0bVyRViygAIJ8uTcNIo",
+  apiKey: "AIzaSyCGdUP0ZJhFlXfmTSP4S-AvM5WMCOdih4A",
   authDomain: "sudanfree-d04fc.firebaseapp.com",
   projectId: "sudanfree-d04fc",
   storageBucket: "sudanfree-d04fc.firebasestorage.app",
