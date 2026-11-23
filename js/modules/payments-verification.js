@@ -256,12 +256,27 @@
         const doc = await db.collection('admin_settings').doc('verification_settings').get();
         if (doc.exists) {
           const d = doc.data() || {};
+          const rawCountryFees = d.countryFees && typeof d.countryFees === 'object' ? d.countryFees : {};
+          const normalizedCountryFees = {};
+          for (const [k, v] of Object.entries(rawCountryFees)) {
+            const val = Number(v.amount ?? v.fee ?? 0);
+            normalizedCountryFees[k] = {
+              ...v,
+              amount: val,
+              fee: val,
+              currency: v.currency || 'USD',
+              isFeeRequired: v.isFeeRequired !== false,
+              allowedMethods: Array.isArray(v.allowedMethods) ? v.allowedMethods : ['sms', 'whatsapp', 'email'],
+              methods: Array.isArray(v.methods) ? v.methods : ['bank_transfer', 'wallet']
+            };
+          }
           this.verificationSettings = {
             isFeeRequired: d.isFeeRequired !== false,
-            defaultFee: typeof d.defaultFee === 'number' ? d.defaultFee : 2000,
+            defaultFee: typeof d.defaultFee === 'number' ? d.defaultFee : (typeof d.defaultAmount === 'number' ? d.defaultAmount : 2000),
+            defaultAmount: typeof d.defaultAmount === 'number' ? d.defaultAmount : (typeof d.defaultFee === 'number' ? d.defaultFee : 2000),
             defaultCurrency: d.defaultCurrency || 'SDG',
             defaultMethods: Array.isArray(d.defaultMethods) ? d.defaultMethods : ['bank_transfer'],
-            countryFees: d.countryFees && typeof d.countryFees === 'object' ? d.countryFees : {}
+            countryFees: normalizedCountryFees
           };
         }
         this.renderVerificationSettings();
@@ -289,10 +304,11 @@
 
       tbody.innerHTML = entries.map(([cc, cfg]) => {
         const countryLabel = window.AvyraCatalogs ? AvyraCatalogs.getCountryName(cc) : cc;
+        const displayFee = cfg.amount ?? cfg.fee ?? 0;
         return `
           <tr>
             <td><strong>${escapeHtml(countryLabel)}</strong></td>
-            <td>${escapeHtml(cfg.fee ?? 0)}</td>
+            <td>${escapeHtml(displayFee)}</td>
             <td><span class="chip">${escapeHtml(cfg.currency || 'USD')}</span></td>
             <td>
               <button class="btn btn-sm btn-danger" onclick="PaymentSettingsApp.removeCountryFee('${escapeAttr(cc)}')">
@@ -311,7 +327,24 @@
 
       this.verificationSettings.isFeeRequired = isFeeRequired;
       this.verificationSettings.defaultFee = defaultFee;
+      this.verificationSettings.defaultAmount = defaultFee;
       this.verificationSettings.defaultCurrency = defaultCurrency;
+
+      // Ensure every countryFee entry has both amount and fee for complete mobile compatibility
+      if (this.verificationSettings.countryFees) {
+        for (const [k, v] of Object.entries(this.verificationSettings.countryFees)) {
+          const val = Number(v.amount ?? v.fee ?? 0);
+          this.verificationSettings.countryFees[k] = {
+            ...v,
+            amount: val,
+            fee: val,
+            currency: v.currency || defaultCurrency,
+            isFeeRequired: v.isFeeRequired !== false,
+            allowedMethods: Array.isArray(v.allowedMethods) ? v.allowedMethods : ['sms', 'whatsapp', 'email'],
+            methods: Array.isArray(v.methods) ? v.methods : ['bank_transfer', 'wallet']
+          };
+        }
+      }
 
       try {
         await db.collection('admin_settings').doc('verification_settings').set({
@@ -332,8 +365,11 @@
 
       this.verificationSettings.countryFees = this.verificationSettings.countryFees || {};
       this.verificationSettings.countryFees[cc] = {
-        fee,
-        currency,
+        amount: fee,
+        fee: fee,
+        currency: currency,
+        isFeeRequired: true,
+        allowedMethods: ['sms', 'whatsapp', 'email'],
         methods: ['bank_transfer', 'wallet']
       };
       this.renderVerificationSettings();
