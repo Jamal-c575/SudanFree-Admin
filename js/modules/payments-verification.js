@@ -619,18 +619,39 @@
 
     // ── Manual OTP Queue (`otp_codes`) ──
     otpTemplates: {
-      ar: { name: 'العربية', isRtl: true, msg: (code) => `كود التحقق الخاص بك في منصة AVYRA هو: ${code}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.` },
-      en: { name: 'English', isRtl: false, msg: (code) => `Your AVYRA verification code is: ${code}\n\nThis code is valid for 24 hours. Please do not share it with anyone.` },
-      fr: { name: 'Français', isRtl: false, msg: (code) => `Votre code de vérification pour AVYRA est : ${code}\n\nCe code est valide pendant 24 heures. Veuillez ne le partager avec personne.` },
-      sw: { name: 'Kiswahili', isRtl: false, msg: (code) => `Nambari yako ya uthibitisho ya AVYRA ni: ${code}\n\nNambari hii ni halali kwa saa 24. Tafadhali usimshirikishe mtu yeyote.` },
-      es: { name: 'Español', isRtl: false, msg: (code) => `Su código de verificación de AVYRA es: ${code}\n\nEste código es válido por 24 horas. Por favor, no lo comparta con nadie.` },
-      de: { name: 'Deutsch', isRtl: false, msg: (code) => `Ihr AVYRA-Bestätigungscode lautet: ${code}\n\nDieser Code ist 24 Stunden lang gültig. Bitte teilen Sie ihn mit niemandem.` },
-      tr: { name: 'Türkçe', isRtl: false, msg: (code) => `AVYRA doğrulama kodunuz: ${code}\n\nBu kod 24 saat geçerlidir. Lütfen kimseyle paylaşmayın.` },
-      ru: { name: 'Русский', isRtl: false, msg: (code) => `Ваш проверочный код AVYRA: ${code}\n\nЭтот код действителен в течение 24 часов. Пожалуйста, никому его не сообщайте.` },
-      zh: { name: '简体中文', isRtl: false, msg: (code) => `您的 AVYRA 验证码是：${code}\n\n此验证码在 24 小时内有效。请勿与他人分享。` },
-      hi: { name: 'हिन्दी', isRtl: false, msg: (code) => `आपका AVYRA सत्यापन कोड है: ${code}\n\nयह कोड 24 घंटे के लिए वैध है। कृपया इसे किसी के साथ साझा न करें।` },
-      ur: { name: 'اردو', isRtl: true, msg: (code) => `منصہ AVYRA کے لیے آپ کا تصدیقی کوڈ ہے: ${code}\n\nیہ کوڈ 24 گھنٹے کے لیے کارآمد ہے۔ براہ کرم اسے کسی کے ساتھ شیئر نہ کریں۔` },
-      id: { name: 'Bahasa Indonesia', isRtl: false, msg: (code) => `Kode verifikasi AVYRA Anda adalah: ${code}\n\nKode ini berlaku selama 24 jam. Harap jangan bagikan kepada siapa pun.` }
+      ar: { name: 'العربية', isRtl: true, subject: 'كود التحقق الخاص بك في منصة AVYRA', msg: (code) => `كود التحقق الخاص بك في منصة AVYRA هو: ${code}\n\nهذا الكود صالح لمدة 24 ساعة. الرجاء عدم مشاركته مع أحد.` },
+      en: { name: 'English', isRtl: false, subject: 'Your AVYRA Verification Code', msg: (code) => `Your AVYRA verification code is: ${code}\n\nThis code is valid for 24 hours. Please do not share it with anyone.` },
+      fr: { name: 'Français', isRtl: false, subject: 'Votre code de vérification AVYRA', msg: (code) => `Votre code de vérification pour AVYRA est : ${code}\n\nCe code est valide pendant 24 heures. Veuillez ne le partager avec personne.` },
+      sw: { name: 'Kiswahili', isRtl: false, subject: 'Nambari yako ya uthibitisho ya AVYRA', msg: (code) => `Nambari yako ya uthibitisho ya AVYRA ni: ${code}\n\nNambari hii ni halali kwa saa 24. Tafadhali usimshirikishe mtu yeyote.` },
+      es: { name: 'Español', isRtl: false, subject: 'Su código de verificación de AVYRA', msg: (code) => `Su código de verificación de AVYRA es: ${code}\n\nEste código es válido por 24 horas. Por favor, no lo comparta con nadie.` },
+      de: { name: 'Deutsch', isRtl: false, subject: 'Ihr AVYRA-Bestätigungscode', msg: (code) => `Ihr AVYRA-Bestätigungscode lautet: ${code}\n\nDieser Code ist 24 Stunden lang gültig. Bitte teilen Sie ihn mit niemandem.` },
+      tr: { name: 'Türkçe', isRtl: false, subject: 'AVYRA Doğrulama Kodunuz', msg: (code) => `AVYRA doğrulama kodunuz: ${code}\n\nBu kod 24 saat geçerlidir. Lütfen kimseyle paylaşmayın.` },
+      ru: { name: 'Русский', isRtl: false, subject: 'Ваш проверочный код AVYRA', msg: (code) => `Ваш проверочный код AVYRA: ${code}\n\nЭтот код действителен в течение 24 часов. Пожалуйста, никому его не сообщайте.` },
+      zh: { name: '简体中文', isRtl: false, subject: '您的 AVYRA 验证码', msg: (code) => `您的 AVYRA 验证码是：${code}\n\n此验证码在 24 小时内有效。请勿与他人分享。` },
+      hi: { name: 'हिन्दी', isRtl: false, subject: 'आपका AVYRA सत्यापन कोड', msg: (code) => `आपका AVYRA सत्यापन कोड है: ${code}\n\nयह कोड 24 घंटे के लिए वैध है। कृपया इसे किसी के साथ साझा न करें।` },
+      ur: { name: 'اردو', isRtl: true, subject: 'منصہ AVYRA تصدیقی کوڈ', msg: (code) => `منصہ AVYRA کے لیے آپ کا تصدیقی کوڈ ہے: ${code}\n\nیہ کوڈ 24 گھنٹے کے لیے کارآمد ہے۔ براہ کرم اسے کسی کے ساتھ شیئر نہ کریں۔` },
+      id: { name: 'Bahasa Indonesia', isRtl: false, subject: 'Kode Verifikasi AVYRA Anda', msg: (code) => `Kode verifikasi AVYRA Anda adalah: ${code}\n\nKode ini berlaku selama 24 jam. Harap jangan bagikan kepada siapa pun.` }
+    },
+
+    resolveOtpMeta(req) {
+      const rawTarget = String(req.email || req.phoneNumber || '').trim();
+      const channelRaw = String(req.method || req.channel || (rawTarget.includes('@') ? 'email' : 'whatsapp')).toLowerCase();
+      const isEmail = channelRaw === 'email' || req.targetType === 'email' || rawTarget.includes('@');
+      const isSms = !isEmail && channelRaw === 'sms';
+      const channel = isEmail ? 'email' : (isSms ? 'sms' : 'whatsapp');
+      const otpCode = String(req.otp || '');
+
+      const rawLang = req.language ? String(req.language).trim().toLowerCase().split(/[-_]/)[0] : '';
+      const hasValidReqLang = rawLang && Object.prototype.hasOwnProperty.call(this.otpTemplates, rawLang);
+      const isArabCountryPhone = rawTarget.startsWith('+249') || rawTarget.startsWith('+20') || rawTarget.startsWith('+966') || rawTarget.startsWith('+971');
+      const detectedLang = hasValidReqLang ? rawLang : (isEmail ? 'ar' : (isArabCountryPhone ? 'ar' : 'en'));
+      const currentLang = this.selectedOtpLangs[req.id] || detectedLang || 'ar';
+      const template = this.otpTemplates[currentLang] || this.otpTemplates.ar;
+      const isRtl = template.isRtl !== false;
+      const subject = template.subject || 'AVYRA Verification Code';
+      const rawMsg = template.msg(otpCode);
+
+      return { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg };
     },
 
     listenOtpRequests() {
@@ -655,25 +676,40 @@
           this.displayOtpRequests(requests);
 
           // إثراء الطلبات تلقائياً باللغة واسم المستخدم من ملف المستخدم إن لم تكن مسجلة مسبقاً
+          const applyUserDoc = (req, uData) => {
+            if (!uData) return;
+            let changed = false;
+            if (!req.language && (uData.preferredLanguage || uData.language)) {
+              req.language = uData.preferredLanguage || uData.language;
+              changed = true;
+            }
+            if (!req.userName && uData.name) {
+              req.userName = uData.name;
+              changed = true;
+            }
+            if (changed) {
+              this.displayOtpRequests(this.otpData);
+            }
+          };
+
           requests.forEach(req => {
-            if ((!req.language || !req.userName) && req.userId) {
-              db.collection('users').doc(req.userId).get().then(uDoc => {
-                if (uDoc.exists) {
-                  const uData = uDoc.data();
-                  let changed = false;
-                  if (!req.language && (uData.preferredLanguage || uData.language)) {
-                    req.language = uData.preferredLanguage || uData.language;
-                    changed = true;
-                  }
-                  if (!req.userName && uData.name) {
-                    req.userName = uData.name;
-                    changed = true;
-                  }
-                  if (changed) {
-                    this.displayOtpRequests(this.otpData);
-                  }
-                }
-              }).catch(() => {});
+            if (req.language && req.userName) return;
+            if (req.userId) {
+              db.collection('users').doc(req.userId).get()
+                .then(uDoc => { if (uDoc.exists) applyUserDoc(req, uDoc.data()); })
+                .catch(() => {});
+            } else {
+              const targetEmail = String(req.email || (String(req.phoneNumber || '').includes('@') ? req.phoneNumber : '')).trim().toLowerCase();
+              const targetPhone = String(req.phoneNumber || '').trim();
+              if (targetEmail) {
+                db.collection('users').where('email', '==', targetEmail).limit(1).get()
+                  .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
+                  .catch(() => {});
+              } else if (targetPhone) {
+                db.collection('users').where('phoneNumber', '==', targetPhone).limit(1).get()
+                  .then(qSnap => { if (!qSnap.empty) applyUserDoc(req, qSnap.docs[0].data()); })
+                  .catch(() => {});
+              }
             }
           });
         }, err => console.error('Error listening to OTP requests:', err));
@@ -687,17 +723,13 @@
     async copyOtpMessage(reqId) {
       const req = (this.otpData || []).find(r => r.id === reqId);
       if (!req) return;
-      const phoneRaw = String(req.phoneNumber || '');
-      const detectedLang = req.language || (phoneRaw.startsWith('+249') || phoneRaw.startsWith('+20') || phoneRaw.startsWith('+966') || phoneRaw.startsWith('+971') ? 'ar' : 'en');
-      const currentLang = this.selectedOtpLangs[req.id] || detectedLang || 'ar';
-      const template = this.otpTemplates[currentLang] || this.otpTemplates.ar;
-      const msg = template.msg(String(req.otp || ''));
+      const { rawMsg } = this.resolveOtpMeta(req);
       try {
-        await navigator.clipboard.writeText(msg);
+        await navigator.clipboard.writeText(rawMsg);
         showToast('تم نسخ نص الرسالة المترجمة بنجاح', 'success');
       } catch (_) {
         const ta = document.createElement('textarea');
-        ta.value = msg;
+        ta.value = rawMsg;
         document.body.appendChild(ta);
         ta.select();
         document.execCommand('copy');
@@ -716,27 +748,47 @@
 
       el.innerHTML = requests.map(req => {
         const timeStr = timeAgo(req.createdAt);
-        const channel = String(req.method || req.channel || 'whatsapp').toLowerCase();
-        const isSms = channel === 'sms';
-        const phoneRaw = String(req.phoneNumber || '');
-        const phoneForWa = phoneRaw.replace(/^\+/, '').replace(/[^0-9]/g, '');
-        const otpCode = String(req.otp || '');
+        const { rawTarget, isEmail, isSms, channel, otpCode, detectedLang, currentLang, isRtl, subject, rawMsg } = this.resolveOtpMeta(req);
+        const phoneForWa = rawTarget.replace(/^\+/, '').replace(/[^0-9]/g, '');
         const userName = req.userName || req.name || null;
-
-        // اكتشاف لغة المستخدم من حسابه أو من لغة التطبيق أو من كود الدولة
-        const detectedLang = req.language || (phoneRaw.startsWith('+249') || phoneRaw.startsWith('+20') || phoneRaw.startsWith('+966') || phoneRaw.startsWith('+971') ? 'ar' : 'en');
-        const currentLang = this.selectedOtpLangs[req.id] || detectedLang || 'ar';
-        const template = this.otpTemplates[currentLang] || this.otpTemplates.ar;
-        const isRtl = template.isRtl !== false;
-        const rawMsg = template.msg(otpCode);
         const msgEncoded = encodeURIComponent(rawMsg);
 
-        const link = isSms
-          ? `sms:${phoneRaw}?body=${msgEncoded}`
-          : `https://wa.me/${phoneForWa}?text=${msgEncoded}`;
-        const btnClass = isSms ? 'btn-primary' : 'btn-success';
-        const iconName = isSms ? 'sms' : 'chat';
-        const channelNameAr = isSms ? 'رسالة نصية (SMS)' : 'واتساب (WhatsApp)';
+        const targetLabel = isEmail ? 'البريد الإلكتروني:' : 'رقم الهاتف:';
+        const channelNameAr = isEmail
+          ? 'البريد الإلكتروني (Email)'
+          : (isSms ? 'رسالة نصية (SMS)' : 'واتساب (WhatsApp)');
+        const channelColor = isEmail
+          ? 'var(--info, #3b82f6)'
+          : (isSms ? 'var(--primary-light)' : 'var(--success)');
+
+        let actionButtonsHtml = '';
+        if (isEmail) {
+          const gmailLink = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(rawTarget)}&su=${encodeURIComponent(subject)}&body=${msgEncoded}`;
+          const mailtoLink = `mailto:${encodeURIComponent(rawTarget)}?subject=${encodeURIComponent(subject)}&body=${msgEncoded}`;
+          actionButtonsHtml = `
+              <a href="${escapeAttr(gmailLink)}" target="_blank" rel="noopener" class="btn btn-primary btn-sm" style="flex:1; min-width:140px;"
+                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', 'email')">
+                <span class="material-icons-outlined" style="font-size:18px;">mail</span>
+                إرسال عبر Gmail
+              </a>
+              <a href="${escapeAttr(mailtoLink)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm"
+                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', 'email')">
+                <span class="material-icons-outlined" style="font-size:18px;">alternate_email</span>
+                تطبيق البريد
+              </a>`;
+        } else {
+          const link = isSms
+            ? `sms:${rawTarget}?body=${msgEncoded}`
+            : `https://wa.me/${phoneForWa}?text=${msgEncoded}`;
+          const btnClass = isSms ? 'btn-primary' : 'btn-success';
+          const iconName = isSms ? 'sms' : 'chat';
+          actionButtonsHtml = `
+              <a href="${escapeAttr(link)}" target="_blank" rel="noopener" class="btn ${btnClass} btn-sm" style="flex:1; min-width:140px;"
+                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', '${escapeAttr(channel)}')">
+                <span class="material-icons-outlined" style="font-size:18px;">${iconName}</span>
+                إرسال عبر ${isSms ? 'SMS' : 'واتساب'}
+              </a>`;
+        }
 
         const langOptions = Object.entries(this.otpTemplates).map(([code, info]) => {
           const isSelected = code === currentLang;
@@ -750,7 +802,7 @@
             <div class="card-body">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
                 <div>
-                  <strong>رقم الهاتف: <span dir="ltr">${escapeHtml(phoneRaw)}</span></strong>
+                  <strong>${targetLabel} <span dir="ltr">${escapeHtml(rawTarget)}</span></strong>
                   ${userName ? `<div style="font-size:13px; color:var(--text-secondary); margin-top:3px;">المستخدم: <strong>${escapeHtml(userName)}</strong></div>` : ''}
                 </div>
                 <span class="report-status pending">بانتظار الإرسال</span>
@@ -762,7 +814,7 @@
                 </div>
                 <div class="detail-item">
                   <div class="label">قناة الإرسال</div>
-                  <div class="value" style="color:${isSms ? 'var(--primary-light)' : 'var(--success)'};">${escapeHtml(channelNameAr)}</div>
+                  <div class="value" style="color:${channelColor};">${escapeHtml(channelNameAr)}</div>
                 </div>
               </div>
 
@@ -785,12 +837,7 @@ ${escapeHtml(rawMsg)}
 
               <div style="margin-top:10px; font-size:12px; color:var(--text-muted);">تاريخ الطلب: ${escapeHtml(timeStr)}</div>
             </div>
-            <div class="card-footer" style="display:flex; gap:8px; flex-wrap:wrap;">
-              <a href="${escapeAttr(link)}" target="_blank" rel="noopener" class="btn ${btnClass} btn-sm" style="flex:1; min-width:140px;"
-                 onclick="PaymentsVerificationModule.promptOtpConfirm('${escapeAttr(req.id)}', '${escapeAttr(channel)}')">
-                <span class="material-icons-outlined" style="font-size:18px;">${iconName}</span>
-                إرسال عبر ${isSms ? 'SMS' : 'واتساب'}
-              </a>
+            <div class="card-footer" style="display:flex; gap:8px; flex-wrap:wrap;">${actionButtonsHtml}
               <button class="btn btn-secondary btn-sm" onclick="PaymentsVerificationModule.copyOtpMessage('${escapeAttr(req.id)}')">
                 <span class="material-icons-outlined" style="font-size:18px;">content_copy</span>
                 نسخ الرسالة
@@ -814,6 +861,8 @@ ${escapeHtml(rawMsg)}
       }
       const filtered = this.otpData.filter(req =>
         String(req.phoneNumber || '').toLowerCase().includes(search) ||
+        String(req.email || '').toLowerCase().includes(search) ||
+        String(req.userName || '').toLowerCase().includes(search) ||
         String(req.otp || '').toLowerCase().includes(search)
       );
       this.displayOtpRequests(filtered);
@@ -826,8 +875,10 @@ ${escapeHtml(rawMsg)}
     },
 
     async markOtpSent(requestId, channel = 'whatsapp') {
-      const isSms = String(channel).toLowerCase() === 'sms';
-      const channelAr = isSms ? 'رسالة نصية (SMS)' : 'الواتساب';
+      const ch = String(channel).toLowerCase();
+      const channelAr = ch === 'email'
+        ? 'البريد الإلكتروني'
+        : (ch === 'sms' ? 'رسالة نصية (SMS)' : 'الواتساب');
       const confirmed = await AdminDialog.confirm({
         title: 'تأكيد إرسال الكود',
         message: `هل قمت بإرسال كود التحقق للمستخدم عبر ${channelAr} بنجاح؟`,
