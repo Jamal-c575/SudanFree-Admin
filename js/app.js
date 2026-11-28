@@ -567,11 +567,70 @@ const AdminAI = {
       const func = functions.httpsCallable('adminAiAssistant');
       const res = await func({ query: text });
       this.removeMessage('ai-loading');
-      this.appendMessage('system', res?.data?.response || 'اكتملت العملية.');
+      const payload = res?.data || {};
+      this.appendMessage('system', payload.response || 'اكتملت العملية.');
+      if (payload.toolName === 'sendAdminNotification' && payload.toolResult?.needsConfirmation) {
+        this.renderNotificationConfirmation(payload.toolResult.preview);
+      }
     } catch (e) {
       this.removeMessage('ai-loading');
-      this.appendMessage('system', 'حدث خطأ أثناء التواصل مع المساعد الذكي.');
+      this.appendMessage('system', e?.message || 'حدث خطأ أثناء التواصل مع المساعد الذكي.');
     }
+  },
+  async runQuickTool(tool, label) {
+    this.appendMessage('user', label);
+    this.appendMessage('system', 'جاري تنفيذ الأداة...', 'ai-loading');
+    try {
+      const func = functions.httpsCallable('admin_AiCopilot');
+      const res = await func({ tool });
+      this.removeMessage('ai-loading');
+      const d = res?.data || {};
+      if (tool === 'getPlatformMetrics') {
+        this.appendMessage('system', `المستخدمون: ${d.totalUsers || 0} (موثقون: ${d.verifiedUsers || 0})\nالمنشورات: ${d.totalPosts || 0} | الوظائف: ${d.totalJobs || 0} | المنتجات: ${d.totalProducts || 0}`);
+      } else if (tool === 'inspectModerationQueue') {
+        const s = d.summary || {};
+        this.appendMessage('system', `توثيقات معلقة: ${s.totalPending || 0} | تقييمات مشبوهة/مبلّغة: ${s.totalFlaggedReviews || 0} | منشورات مبلّغة: ${s.totalFlaggedPosts || 0}`);
+      } else if (tool === 'analyzeActivityAndGaps') {
+        this.appendMessage('system', d.insights || 'تم التحليل بنجاح.');
+      } else {
+        this.appendMessage('system', JSON.stringify(d));
+      }
+    } catch (e) {
+      this.removeMessage('ai-loading');
+      this.appendMessage('system', e?.message || 'تعذر تنفيذ الأداة.');
+    }
+  },
+  renderNotificationConfirmation(preview) {
+    const container = document.getElementById('ai-messages-container');
+    if (!container || !preview) return;
+    const card = document.createElement('div');
+    card.className = 'ai-msg ai-msg-system';
+    const title = escapeHtml(preview.title || '');
+    const body = escapeHtml(preview.body || '');
+    const reach = Number(preview.estimatedReach || 0);
+    card.innerHTML = `<strong>معاينة الإشعار:</strong> ${title}<br>${body}<br><small>الوصول التقديري: ${reach}</small><div style="margin-top:8px; display:flex; gap:6px;"><button type="button" class="btn btn-sm btn-primary">تأكيد الإرسال</button><button type="button" class="btn btn-sm btn-ghost">إلغاء</button></div>`;
+    const [confirmBtn, cancelBtn] = card.querySelectorAll('button');
+    confirmBtn.onclick = async () => {
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      try {
+        const func = functions.httpsCallable('admin_AiCopilot');
+        const res = await func({
+          tool: 'sendAdminNotification',
+          params: { title: preview.title, body: preview.body, targetRole: preview.targetRole, confirmed: true }
+        });
+        this.appendMessage('system', `تم إرسال الإشعار (نجح: ${res?.data?.sent || 0} | فشل: ${res?.data?.failed || 0}).`);
+      } catch (err) {
+        this.appendMessage('system', err?.message || 'فشل الإرسال.');
+      }
+    };
+    cancelBtn.onclick = () => {
+      confirmBtn.disabled = true;
+      cancelBtn.disabled = true;
+      this.appendMessage('system', 'تم إلغاء الإرسال.');
+    };
+    container.appendChild(card);
+    container.scrollTop = container.scrollHeight;
   },
   appendMessage(role, text, id = null) {
     const container = document.getElementById('ai-messages-container');

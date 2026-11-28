@@ -131,8 +131,78 @@
           setVal('setting-announcement-enabled', data.announcementEnabled === true ? 'true' : 'false');
           setVal('setting-announcement', data.announcementMessage || '');
         }
+        await this.loadAiSecretConfig();
       } catch (error) {
         console.error('Error loading system_settings/config:', error);
+      }
+    },
+
+    async loadAiSecretConfig() {
+      try {
+        const fn = functions.httpsCallable('admin_AiCopilot');
+        const res = await fn({ tool: 'getAiConfigStatus' });
+        const d = res?.data || {};
+        const setVal = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+        setVal('ai-secret-masked-keys', (d.maskedKeys && d.maskedKeys.length) ? d.maskedKeys.join(', ') : 'غير مُعيّن (يستخدم .env)');
+        setVal('ai-secret-provider', d.provider || 'groq');
+        setVal('ai-secret-model-fast', d.modelFast || 'llama-3.1-8b-instant');
+        setVal('ai-secret-model-smart', d.modelSmart || 'llama-3.3-70b-versatile');
+        setVal('setting-ai-enabled', d.aiEnabled !== false ? 'true' : 'false');
+      } catch (e) {
+        console.warn('Could not load AI secret config:', e);
+      }
+    },
+
+    async saveAiSecretConfig() {
+      try {
+        const fn = functions.httpsCallable('admin_AiCopilot');
+        const payload = {
+          provider: document.getElementById('ai-secret-provider')?.value || 'groq',
+          modelFast: document.getElementById('ai-secret-model-fast')?.value.trim() || '',
+          modelSmart: document.getElementById('ai-secret-model-smart')?.value.trim() || '',
+          aiEnabled: document.getElementById('setting-ai-enabled')?.value === 'true'
+        };
+        const newKey = document.getElementById('ai-secret-key-input')?.value.trim() || '';
+        if (newKey) payload.apiKeys = newKey;
+        const res = await fn({ tool: 'updateAiConfig', params: payload });
+        const d = res?.data || {};
+        const keyInput = document.getElementById('ai-secret-key-input');
+        if (keyInput) keyInput.value = '';
+        const maskedEl = document.getElementById('ai-secret-masked-keys');
+        if (maskedEl) maskedEl.value = (d.maskedKeys && d.maskedKeys.length) ? d.maskedKeys.join(', ') : 'غير مُعيّن';
+        showToast('تم حفظ مفاتيح وإعدادات الذكاء الاصطناعي بنجاح', 'success');
+      } catch (e) {
+        showToast('فشل حفظ مفاتيح AI: ' + (e.message || e), 'error');
+      }
+    },
+
+    async testAiConnection() {
+      const statusEl = document.getElementById('ai-secret-test-status');
+      if (statusEl) statusEl.textContent = 'جاري اختبار الاتصال بمزود الذكاء الاصطناعي...';
+      try {
+        const fn = functions.httpsCallable('admin_AiCopilot');
+        const newKey = document.getElementById('ai-secret-key-input')?.value.trim() || '';
+        const res = await fn({
+          tool: 'testAiConnection',
+          params: {
+            provider: document.getElementById('ai-secret-provider')?.value || 'groq',
+            model: document.getElementById('ai-secret-model-fast')?.value.trim() || '',
+            ...(newKey ? { apiKey: newKey } : {})
+          }
+        });
+        const d = res?.data || {};
+        if (statusEl) {
+          statusEl.style.color = d.ok ? 'var(--success, #22c55e)' : 'var(--danger, #ef4444)';
+          statusEl.textContent = d.message || (d.ok ? 'الاتصال ناجح' : 'فشل الاتصال');
+        }
+        showToast(d.message || (d.ok ? 'الاتصال ناجح' : 'فشل الاتصال'), d.ok ? 'success' : 'error');
+      } catch (e) {
+        const msg = e.message || 'فشل اختبار الاتصال';
+        if (statusEl) {
+          statusEl.style.color = 'var(--danger, #ef4444)';
+          statusEl.textContent = msg;
+        }
+        showToast(msg, 'error');
       }
     },
 

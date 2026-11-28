@@ -1786,6 +1786,49 @@
               </div>
             </div>
 
+            <div class="card glass-card" style="grid-column: 1 / -1;">
+              <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3><span class="material-icons-outlined">vpn_key</span> إعدادات مفاتيح API والنماذج (system_secrets/ai_config)</h3>
+                <div style="display:flex; gap:8px;">
+                  <button class="btn btn-sm btn-ghost" onclick="SettingsSystemModule.testAiConnection()">
+                    <span class="material-icons-outlined">bolt</span> اختبار الاتصال
+                  </button>
+                  <button class="btn btn-sm btn-primary" onclick="SettingsSystemModule.saveAiSecretConfig()">
+                    <span class="material-icons-outlined">save</span> حفظ مفاتيح AI
+                  </button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div class="dashboard-row" style="gap:12px;">
+                  <div class="form-group">
+                    <label>المفاتيح الحالية (مقنّعة أمنياً)</label>
+                    <input type="text" id="ai-secret-masked-keys" class="text-input" readonly dir="ltr" placeholder="جاري التحميل...">
+                  </div>
+                  <div class="form-group">
+                    <label>مزود الذكاء الاصطناعي</label>
+                    <select id="ai-secret-provider" class="text-input">
+                      <option value="groq">Groq Cloud</option>
+                      <option value="openai">OpenAI</option>
+                      <option value="openrouter">OpenRouter</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>تحديث مفتاح API (أو عدة مفاتيح مفصولة بفاصلة)</label>
+                    <input type="password" id="ai-secret-key-input" class="text-input" dir="ltr" placeholder="اتركه فارغاً للإبقاء على المفتاح الحالي">
+                  </div>
+                  <div class="form-group">
+                    <label>النموذج السريع (Chat / Search)</label>
+                    <input type="text" id="ai-secret-model-fast" class="text-input" dir="ltr" placeholder="llama-3.1-8b-instant">
+                  </div>
+                  <div class="form-group">
+                    <label>النموذج الذكي (Analytics / Copilot)</label>
+                    <input type="text" id="ai-secret-model-smart" class="text-input" dir="ltr" placeholder="llama-3.3-70b-versatile">
+                  </div>
+                </div>
+                <div id="ai-secret-test-status" style="margin-top:8px; font-size:13px; color:var(--text-secondary);"></div>
+              </div>
+            </div>
+
             <div class="card glass-card">
               <div class="card-header"><h3><span class="material-icons-outlined">build_circle</span> حالة النظام والصيانة</h3></div>
               <div class="card-body">
@@ -2534,6 +2577,11 @@
     </div>
     <div class="ai-messages" id="ai-messages-container">
       <div class="ai-msg ai-msg-system">مرحباً بك في لوحة تحكم AVYRA! يمكنك سؤالي عن الإحصائيات، البلاغات، أو ملخص المستخدمين.</div>
+    </div>
+    <div style="display:flex; gap:6px; padding:6px 10px; flex-wrap:wrap; border-top:1px solid rgba(255,255,255,0.08);">
+      <button type="button" class="btn btn-sm btn-ghost" onclick="AdminAI.runQuickTool('getPlatformMetrics', 'إحصائيات المنصة')">إحصائيات المنصة</button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="AdminAI.runQuickTool('inspectModerationQueue', 'طابور المراجعة')">طابور المراجعة</button>
+      <button type="button" class="btn btn-sm btn-ghost" onclick="AdminAI.runQuickTool('analyzeActivityAndGaps', 'تحليل الفجوات')">تحليل الفجوات</button>
     </div>
     <div class="ai-input-area">
       <input type="text" id="ai-input" placeholder="اسألني عن الإحصائيات..." onkeypress="if(event.key==='Enter') AdminAI.sendMessage()">
